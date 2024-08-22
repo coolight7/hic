@@ -124,9 +124,12 @@ public:
   // 在 [symbolTable] 中查找符号，且是从最近/最小的作用域开始查找
   std::optional<WordItem_c> symbolTableFind(const std::string& key) {
     if (false == symbolTable.empty()) {
-      for (auto it = symbolTable.end() - 1; it != symbolTable.begin(); --it) {
+      for (auto it = symbolTable.end() - 1;; --it) {
         if (it->contains(key)) {
           return (*it)[key];
+        }
+        if (it == symbolTable.begin()) {
+          break;
         }
       }
     }
@@ -409,11 +412,16 @@ public:
     return std::nullopt;
   }
 
-  void debugPrint() {
+  void debugPrint(bool printKeyword) {
     int i = 0;
     for (const auto& table : symbolTable) {
       std::cout << i + 1 << std::endl;
       for (const auto& it : table) {
+        if (false == printKeyword && (it.second.token == WordValueToken_e::Tkeyword ||
+                                      it.second.token == WordValueToken_e::Ttype ||
+                                      it.second.token == WordValueToken_e::TnativeCall)) {
+          continue;
+        }
         for (auto j = i; j-- > 0;) {
           std::cout << "  ";
         }

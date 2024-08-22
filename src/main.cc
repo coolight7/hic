@@ -15,9 +15,9 @@ int main() {
     if (false == word.has_value()) {
       break;
     }
-    auto value = word.value();
+    auto& value = word.value();
     std ::cout << value.token << "\t" << value.name << std::endl;
   }
-  wordAnalyse.debugPrint();
+  wordAnalyse.debugPrint(false);
   return 0;
 }
