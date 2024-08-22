@@ -15,15 +15,16 @@
 
 enum WordValueToken_e {
   Tundefined,
-  Tnumber,
-  Tstring,
-  Tsign,
-  Tkeyword,
-  Ttype,
-  Tfunction,
-  TnativeCall,
-  Tid,
+  Tnumber,     // 数值
+  Tstring,     // 字符串
+  Tsign,       // 符号
+  Tkeyword,    // 关键字
+  Ttype,       // 类型
+  TnativeCall, // 内置函数
+  Tid,         // 名称
 };
+
+#define _GEN_ENUM(...)
 
 /**
  * 变量类型
@@ -38,6 +39,7 @@ enum WordValueType_e {
   Tfloat64,
   Tpointer,
   Tclass,
+  Tfunction,
 };
 
 class WordValue_c {
@@ -52,11 +54,70 @@ class WordItem_c {
 public:
   WordItem_c() : token(WordValueToken_e::Tundefined) {}
 
-  WordItem_c(WordValueToken_e in_token, const std::string& in_name)
-      : token(in_token), name(in_name) {}
+  WordItem_c(WordValueToken_e in_token) : token(in_token) {}
+
+  virtual const std::string& name() = 0;
 
   WordValueToken_e token;
-  std::string name;
+};
+
+// string
+// sign
+// id
+class WordItem_default_c : public WordItem_c {
+public:
+  WordItem_default_c(WordValueToken_e in_type, const std::string& in_value)
+      : WordItem_c(in_type), value(in_value) {}
+
+  const std::string& name() override { return value; }
+
+  std::string value;
+};
+
+class WordItem_number_c : public WordItem_c {
+public:
+  WordItem_number_c(long long in_value) : WordItem_c(WordValueToken_e::Tnumber), value(in_value) {}
+
+  const std::string& name() override { return std::to_string(value); }
+
+  long long value;
+};
+
+class WordItem_keyword_c : public WordItem_c {
+public:
+  WordItem_keyword_c(int in_value) : WordItem_c(WordValueToken_e::Tkeyword), value(in_value) {}
+
+  const std::string& name() override {
+    assert(value >= 0 && value < LexicalAnalyse_c::reserveKeywords_ctrl.size());
+    return LexicalAnalyse_c::reserveKeywords_ctrl[value];
+  }
+
+  // index
+  int value;
+};
+
+class WordItem_type_c : public WordItem_c {
+public:
+  WordItem_type_c(WordValueType_e in_value)
+      : WordItem_c(WordValueToken_e::Ttype), value(in_value) {}
+
+  const std::string& name() override { return std::to_string(value); }
+
+  WordValueType_e value;
+};
+
+class WordItem_nativeCall_c : public WordItem_c {
+public:
+  WordItem_nativeCall_c(int in_value)
+      : WordItem_c(WordValueToken_e::TnativeCall), value(in_value) {}
+
+  const std::string& name() override {
+    assert(value >= 0 && value < LexicalAnalyse_c::reserveKeywords_nativeCall.size());
+    return LexicalAnalyse_c::reserveKeywords_nativeCall[value];
+  }
+
+  // index
+  int value;
 };
 
 class LexicalAnalyse_c {
