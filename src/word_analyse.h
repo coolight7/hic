@@ -13,8 +13,9 @@
 
 enum WordValueToken_e {
   TUndefined,
-  TKeyword,
   Tnumber,
+  TString,
+  TKeyword,
   Tfunction,
   Tsyscall,
   Tid,
@@ -58,8 +59,8 @@ public:
 
 class WordAnalyse_c {
 public:
-  inline static constexpr std::string emptyString = "";
-  inline static constexpr std::array<std::string, 20> reserveKeywords = {
+  inline static const std::string emptyString{};
+  inline static const std::array<std::string, 20> reserveKeywords = {
       // 类型
       "void",
       "char",
@@ -85,7 +86,7 @@ public:
       "return",
   };
 
-  inline static constexpr std::array<std::string, 6> reserveKeywords_nativeCall = {
+  inline static const std::array<std::string, 6> reserveKeywords_nativeCall = {
       "print", "sizeof", "malloc", "free", "exit", "main",
   };
 
@@ -160,6 +161,7 @@ public:
           if ('x' == *code_it) {
             // 16进制 0x
             step = 16;
+            ++code_it;
           } else if ('1' <= *code_it && '9' >= *code_it) {
             // 8进制 077
             step = 8;
@@ -204,27 +206,60 @@ public:
           value = value * step + item;
           ++code_it;
         } while (raw_code.end() != code_it);
-        auto item = WordItem_c{WordValueToken_e::Tnumber, ""};
-        item.valuelist.push_back(WordValue_c{WordValueType_e::Tint64, value});
+        auto item = WordItem_c{WordValueToken_e::Tnumber, std::to_string(value)};
         return item;
       }
       if ('"' == it || '\'' == it) {
+        std::string value;
         const char startSign = it;
         const char* start = code_it;
         const char* end = nullptr;
         bool isShift = false; // 前一个字符是否是转义符号
-        while ((isShift || startSign != *code_it) && code_it != raw_code.end()) {
-          if ('\\' == *code_it) {
-            isShift = true;
+        for (; code_it != raw_code.end(); ++code_it) {
+          if (isShift) {
+            // 有前置转义
+            switch (*code_it) {
+            case 'r':
+            case '\r':
+              value += '\r';
+              break;
+            case 'n':
+            case '\n':
+              value += '\n';
+              break;
+            case 't':
+              value += '\t';
+              break;
+            default:
+              value += *code_it;
+              break;
+            }
+            isShift = false;
             continue;
+          } else {
+            // 无前置转义
+            if (startSign == *code_it) {
+              end = code_it;
+              ++code_it;
+              break;
+            } else if ('\n' == *code_it) {
+              // 没有前置转义且遇到换行
+              break;
+            }
           }
-          isShift = false;
+          if ('\\' == *code_it) {
+            // 非连续转义，且当前为转义
+            isShift = true;
+          } else {
+            value += *code_it;
+          }
         }
-        if (startSign != *code_it) {
+        if (nullptr == end) {
           WordPrintLine(HicLogLevel_e::Lerror, "字符串缺少右边界：{}", startSign);
           return WordItem_c{};
         } else {
-          end = code_it;
+          auto item = WordItem_c{WordValueToken_e::TString, value};
+          return item;
         }
       }
     }
@@ -233,7 +268,7 @@ public:
 
   void debugPrint() {
     for (const auto& it : symbolTable) {
-      std::cout << it.first << ": " << it.second.name << "\t" << it.second.token << std::endl;
+      std::cout << it.first << ":    \t" << it.second.name << "\t" << it.second.token << std::endl;
     }
   }
 
