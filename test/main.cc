@@ -1,10 +1,10 @@
 #include <cassert>
 #include <iostream>
 
-#include "word_analyse.h"
+#include "lexical_analyse.h"
 
-void test_word() {
-  WordAnalyse_c wordAnalyse;
+void test_LexicalAnalyse() {
+  LexicalAnalyse_c wordAnalyse;
   wordAnalyse.init(R"(
 int a = 10086;
 int b  = 0;
@@ -41,9 +41,12 @@ s = "sss";
   wordAnalyse.debugPrint(false);
 }
 
+void test_SyntacticAnalysis() {}
+
 int main() {
   std::cout << "<========= test start ========>" << std::endl;
-  test_word();
+  test_LexicalAnalyse();
+  test_SyntacticAnalysis();
   std::cout << "<========= test  end  ========>" << std::endl;
   return 0;
 }

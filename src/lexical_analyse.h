@@ -59,7 +59,7 @@ public:
   std::string name;
 };
 
-class WordAnalyse_c {
+class LexicalAnalyse_c {
 public:
   inline static const std::string emptyString{};
   inline static const std::array<const std::string, 12> reserveKeywords_ctrl = {
