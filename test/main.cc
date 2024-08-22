@@ -10,17 +10,26 @@ int a = 10086;
 int b  = 0;
 int c =  0xf7A0;
 int d =  07650;
+ // disable=124
+ /*disable=uu*/
+ /*ll
+ disable=bbc*/
  s = "adsf \
 123";
   )");
   while (true) {
     auto word = wordAnalyse.analyse();
-    if (WordValueToken_e::TString == word.token) {
-      assert(word.name == "adsf \n123");
-    } else if (WordValueToken_e::Tnumber == word.token) {
-      assert(word.name == "10086" || word.name == "0" || word.name == std::to_string(0xf7A0) ||
-             word.name == std::to_string(07650));
-    } else if (WordValueToken_e::TUndefined == word.token) {
+    if (false == word.has_value()) {
+      break;
+    }
+    auto value = word.value();
+    assert(value.name != "disable");
+    if (WordValueToken_e::Tstring == value.token) {
+      assert(value.name == "adsf \n123");
+    } else if (WordValueToken_e::Tnumber == value.token) {
+      assert(value.name == "10086" || value.name == "0" || value.name == std::to_string(0xf7A0) ||
+             value.name == std::to_string(07650));
+    } else if (WordValueToken_e::Tundefined == value.token) {
       break;
     }
   }

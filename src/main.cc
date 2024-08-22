@@ -12,10 +12,11 @@ int main() {
   std::cout << "analyse..." << std::endl;
   while (true) {
     auto word = wordAnalyse.analyse();
-    std ::cout << word.token << "\t" << word.name << std::endl;
-    if (WordValueToken_e::TUndefined == word.token) {
+    if (false == word.has_value()) {
       break;
     }
+    auto value = word.value();
+    std ::cout << value.token << "\t" << value.name << std::endl;
   }
   wordAnalyse.debugPrint();
   return 0;
