@@ -38,7 +38,9 @@ s = "sss";
       break;
     }
   }
-  wordAnalyse.debugPrint(false);
+  wordAnalyse.debugPrintSymbolTable(false);
+  std::cout << std::endl << "-----------------------" << std::endl << std::endl;
+  wordAnalyse.debugPrintSymbolList();
 }
 
 void test_SyntacticAnalysis() {}

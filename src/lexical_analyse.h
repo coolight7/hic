@@ -97,7 +97,8 @@ public:
 
 class WordItem_ctrl_c : public WordItem_c {
 public:
-  WordItem_ctrl_c(int in_value) : WordItem_c(WordValueToken_e::Tkeyword), value(in_value) {}
+  WordItem_ctrl_c(WordValueCtrl_e in_value)
+      : WordItem_c(WordValueToken_e::Tkeyword), value(in_value) {}
 
   const std::string& name() const override {
     assert(value >= 0 && value < WordValueCtrl_c::namelist.size());
@@ -105,7 +106,7 @@ public:
   }
 
   // index
-  int value;
+  WordValueCtrl_e value;
 };
 
 class WordItem_type_c : public WordItem_c {
@@ -123,7 +124,7 @@ public:
 
 class WordItem_nativeCall_c : public WordItem_c {
 public:
-  WordItem_nativeCall_c(int in_value)
+  WordItem_nativeCall_c(WordValueNativeCall_e in_value)
       : WordItem_c(WordValueToken_e::TnativeCall), value(in_value) {}
 
   const std::string& name() const override {
@@ -132,7 +133,7 @@ public:
   }
 
   // index
-  int value;
+  WordValueNativeCall_e value;
 };
 
 class LexicalAnalyse_c {
@@ -197,6 +198,11 @@ public:
     return nullptr;
   }
 
+  std::shared_ptr<WordItem_c> currentToken() {
+    assert(false == symbolList.empty());
+    return symbolList.back();
+  }
+
   void init(std::string_view in_code) {
     raw_code = in_code;
     code_it = raw_code.begin();
@@ -217,12 +223,12 @@ public:
     // 添加内置函数
     for (int i = 0; i < WordValueNativeCall_c::namelist.size(); ++i) {
       const auto& item = WordValueNativeCall_c::namelist[i];
-      currTable[item] = WordItem_c::make_shared<WordItem_nativeCall_c>(WordValueToken_c::toEnum(i));
+      currTable[item] =
+          WordItem_c::make_shared<WordItem_nativeCall_c>(WordValueNativeCall_c::toEnum(i));
     }
   }
 
-  // <isSuccess, str>
-  std::shared_ptr<WordItem_c> analyse() {
+  std::shared_ptr<WordItem_c> _innerAnalyse() {
     for (; code_it != raw_code.end();) {
       const auto it = *code_it;
       ++code_it;
@@ -384,19 +390,18 @@ public:
         }
         if ('/' == it && '*' == *code_it) {
           // 多行注释
-          if (raw_code.end() > code_it) {
-            ++code_it;
-          }
           bool hasEnd = false;
           while (raw_code.end() > code_it) {
             ++code_it;
-            if ('*' == *code_it && '/' == *(code_it + 1)) {
+            if ('\n' == *code_it) {
+              ++current_line;
+            } else if ('*' == *code_it && '/' == *(code_it + 1)) {
               hasEnd = true;
+              code_it += 2;
               break;
             }
           }
           if (hasEnd) {
-            ++code_it;
             continue;
           } else {
             WordPrintLine(HicLogLevel_e::Terror, "多行注释 /* 缺少右边界 {}", "");
@@ -469,7 +474,16 @@ public:
     return nullptr;
   }
 
-  void debugPrint(bool printKeyword) {
+  // <isSuccess, str>
+  std::shared_ptr<WordItem_c> analyse() {
+    auto result = _innerAnalyse();
+    if (nullptr != result) {
+      symbolList.push_back(result);
+    }
+    return result;
+  }
+
+  void debugPrintSymbolTable(bool printKeyword) {
     int i = 0;
     for (const auto& table : symbolTable) {
       std::cout << i + 1 << std::endl;
@@ -483,9 +497,16 @@ public:
           std::cout << "  ";
         }
         std::cout << "- ";
-        std::cout << it.first << ":    \t" << it.second->name() << "\t" << it.second->token
-                  << std::endl;
+        std::cout << it.first << ":    \t" << it.second->name() << "\t"
+                  << WordValueToken_c::toName(it.second->token) << std::endl;
       }
+    }
+  }
+
+  void debugPrintSymbolList() {
+    for (const auto& item : symbolList) {
+      const auto& word = *item.get();
+      std::cout << WordValueToken_c::toName(word.token) << "\t" << word.name() << std::endl;
     }
   }
 
@@ -494,4 +515,5 @@ public:
   const char* code_it = nullptr;
   // 作用域符号表
   std::vector<std::map<const std::string, std::shared_ptr<WordItem_c>>> symbolTable{};
+  std::vector<std::shared_ptr<WordItem_c>> symbolList{};
 };

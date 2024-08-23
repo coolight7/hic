@@ -45,21 +45,43 @@ public:
     return assertToken(WordItem_default_c{WordValueToken_e::Tsign, sign}, startWith);
   }
 
+  bool parse_const() { return true; }
+
   bool analyse() {
     while (true) {
-      auto item = lexicalAnalyse.analyse();
-      if (nullptr == item) {
+      auto word_ptr = lexicalAnalyse.analyse();
+      if (nullptr == word_ptr) {
         return true;
       }
-      auto& word = *item.get();
+      auto& word = *word_ptr.get();
       switch (word.token) {
-      case WordValueToken_e::Ttype:
-      case WordValueToken_e::TnativeCall:
-      case WordValueToken_e::Tsign:
-      case WordValueToken_e::Tkeyword:
-      case WordValueToken_e::Tid:
-        /* code */
-        break;
+      case WordValueToken_e::Tkeyword: {
+        auto& item = word.toKeyword();
+        switch (item.value) {
+        case WordValueCtrl_e::Tconst: {
+        } break;
+        case WordValueCtrl_e::Tstatic: {
+        } break;
+        default:
+          break;
+        }
+      } break;
+      case WordValueToken_e::Ttype: {
+        auto& item = word.toType();
+        if (assertToken_sign("&")) {
+        }
+        while (nullptr != assertToken_sign("*")) {
+        }
+      } break;
+      case WordValueToken_e::TnativeCall: {
+        auto& item = word.toNativeCall();
+      } break;
+      case WordValueToken_e::Tsign: {
+        auto& item = word.toDefault();
+      } break;
+      case WordValueToken_e::Tid: {
+        auto& item = word.toDefault();
+      } break;
       default:
         return false;
       }

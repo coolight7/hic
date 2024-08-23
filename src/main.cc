@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "syntactic_analysis.h"
+#include "syntactic_analyse.h"
 
 int main() {
   std::cout << "hello world" << std::endl;
@@ -11,6 +11,6 @@ int main() {
   )");
   std::cout << "analyse..." << std::endl;
   analyse.analyse();
-  analyse.lexicalAnalyse.debugPrint(false);
+  analyse.lexicalAnalyse.debugPrintSymbolTable(false);
   return 0;
 }
