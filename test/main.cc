@@ -24,10 +24,10 @@ s = "sss";
   )");
   while (true) {
     auto word = wordAnalyse.analyse();
-    if (false == word.has_value()) {
+    if (nullptr == word) {
       break;
     }
-    auto& value = word.value();
+    auto& value = *word.get();
     assert(value.name() != "disable");
     if (WordValueToken_e::Tstring == value.token) {
       assert(value.name() == "adsf \n123" || value.name() == "sss" || value.name() == "b");

@@ -6,52 +6,52 @@ class SyntacticAnalysis_c {
 public:
   void init(std::string_view in_code) { lexicalAnalyse.init(in_code); }
 
-  std::optional<WordItem_c> assertToken(const WordItem_c& limit, bool startWith = false) {
+  std::shared_ptr<WordItem_c> assertToken(const WordItem_c& limit, bool startWith = false) {
     auto item = lexicalAnalyse.analyse();
-    if (item.has_value()) {
-      auto& word = item.value();
+    if (nullptr != item) {
+      auto& word = *item.get();
       if (limit.token == word.token) {
         if ((startWith && word.name().starts_with(limit.name())) || (limit.name() == word.name())) {
           return item;
         }
       }
     }
-    return std::nullopt;
+    return nullptr;
   }
 
-  std::optional<WordItem_c> assertToken_type(WordValueToken_e type) {
+  std::shared_ptr<WordItem_c> assertToken_type(WordValueToken_e type) {
     auto item = lexicalAnalyse.analyse();
-    if (item.has_value()) {
-      auto& word = item.value();
+    if (nullptr != item) {
+      auto& word = *item.get();
       if (type == word.token) {
         return item;
       }
     }
-    return std::nullopt;
+    return nullptr;
   }
 
-  std::optional<WordItem_c> assertToken_name(const std::string& name, bool startWith = false) {
+  std::shared_ptr<WordItem_c> assertToken_name(const std::string& name, bool startWith = false) {
     auto item = lexicalAnalyse.analyse();
-    if (item.has_value()) {
-      auto& word = item.value();
+    if (nullptr != item) {
+      auto& word = *item.get();
       if ((startWith && word.name().starts_with(name)) || (name == word.name())) {
         return item;
       }
     }
-    return std::nullopt;
+    return nullptr;
   }
 
-  std::optional<WordItem_c> assertToken_sign(const std::string& sign, bool startWith = false) {
+  std::shared_ptr<WordItem_c> assertToken_sign(const std::string& sign, bool startWith = false) {
     return assertToken(WordItem_default_c{WordValueToken_e::Tsign, sign}, startWith);
   }
 
   bool analyse() {
     while (true) {
       auto item = lexicalAnalyse.analyse();
-      if (false == item.has_value()) {
+      if (nullptr == item) {
         return true;
       }
-      auto& word = item.value();
+      auto& word = *item.get();
       switch (word.token) {
       case WordValueToken_e::Ttype:
       case WordValueToken_e::TnativeCall:
