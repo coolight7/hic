@@ -11,6 +11,16 @@ int b  = 0;
 int c =  0xf7A0;
 int d =  07650;
 
+d += b;
+c -= b;
+d /= b;
+c *= b;
+a ??= b ?? c;
+
+if (a == b || (b == c && c == d)) {
+    d = b;
+}
+
 char ch = 'b';
 
     // disable=124

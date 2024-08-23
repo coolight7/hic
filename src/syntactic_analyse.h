@@ -69,8 +69,6 @@ public:
       case WordEnumToken_e::Ttype: {
         // 类型符
         auto& item = word.toType();
-        if (assertToken_sign("&")) {
-        }
         while (nullptr != assertToken_sign("*")) {
         }
       } break;

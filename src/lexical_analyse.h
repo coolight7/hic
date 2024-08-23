@@ -410,59 +410,48 @@ public:
         if ('{' == it) {
           symbolTablePush();
           return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tsign,
-                                                             std::to_string(it));
+                                                             std::string(&it, 1));
         }
         if ('}' == it) {
           symbolTablePop();
           return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tsign,
-                                                             std::to_string(it));
+                                                             std::string(&it, 1));
         }
         if ('(' == it || ')' == it) {
           return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tsign,
-                                                             std::to_string(it));
+                                                             std::string(&it, 1));
         }
         const char* start = code_it - 1;
         const char* end = code_it;
         do {
-          if ('=' == it) {
-            if ('=' == *code_it) {
-              // ==
-              start = code_it;
+          if ('|' == it || '&' == it) {
+            if (it == *code_it || '=' == *code_it) {
+              // || |=
+              // && &=
+              ++code_it;
+              end = code_it;
               ++code_it;
             }
             break;
           }
-          if ('>' == it) {
+          if ('=' == it || '>' == it || '<' == it || '+' == it || '-' == it || '*' == it ||
+              '/' == it) {
             if ('=' == *code_it) {
-              // >=
-              start = code_it;
+              // == >= += -= *= /=
+              ++code_it;
+              end = code_it;
               ++code_it;
             }
             break;
           }
-          if ('<' == it) {
-            if ('=' == *code_it) {
-              // <=
-              start = code_it;
+          if ('?' == it) {
+            if ('?' == *code_it) {
               ++code_it;
+              if ('=' == *code_it) {
+                ++code_it;
+              }
             }
-            break;
-          }
-          if ('*' == it) {
-            if ('=' == *code_it || '*' == *code_it) {
-              // *=  **
-              start = code_it;
-              ++code_it;
-            }
-            break;
-          }
-          if ('/' == it) {
-            if ('=' == *code_it) {
-              // /=
-              start = code_it;
-              ++code_it;
-            }
-            break;
+            end = code_it;
           }
         } while (false);
         assert(nullptr != end);
