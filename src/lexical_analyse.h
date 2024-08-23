@@ -446,10 +446,15 @@ public:
           }
           if ('?' == it) {
             if ('?' == *code_it) {
+              // ??
               ++code_it;
               if ('=' == *code_it) {
+                // ??=
                 ++code_it;
               }
+            } else if ('.' == *code_it) {
+              // ?.
+              ++code_it;
             }
             end = code_it;
           }
