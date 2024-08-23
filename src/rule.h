@@ -8,12 +8,12 @@
 /**
  * 关键字（控制）
  */
-GENERATE_ENUM(WordValueCtrl, const, static, if, else, switch, case, default, break, while, do, for, return)
+GENERATE_ENUM(WordEnumCtrl, const, static, if, else, switch, case, default, break, while, do, for, return)
 
 /**
  * 关键字（变量类型）
  */
-GENERATE_ENUM(WordValueType, void, char, bool, int, int64, float, float64, pointer, class, function)
+GENERATE_ENUM(WordEnumType, void, char, bool, int, int64, float, float64, pointer, class, function)
 
 /** token 分类
  * Tundefined,
@@ -25,11 +25,11 @@ GENERATE_ENUM(WordValueType, void, char, bool, int, int64, float, float64, point
  * TnativeCall, // 内置函数
  * Tid,         // 名称
  */
-GENERATE_ENUM(WordValueToken, undefined, number, string, sign, keyword, type, nativeCall, id)
+GENERATE_ENUM(WordEnumToken, undefined, number, string, sign, keyword, type, nativeCall, id)
 
 /** 内置函数
  *
  */
-GENERATE_ENUM(WordValueNativeCall, print, sizeof, malloc, free, exit, main)
+GENERATE_ENUM(WordEnumNativeCall, print, sizeof, malloc, free, exit, main)
 
 #include "magic/unset_macro.h"

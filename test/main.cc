@@ -13,7 +13,10 @@ int d =  07650;
 
 char ch = 'b';
 
- // disable=124
+    // disable=124
+bool k = false;
+// disable = fdsa
+bool g = false;
  /*disable=uu*/
  /*ll
  disable=bbc*/
@@ -29,12 +32,12 @@ s = "sss";
     }
     auto& value = *word.get();
     assert(value.name() != "disable");
-    if (WordValueToken_e::Tstring == value.token) {
+    if (WordEnumToken_e::Tstring == value.token) {
       assert(value.name() == "adsf \n123" || value.name() == "sss" || value.name() == "b");
-    } else if (WordValueToken_e::Tnumber == value.token) {
+    } else if (WordEnumToken_e::Tnumber == value.token) {
       auto& num = value.toNumber();
       assert(num.value == 10086 || num.value == 0 || num.value == 0xf7A0 || num.value == 07650);
-    } else if (WordValueToken_e::Tundefined == value.token) {
+    } else if (WordEnumToken_e::Tundefined == value.token) {
       break;
     }
   }

@@ -16,10 +16,10 @@
 
 class WordValue_c {
 public:
-  WordValue_c(WordValueType_e in_type, int64_t in_value) : value(in_value), valueType(in_type) {}
+  WordValue_c(WordEnumType_e in_type, int64_t in_value) : value(in_value), valueType(in_type) {}
 
   int64_t value = 0;
-  WordValueType_e valueType;
+  WordEnumType_e valueType;
 };
 
 class WordItem_default_c;
@@ -30,9 +30,9 @@ class WordItem_nativeCall_c;
 
 class WordItem_c {
 public:
-  WordItem_c() : token(WordValueToken_e::Tundefined) {}
+  WordItem_c() : token(WordEnumToken_e::Tundefined) {}
 
-  WordItem_c(WordValueToken_e in_token) : token(in_token) {}
+  WordItem_c(WordEnumToken_e in_token) : token(in_token) {}
   WordItem_c(const WordItem_c&) = delete;
 
   virtual const std::string& name() const { return HicUtil_c::emptyString; }
@@ -44,30 +44,30 @@ public:
   }
 
   WordItem_default_c& toDefault() {
-    assert(WordValueToken_e::Tstring == token || WordValueToken_e::Tsign == token ||
-           WordValueToken_e::Tid == token);
+    assert(WordEnumToken_e::Tstring == token || WordEnumToken_e::Tsign == token ||
+           WordEnumToken_e::Tid == token);
     return *((WordItem_default_c*)this);
   }
   WordItem_number_c& toNumber() {
-    assert(WordValueToken_e::Tnumber == token);
+    assert(WordEnumToken_e::Tnumber == token);
     return *((WordItem_number_c*)this);
   }
   WordItem_ctrl_c& toKeyword() {
-    assert(WordValueToken_e::Tkeyword == token);
+    assert(WordEnumToken_e::Tkeyword == token);
     return *((WordItem_ctrl_c*)this);
   }
   WordItem_type_c& toType() {
-    assert(WordValueToken_e::Ttype == token);
+    assert(WordEnumToken_e::Ttype == token);
     return *((WordItem_type_c*)this);
   }
   WordItem_nativeCall_c& toNativeCall() {
-    assert(WordValueToken_e::TnativeCall == token);
+    assert(WordEnumToken_e::TnativeCall == token);
     return *((WordItem_nativeCall_c*)this);
   }
 
   virtual ~WordItem_c() {}
 
-  WordValueToken_e token;
+  WordEnumToken_e token;
 };
 
 // string
@@ -75,7 +75,7 @@ public:
 // id
 class WordItem_default_c : public WordItem_c {
 public:
-  WordItem_default_c(WordValueToken_e in_type, const std::string& in_value)
+  WordItem_default_c(WordEnumToken_e in_type, const std::string& in_value)
       : WordItem_c(in_type), value(in_value) {}
 
   const std::string& name() const override { return value; }
@@ -85,7 +85,7 @@ public:
 
 class WordItem_number_c : public WordItem_c {
 public:
-  WordItem_number_c(long long in_value) : WordItem_c(WordValueToken_e::Tnumber), value(in_value) {
+  WordItem_number_c(long long in_value) : WordItem_c(WordEnumToken_e::Tnumber), value(in_value) {
     name_ = std::to_string(in_value);
   }
 
@@ -97,43 +97,42 @@ public:
 
 class WordItem_ctrl_c : public WordItem_c {
 public:
-  WordItem_ctrl_c(WordValueCtrl_e in_value)
-      : WordItem_c(WordValueToken_e::Tkeyword), value(in_value) {}
+  WordItem_ctrl_c(WordEnumCtrl_e in_value)
+      : WordItem_c(WordEnumToken_e::Tkeyword), value(in_value) {}
 
   const std::string& name() const override {
-    assert(value >= 0 && value < WordValueCtrl_c::namelist.size());
-    return WordValueCtrl_c::namelist[value];
+    assert(value >= 0 && value < WordEnumCtrl_c::namelist.size());
+    return WordEnumCtrl_c::namelist[value];
   }
 
   // index
-  WordValueCtrl_e value;
+  WordEnumCtrl_e value;
 };
 
 class WordItem_type_c : public WordItem_c {
 public:
-  WordItem_type_c(WordValueType_e in_value)
-      : WordItem_c(WordValueToken_e::Ttype), value(in_value) {}
+  WordItem_type_c(WordEnumType_e in_value) : WordItem_c(WordEnumToken_e::Ttype), value(in_value) {}
 
   const std::string& name() const override {
-    assert(value >= 0 && value < WordValueType_c::namelist.size());
-    return WordValueType_c::namelist[value];
+    assert(value >= 0 && value < WordEnumType_c::namelist.size());
+    return WordEnumType_c::namelist[value];
   }
 
-  WordValueType_e value;
+  WordEnumType_e value;
 };
 
 class WordItem_nativeCall_c : public WordItem_c {
 public:
-  WordItem_nativeCall_c(WordValueNativeCall_e in_value)
-      : WordItem_c(WordValueToken_e::TnativeCall), value(in_value) {}
+  WordItem_nativeCall_c(WordEnumNativeCall_e in_value)
+      : WordItem_c(WordEnumToken_e::TnativeCall), value(in_value) {}
 
   const std::string& name() const override {
-    assert(value >= 0 && value < WordValueNativeCall_c::namelist.size());
-    return WordValueNativeCall_c::namelist[value];
+    assert(value >= 0 && value < WordEnumNativeCall_c::namelist.size());
+    return WordEnumNativeCall_c::namelist[value];
   }
 
   // index
-  WordValueNativeCall_e value;
+  WordEnumNativeCall_e value;
 };
 
 class LexicalAnalyse_c {
@@ -152,17 +151,17 @@ public:
 
   // 判断是否是关键字(控制)
   inline static const std::string& isReserveKeyWord_ctrl(std::string_view it_ptr) {
-    return isReserveKeyWord(it_ptr, WordValueCtrl_c::namelist);
+    return isReserveKeyWord(it_ptr, WordEnumCtrl_c::namelist);
   }
 
   // 判断是否是关键字(类型)
   inline static const std::string& isReserveKeyWord_type(std::string_view it_ptr) {
-    return isReserveKeyWord(it_ptr, WordValueType_c::namelist);
+    return isReserveKeyWord(it_ptr, WordEnumType_c::namelist);
   }
 
   // 判断是否是关键字(内置函数)
   inline static const std::string& isReserveKeyWord_nativeCall(std::string_view it_ptr) {
-    return isReserveKeyWord(it_ptr, WordValueNativeCall_c::namelist);
+    return isReserveKeyWord(it_ptr, WordEnumNativeCall_c::namelist);
   }
 
   std::map<const std::string, std::shared_ptr<WordItem_c>>& currentSymbolTable() {
@@ -211,20 +210,20 @@ public:
     symbolTablePush();
     auto& currTable = currentSymbolTable();
     // 添加关键字
-    for (int i = 0; i < WordValueCtrl_c::namelist.size(); ++i) {
-      const auto& item = WordValueCtrl_c::namelist[i];
-      currTable[item] = WordItem_c::make_shared<WordItem_ctrl_c>(WordValueCtrl_c::toEnum(i));
+    for (int i = 0; i < WordEnumCtrl_c::namelist.size(); ++i) {
+      const auto& item = WordEnumCtrl_c::namelist[i];
+      currTable[item] = WordItem_c::make_shared<WordItem_ctrl_c>(WordEnumCtrl_c::toEnum(i));
     }
     // 添加类型
-    for (int i = 0; i < WordValueType_c::namelist.size(); ++i) {
-      const auto& item = WordValueType_c::namelist[i];
-      currTable[item] = WordItem_c::make_shared<WordItem_type_c>(WordValueType_c::toEnum(i));
+    for (int i = 0; i < WordEnumType_c::namelist.size(); ++i) {
+      const auto& item = WordEnumType_c::namelist[i];
+      currTable[item] = WordItem_c::make_shared<WordItem_type_c>(WordEnumType_c::toEnum(i));
     }
     // 添加内置函数
-    for (int i = 0; i < WordValueNativeCall_c::namelist.size(); ++i) {
-      const auto& item = WordValueNativeCall_c::namelist[i];
+    for (int i = 0; i < WordEnumNativeCall_c::namelist.size(); ++i) {
+      const auto& item = WordEnumNativeCall_c::namelist[i];
       currTable[item] =
-          WordItem_c::make_shared<WordItem_nativeCall_c>(WordValueNativeCall_c::toEnum(i));
+          WordItem_c::make_shared<WordItem_nativeCall_c>(WordEnumNativeCall_c::toEnum(i));
     }
   }
 
@@ -252,7 +251,7 @@ public:
           }
           end = code_it;
           const auto name_view = std::string_view{start, end};
-          WordValueToken_e token = WordValueToken_e::Tid;
+          WordEnumToken_e token = WordEnumToken_e::Tid;
           auto name = std::string{name_view};
           // 查找是否已经存在该符号
           auto result = symbolTableFind(name);
@@ -260,7 +259,7 @@ public:
             return result;
           } else {
             // 添加符号
-            auto item = WordItem_c::make_shared<WordItem_default_c>(WordValueToken_e::Tid, name);
+            auto item = WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tid, name);
             currentSymbolTable()[name] = item;
             return item;
           }
@@ -371,7 +370,7 @@ public:
           WordPrintLine(HicLogLevel_e::Terror, "字符串缺少右边界：{}", startSign);
           return nullptr;
         } else {
-          return WordItem_c::make_shared<WordItem_default_c>(WordValueToken_e::Tstring, value);
+          return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tstring, value);
         }
       }
       {
@@ -410,16 +409,16 @@ public:
         }
         if ('{' == it) {
           symbolTablePush();
-          return WordItem_c::make_shared<WordItem_default_c>(WordValueToken_e::Tsign,
+          return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tsign,
                                                              std::to_string(it));
         }
         if ('}' == it) {
           symbolTablePop();
-          return WordItem_c::make_shared<WordItem_default_c>(WordValueToken_e::Tsign,
+          return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tsign,
                                                              std::to_string(it));
         }
         if ('(' == it || ')' == it) {
-          return WordItem_c::make_shared<WordItem_default_c>(WordValueToken_e::Tsign,
+          return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tsign,
                                                              std::to_string(it));
         }
         const char* start = code_it - 1;
@@ -467,7 +466,7 @@ public:
           }
         } while (false);
         assert(nullptr != end);
-        return WordItem_c::make_shared<WordItem_default_c>(WordValueToken_e::Tsign,
+        return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tsign,
                                                            std::string{start, end});
       }
     }
@@ -488,9 +487,9 @@ public:
     for (const auto& table : symbolTable) {
       std::cout << i + 1 << std::endl;
       for (const auto& it : table) {
-        if (false == printKeyword && (it.second->token == WordValueToken_e::Tkeyword ||
-                                      it.second->token == WordValueToken_e::Ttype ||
-                                      it.second->token == WordValueToken_e::TnativeCall)) {
+        if (false == printKeyword && (it.second->token == WordEnumToken_e::Tkeyword ||
+                                      it.second->token == WordEnumToken_e::Ttype ||
+                                      it.second->token == WordEnumToken_e::TnativeCall)) {
           continue;
         }
         for (auto j = i; j-- > 0;) {
@@ -498,7 +497,7 @@ public:
         }
         std::cout << "- ";
         std::cout << it.first << ":    \t" << it.second->name() << "\t"
-                  << WordValueToken_c::toName(it.second->token) << std::endl;
+                  << WordEnumToken_c::toName(it.second->token) << std::endl;
       }
     }
   }
@@ -506,7 +505,7 @@ public:
   void debugPrintSymbolList() {
     for (const auto& item : symbolList) {
       const auto& word = *item.get();
-      std::cout << WordValueToken_c::toName(word.token) << "\t" << word.name() << std::endl;
+      std::cout << WordEnumToken_c::toName(word.token) << "\t" << word.name() << std::endl;
     }
   }
 
