@@ -28,12 +28,12 @@ s = "sss";
       break;
     }
     auto& value = word.value();
-    assert(value.name != "disable");
+    assert(value.name() != "disable");
     if (WordValueToken_e::Tstring == value.token) {
-      assert(value.name == "adsf \n123" || value.name == "sss" || value.name == "b");
+      assert(value.name() == "adsf \n123" || value.name() == "sss" || value.name() == "b");
     } else if (WordValueToken_e::Tnumber == value.token) {
-      assert(value.name == "10086" || value.name == "0" || value.name == std::to_string(0xf7A0) ||
-             value.name == std::to_string(07650));
+      auto& num = value.toNumber();
+      assert(num.value == 10086 || num.value == 0 || num.value == 0xf7A0 || num.value == 07650);
     } else if (WordValueToken_e::Tundefined == value.token) {
       break;
     }

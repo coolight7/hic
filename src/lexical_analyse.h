@@ -9,38 +9,10 @@
 #include <string_view>
 #include <vector>
 
+#include "rule.h"
 #include "util.h"
 
 #define WordPrintLine(level, tip, ...) UtilPrintLine(level, "", current_line, tip, __VA_ARGS__)
-
-enum WordValueToken_e {
-  Tundefined,
-  Tnumber,     // 数值
-  Tstring,     // 字符串
-  Tsign,       // 符号
-  Tkeyword,    // 关键字
-  Ttype,       // 类型
-  TnativeCall, // 内置函数
-  Tid,         // 名称
-};
-
-#define _GEN_ENUM(...)
-
-/**
- * 变量类型
- */
-enum WordValueType_e {
-  Tvoid,
-  Tchar,
-  Tbool,
-  Tint,
-  Tint64,
-  Tfloat,
-  Tfloat64,
-  Tpointer,
-  Tclass,
-  Tfunction,
-};
 
 class WordValue_c {
 public:
@@ -56,7 +28,31 @@ public:
 
   WordItem_c(WordValueToken_e in_token) : token(in_token) {}
 
-  virtual const std::string& name() = 0;
+  virtual const std::string& name() const { return HicUtil_c::emptyString; }
+
+  WordItem_default_c& toDefault() {
+    assert(WordValueToken_e::Tstring == token || WordValueToken_e::Tsign == token ||
+           WordValueToken_e::Tid == token);
+    return *((WordItem_default_c*)this);
+  }
+  WordItem_number_c& toNumber() {
+    assert(WordValueToken_e::Tnumber == token);
+    return *((WordItem_number_c*)this);
+  }
+  WordItem_keyword_c& toKeyword() {
+    assert(WordValueToken_e::Tkeyword == token);
+    return *((WordItem_keyword_c*)this);
+  }
+  WordItem_type_c& toType() {
+    assert(WordValueToken_e::Ttype == token);
+    return *((WordItem_type_c*)this);
+  }
+  WordItem_nativeCall_c& toNativeCall() {
+    assert(WordValueToken_e::TnativeCall == token);
+    return *((WordItem_nativeCall_c*)this);
+  }
+
+  virtual ~WordItem_c() {}
 
   WordValueToken_e token;
 };
@@ -69,17 +65,20 @@ public:
   WordItem_default_c(WordValueToken_e in_type, const std::string& in_value)
       : WordItem_c(in_type), value(in_value) {}
 
-  const std::string& name() override { return value; }
+  const std::string& name() const override { return value; }
 
   std::string value;
 };
 
 class WordItem_number_c : public WordItem_c {
 public:
-  WordItem_number_c(long long in_value) : WordItem_c(WordValueToken_e::Tnumber), value(in_value) {}
+  WordItem_number_c(long long in_value) : WordItem_c(WordValueToken_e::Tnumber), value(in_value) {
+    name_ = std::to_string(in_value);
+  }
 
-  const std::string& name() override { return std::to_string(value); }
+  const std::string& name() const override { return name_; }
 
+  std::string name_;
   long long value;
 };
 
@@ -87,9 +86,9 @@ class WordItem_keyword_c : public WordItem_c {
 public:
   WordItem_keyword_c(int in_value) : WordItem_c(WordValueToken_e::Tkeyword), value(in_value) {}
 
-  const std::string& name() override {
-    assert(value >= 0 && value < LexicalAnalyse_c::reserveKeywords_ctrl.size());
-    return LexicalAnalyse_c::reserveKeywords_ctrl[value];
+  const std::string& name() const override {
+    assert(value >= 0 && value < WordValueCtrl_c::namelist.size());
+    return WordValueCtrl_c::namelist[value];
   }
 
   // index
@@ -101,7 +100,10 @@ public:
   WordItem_type_c(WordValueType_e in_value)
       : WordItem_c(WordValueToken_e::Ttype), value(in_value) {}
 
-  const std::string& name() override { return std::to_string(value); }
+  const std::string& name() const override {
+    assert(value >= 0 && value < WordValueType_c::namelist.size());
+    return WordValueType_c::namelist[value];
+  }
 
   WordValueType_e value;
 };
@@ -111,9 +113,9 @@ public:
   WordItem_nativeCall_c(int in_value)
       : WordItem_c(WordValueToken_e::TnativeCall), value(in_value) {}
 
-  const std::string& name() override {
-    assert(value >= 0 && value < LexicalAnalyse_c::reserveKeywords_nativeCall.size());
-    return LexicalAnalyse_c::reserveKeywords_nativeCall[value];
+  const std::string& name() const override {
+    assert(value >= 0 && value < WordValueNativeCall_c::namelist.size());
+    return WordValueNativeCall_c::namelist[value];
   }
 
   // index
@@ -122,32 +124,6 @@ public:
 
 class LexicalAnalyse_c {
 public:
-  inline static const std::string emptyString{};
-  inline static const std::array<const std::string, 12> reserveKeywords_ctrl = {
-      // 范围
-      "const",
-      "static",
-      // 控制
-      "if",
-      "else",
-      "switch",
-      "case",
-      "default",
-      "break",
-      "while",
-      "do",
-      "for",
-      "return",
-  };
-  // 类型
-  inline static const std::array<const std::string, 8> reserveKeywords_type = {
-      "void", "char", "bool", "int", "int64", "float", "float64", "class",
-  };
-  // 内置函数
-  inline static const std::array<const std::string, 6> reserveKeywords_nativeCall = {
-      "print", "sizeof", "malloc", "free", "exit", "main",
-  };
-
   template <size_t _NUM>
   inline static const std::string&
   isReserveKeyWord(std::string_view it_ptr,
@@ -157,22 +133,22 @@ public:
         return item;
       }
     }
-    return emptyString;
+    return HicUtil_c::emptyString;
   }
 
   // 判断是否是关键字(控制)
   inline static const std::string& isReserveKeyWord_ctrl(std::string_view it_ptr) {
-    return isReserveKeyWord(it_ptr, reserveKeywords_ctrl);
+    return isReserveKeyWord(it_ptr, WordValueCtrl_c::namelist);
   }
 
   // 判断是否是关键字(类型)
   inline static const std::string& isReserveKeyWord_type(std::string_view it_ptr) {
-    return isReserveKeyWord(it_ptr, reserveKeywords_type);
+    return isReserveKeyWord(it_ptr, WordValueType_c::namelist);
   }
 
   // 判断是否是关键字(内置函数)
   inline static const std::string& isReserveKeyWord_nativeCall(std::string_view it_ptr) {
-    return isReserveKeyWord(it_ptr, reserveKeywords_nativeCall);
+    return isReserveKeyWord(it_ptr, WordValueNativeCall_c::namelist);
   }
 
   std::map<std::string, WordItem_c>& currentSymbolTable() {
@@ -212,18 +188,19 @@ public:
     symbolTablePush();
     auto& currTable = currentSymbolTable();
     // 添加关键字
-    for (const auto& item : reserveKeywords_ctrl) {
-      currTable[item] = WordItem_c{WordValueToken_e::Tkeyword, item};
+    for (int i = 0; i < WordValueCtrl_c::namelist.size(); ++i) {
+      const auto& item = WordValueCtrl_c::namelist[i];
+      currTable[item] = WordItem_keyword_c{i};
     }
     // 添加类型
-    for (const auto& item : reserveKeywords_type) {
-      currTable[item] = WordItem_c{WordValueToken_e::Ttype, item};
+    for (int i = 0; i < WordValueType_c::namelist.size(); ++i) {
+      const auto& item = WordValueType_c::namelist[i];
+      currTable[item] = WordItem_type_c{static_cast<WordValueType_e>(i)};
     }
     // 添加内置函数
-    for (int i = 0; i < reserveKeywords_nativeCall.size(); ++i) {
-      const auto& item = reserveKeywords_nativeCall[i];
-      auto word = WordItem_c{WordValueToken_e::TnativeCall, item};
-      currTable[item] = word;
+    for (int i = 0; i < WordValueNativeCall_c::namelist.size(); ++i) {
+      const auto& item = WordValueNativeCall_c::namelist[i];
+      currTable[item] = WordItem_nativeCall_c{i};
     }
   }
 
@@ -260,7 +237,7 @@ public:
             return result.value();
           } else {
             // 添加符号
-            auto item = WordItem_c{WordValueToken_e::Tid, name};
+            auto item = WordItem_default_c{WordValueToken_e::Tid, name};
             currentSymbolTable()[name] = item;
             return item;
           }
@@ -280,7 +257,7 @@ public:
             step = 8;
           } else if ('0' == *code_it) {
             // 连续 0，警告！
-            WordPrintLine(HicLogLevel_e::Lwarning,
+            WordPrintLine(HicLogLevel_e::Twarning,
                           "数值开头不应使用连续的0；该值将被认为是十进制{}", "");
           }
         }
@@ -303,7 +280,7 @@ public:
               item = *code_it - '0';
             } else {
               if ('8' == *code_it || '9' == *code_it) {
-                WordPrintLine(HicLogLevel_e::Lerror, "预期为8进制的数值，却包含了字符：{}",
+                WordPrintLine(HicLogLevel_e::Terror, "预期为8进制的数值，却包含了字符：{}",
                               *code_it);
                 return std::nullopt;
               }
@@ -319,8 +296,7 @@ public:
           value = value * step + item;
           ++code_it;
         } while (raw_code.end() != code_it);
-        auto item = WordItem_c{WordValueToken_e::Tnumber, std::to_string(value)};
-        return item;
+        return WordItem_number_c{value};
       }
       if ('"' == it || '\'' == it) {
         // 字符串
@@ -369,10 +345,10 @@ public:
           }
         }
         if (nullptr == end) {
-          WordPrintLine(HicLogLevel_e::Lerror, "字符串缺少右边界：{}", startSign);
+          WordPrintLine(HicLogLevel_e::Terror, "字符串缺少右边界：{}", startSign);
           return std::nullopt;
         } else {
-          auto item = WordItem_c{WordValueToken_e::Tstring, value};
+          auto item = WordItem_default_c{WordValueToken_e::Tstring, value};
           return item;
         }
       }
@@ -407,20 +383,20 @@ public:
             ++code_it;
             continue;
           } else {
-            WordPrintLine(HicLogLevel_e::Lerror, "多行注释 /* 缺少右边界 {}", "");
+            WordPrintLine(HicLogLevel_e::Terror, "多行注释 /* 缺少右边界 {}", "");
             return std::nullopt;
           }
         }
         if ('{' == it) {
           symbolTablePush();
-          return WordItem_c{WordValueToken_e::Tsign, std::to_string(it)};
+          return WordItem_default_c{WordValueToken_e::Tsign, std::to_string(it)};
         }
         if ('}' == it) {
           symbolTablePop();
-          return WordItem_c{WordValueToken_e::Tsign, std::to_string(it)};
+          return WordItem_default_c{WordValueToken_e::Tsign, std::to_string(it)};
         }
         if ('(' == it || ')' == it) {
-          return WordItem_c{WordValueToken_e::Tsign, std::to_string(it)};
+          return WordItem_default_c{WordValueToken_e::Tsign, std::to_string(it)};
         }
         const char* start = code_it - 1;
         const char* end = code_it;
@@ -467,7 +443,7 @@ public:
           }
         } while (false);
         assert(nullptr != end);
-        return WordItem_c{WordValueToken_e::Tsign, std::string{start, end}};
+        return WordItem_default_c{WordValueToken_e::Tsign, std::string{start, end}};
       }
     }
     return std::nullopt;
@@ -487,7 +463,7 @@ public:
           std::cout << "  ";
         }
         std::cout << "- ";
-        std::cout << it.first << ":    \t" << it.second.name << "\t" << it.second.token
+        std::cout << it.first << ":    \t" << it.second.name() << "\t" << it.second.token
                   << std::endl;
       }
     }

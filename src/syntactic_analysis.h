@@ -11,7 +11,7 @@ public:
     if (item.has_value()) {
       auto& word = item.value();
       if (limit.token == word.token) {
-        if ((startWith && word.name.starts_with(limit.name)) || (limit.name == word.name)) {
+        if ((startWith && word.name().starts_with(limit.name())) || (limit.name() == word.name())) {
           return item;
         }
       }
@@ -34,7 +34,7 @@ public:
     auto item = lexicalAnalyse.analyse();
     if (item.has_value()) {
       auto& word = item.value();
-      if ((startWith && word.name.starts_with(name)) || (name == word.name)) {
+      if ((startWith && word.name().starts_with(name)) || (name == word.name())) {
         return item;
       }
     }
@@ -42,7 +42,7 @@ public:
   }
 
   std::optional<WordItem_c> assertToken_sign(const std::string& sign, bool startWith = false) {
-    return assertToken(WordItem_c{WordValueToken_e::Tsign, sign}, startWith);
+    return assertToken(WordItem_default_c{WordValueToken_e::Tsign, sign}, startWith);
   }
 
   bool analyse() {
