@@ -1,3 +1,7 @@
+/**
+ * ## 用于取消 `macro.h` 定义的宏，防止其扩散影响
+ * - 不需要 `#pragma once`，否则可能导致编译异常
+ */ 
 #undef _NameTagConcat_d
 #undef _NameTagConcat_1_d
 #undef _MacroArgToTag_d
