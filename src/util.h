@@ -6,6 +6,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "magic/macro.h"
 
@@ -15,11 +16,12 @@ GENERATE_ENUM(HicLogLevel, error, warning, info, debug, close)
 
 /**
  * ## 断言
- * - 强制需要显式 == 判断
+ * - 强制需要显式 == != > < 判断
  */
 #define Assert_d(inbool)                                                                           \
   {                                                                                                \
-    assert(std::string(#inbool).contains("=="));                                                   \
+    const auto str = std::string_view(#inbool);                                                    \
+    assert(str.contains("=") || str.contains(">") || str.contains("<"));                           \
     assert(inbool);                                                                                \
   }
 
