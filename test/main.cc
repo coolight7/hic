@@ -1,4 +1,3 @@
-#include <cassert>
 #include <iostream>
 
 #include "lexical_analyse.h"
@@ -41,12 +40,12 @@ s = "sss";
       break;
     }
     auto& value = *word.get();
-    assert(value.name() != "disable");
+    Assert_d(value.name() != "disable");
     if (WordEnumToken_e::Tstring == value.token) {
-      assert(value.name() == "adsf \n123" || value.name() == "sss" || value.name() == "b");
+      Assert_d(value.name() == "adsf \n123" || value.name() == "sss" || value.name() == "b");
     } else if (WordEnumToken_e::Tnumber == value.token) {
       auto& num = value.toNumber();
-      assert(num.value == 10086 || num.value == 0 || num.value == 0xf7A0 || num.value == 07650);
+      Assert_d(num.value == 10086 || num.value == 0 || num.value == 0xf7A0 || num.value == 07650);
     } else if (WordEnumToken_e::Tundefined == value.token) {
       break;
     }

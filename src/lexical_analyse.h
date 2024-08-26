@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <cassert>
 #include <iostream>
 #include <map>
 #include <optional>
@@ -44,24 +43,24 @@ public:
   }
 
   WordItem_default_c& toDefault() {
-    assert(WordEnumToken_e::Tstring == token || WordEnumToken_e::Tsign == token ||
-           WordEnumToken_e::Tid == token);
+    Assert_d(WordEnumToken_e::Tstring == token || WordEnumToken_e::Tsign == token ||
+             WordEnumToken_e::Tid == token);
     return *((WordItem_default_c*)this);
   }
   WordItem_number_c& toNumber() {
-    assert(WordEnumToken_e::Tnumber == token);
+    Assert_d(WordEnumToken_e::Tnumber == token);
     return *((WordItem_number_c*)this);
   }
   WordItem_ctrl_c& toKeyword() {
-    assert(WordEnumToken_e::Tkeyword == token);
+    Assert_d(WordEnumToken_e::Tkeyword == token);
     return *((WordItem_ctrl_c*)this);
   }
   WordItem_type_c& toType() {
-    assert(WordEnumToken_e::Ttype == token);
+    Assert_d(WordEnumToken_e::Ttype == token);
     return *((WordItem_type_c*)this);
   }
   WordItem_nativeCall_c& toNativeCall() {
-    assert(WordEnumToken_e::TnativeCall == token);
+    Assert_d(WordEnumToken_e::TnativeCall == token);
     return *((WordItem_nativeCall_c*)this);
   }
 
@@ -101,7 +100,7 @@ public:
       : WordItem_c(WordEnumToken_e::Tkeyword), value(in_value) {}
 
   const std::string& name() const override {
-    assert(value >= 0 && value < WordEnumCtrl_c::namelist.size());
+    Assert_d(value >= 0 && value < WordEnumCtrl_c::namelist.size());
     return WordEnumCtrl_c::namelist[value];
   }
 
@@ -114,7 +113,7 @@ public:
   WordItem_type_c(WordEnumType_e in_value) : WordItem_c(WordEnumToken_e::Ttype), value(in_value) {}
 
   const std::string& name() const override {
-    assert(value >= 0 && value < WordEnumType_c::namelist.size());
+    Assert_d(value >= 0 && value < WordEnumType_c::namelist.size());
     return WordEnumType_c::namelist[value];
   }
 
@@ -127,7 +126,7 @@ public:
       : WordItem_c(WordEnumToken_e::TnativeCall), value(in_value) {}
 
   const std::string& name() const override {
-    assert(value >= 0 && value < WordEnumNativeCall_c::namelist.size());
+    Assert_d(value >= 0 && value < WordEnumNativeCall_c::namelist.size());
     return WordEnumNativeCall_c::namelist[value];
   }
 
@@ -165,7 +164,7 @@ public:
   }
 
   std::map<const std::string, std::shared_ptr<WordItem_c>>& currentSymbolTable() {
-    assert(symbolTable.empty() == false);
+    Assert_d(symbolTable.empty() == false);
     return symbolTable.back();
   }
 
@@ -198,7 +197,7 @@ public:
   }
 
   std::shared_ptr<WordItem_c> currentToken() {
-    assert(false == symbolList.empty());
+    Assert_d(false == symbolList.empty());
     return symbolList.back();
   }
 
@@ -459,7 +458,7 @@ public:
             end = code_it;
           }
         } while (false);
-        assert(nullptr != end);
+        Assert_d(nullptr != end);
         return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tsign,
                                                            std::string{start, end});
       }
