@@ -1,22 +1,28 @@
 ## 文法
-program = {function} | {type} | {value} 
-type = {enum} | {class};
-limit = const | static;
-value = <new>? <{limit}> <void | bool | char | int | long> <*|&> <ID> <= <*>?ID|{字面量}>?;
-function = {value} ID (({value} (ID)?)*) {
+- program = {function} | {type} | {define_value} | ~
+
+- constexpr = number | string | true | false | nullptr
+- type_define = {enum} | {class};
+
+- value_type = void | bool | char | int | long | {ID_enum_type} | {ID_class_type} // 变量类型
+- value_define = <{value_type}> <*|&> <ID> // 变量声明
+- _value_set_right = <= <*>?ID|{constexpr}>                   // 变量赋值的右半部分
+- value_set = <ID = {_value_set_right}>                       // 变量赋值
+- value_define_init = {value_define} {_value_set_right};      // 变量声明并初始化
+
+- function_define = {value_define} ID ({value_define}*) {
 	{code}
 }
+- function_call = ID_function({ID_value}?);
 
-字面量 = number | string | true | false
-enum = enum ID { (ID (=num)?)+ };
-class = class ID { 
-	ID() {}	// 构造函数
-	~ID() {}	// 析构函数
-	operator=({value}*) {} 		// 操作符函数
+- enum = enum ID { (ID (=number)?,)+ };
+- class = class ID { 
+	ID() { {code} }	                    // 构造函数
+	~ID() { {code} }	                // 析构函数
+	operator=({value}*) { {code} } 		// 操作符函数
 
-	((static)? {function})*  	// 成员函数
-	((static)? {value};)* 		// 成员变量
-	
+	((static)? {function_define})*  	// 成员函数
+	((static)? <{value_define}|{value_define_init}>;)* 		// 成员变量
 };
 
 ## 变量声明
@@ -35,8 +41,7 @@ Temp* temp3 = new Temp();
 
 ### 模板
 ```c++
-template<typename T>
-class Temp;
+class Temp<T>;
 
 Temp<int> temp1 = Temp<int>();
 auto temp2 = Temp<int>();
@@ -61,9 +66,9 @@ List<String> list1 = <String>["a", "b"];
 List<String> list2 = List<String>["a", "b"];
 ```
 
-- InitKVList: 可自定义实现接收参数列表 [a, b, c]:
+- InitMap: 可自定义实现接收参数列表 [a, b, c]:
 ```c++
-void fun(InitKVList<String, int> list) {}
+void fun(InitMap<String, int> list) {}
 
 fun({
     "a" : 1,
