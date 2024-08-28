@@ -2,50 +2,70 @@
 
 #include "lexical_analyse.h"
 
+#define _GEN_WORD(name)                                                                            \
+  if (nullptr == name##_ptr) {                                                                     \
+    name##_ptr = lexicalAnalyse.analyse();                                                         \
+    if (nullptr == name##_ptr) {                                                                   \
+      return name##_ptr;                                                                           \
+    }                                                                                              \
+  }                                                                                                \
+  auto& name = *name##_ptr.get();
+
 class SyntacticAnalysis_c {
 public:
   void init(std::string_view in_code) { lexicalAnalyse.init(in_code); }
 
-  std::shared_ptr<WordItem_c> assertToken(const WordItem_c& limit, bool startWith = false) {
-    auto item = lexicalAnalyse.analyse();
-    if (nullptr != item) {
-      auto& word = *item.get();
-      if (limit.token == word.token) {
-        if ((startWith && word.name().starts_with(limit.name())) || (limit.name() == word.name())) {
-          return item;
-        }
+  std::shared_ptr<WordItem_c> assertToken(std::shared_ptr<WordItem_c> word_ptr,
+                                          const WordItem_c& limit, bool startWith = false) {
+    _GEN_WORD(word);
+    if (limit.token == word.token) {
+      if ((startWith && word.name().starts_with(limit.name())) || (limit.name() == word.name())) {
+        return word_ptr;
       }
     }
     return nullptr;
   }
 
-  std::shared_ptr<WordItem_c> assertToken_type(WordEnumToken_e type) {
-    auto item = lexicalAnalyse.analyse();
-    if (nullptr != item) {
-      auto& word = *item.get();
-      if (type == word.token) {
-        return item;
-      }
+  std::shared_ptr<WordItem_c> assertToken_type(std::shared_ptr<WordItem_c> word_ptr,
+                                               WordEnumToken_e type) {
+    _GEN_WORD(word);
+    if (type == word.token) {
+      return word_ptr;
     }
     return nullptr;
   }
 
-  std::shared_ptr<WordItem_c> assertToken_name(const std::string& name, bool startWith = false) {
-    auto item = lexicalAnalyse.analyse();
-    if (nullptr != item) {
-      auto& word = *item.get();
-      if ((startWith && word.name().starts_with(name)) || (name == word.name())) {
-        return item;
-      }
+  std::shared_ptr<WordItem_c> assertToken_name(std::shared_ptr<WordItem_c> word_ptr,
+                                               const std::string& name, bool startWith = false) {
+    _GEN_WORD(word);
+    if ((startWith && word.name().starts_with(name)) || (name == word.name())) {
+      return word_ptr;
     }
     return nullptr;
   }
 
-  std::shared_ptr<WordItem_c> assertToken_sign(const std::string& sign, bool startWith = false) {
-    return assertToken(WordItem_default_c{WordEnumToken_e::Tsign, sign}, startWith);
+  std::shared_ptr<WordItem_c> assertToken_sign(std::shared_ptr<WordItem_c> word_ptr,
+                                               const std::string& sign, bool startWith = false) {
+    return assertToken(word_ptr, WordItem_default_c{WordEnumToken_e::Tsign, sign}, startWith);
   }
 
-  bool parse_const() { return true; }
+  std::shared_ptr<WordItem_number_c> parse_constexpr_int(std::shared_ptr<WordItem_c> word_ptr) {
+    auto result = assertToken_type(word_ptr, WordEnumToken_e::Tnumber);
+    if (nullptr != result) {
+      return static_cast<std::shared_ptr<WordItem_number_c>>(result);
+    }
+    return nullptr;
+  }
+
+  std::shared_ptr<WordItem_c> parse_constexpr_string(std::shared_ptr<WordItem_c> word_ptr) {
+    return assertToken_type(word_ptr, WordEnumToken_e::Tstring);
+  }
+
+  std::shared_ptr<WordItem_c> parse_value_type(std::shared_ptr<WordItem_c> word_ptr) {
+    _GEN_WORD(word);
+    if (WordEnumToken_e::Ttype == word.token) {
+    }
+  }
 
   bool analyse() {
     while (true) {
@@ -69,8 +89,6 @@ public:
       case WordEnumToken_e::Ttype: {
         // 类型符
         auto& item = word.toType();
-        while (nullptr != assertToken_sign("*")) {
-        }
       } break;
       case WordEnumToken_e::TnativeCall: {
         auto& item = word.toNativeCall();
