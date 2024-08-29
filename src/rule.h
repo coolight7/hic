@@ -13,7 +13,8 @@ GENERATE_ENUM(WordEnumCtrl, const, static, if, else, switch, case, default, brea
 /**
  * 关键字（变量类型）
  */
-GENERATE_ENUM(WordEnumType, void, char, bool, int, int64, float, float64, pointer, class, function)
+GENERATE_ENUM(WordEnumType, void, char, bool, int, int64, float, float64, pointer, enum, class,
+              function)
 
 /** token 分类
  * Tundefined,

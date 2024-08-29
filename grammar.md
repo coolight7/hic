@@ -1,22 +1,22 @@
 ## 文法
-- program = {function} | {type} | {define_value} | ~
+- program = {function_define} | {type_define} | {value_define_init} | ~
 
 - constexpr = number | string | true | false | nullptr
-- type_define = {enum} | {class};
+- type_define = {enum_define} | {class_define};
 
 - value_type = void | bool | char | int | long | {ID_enum_type} | {ID_class_type} // 变量类型
-- value_define = <{value_type}> <*|&> <ID> // 变量声明
-- _value_set_right = <= <*>?ID|{constexpr}>                   // 变量赋值的右半部分
+- value_define = <{value_type}> <*|&>? <ID>                   // 变量声明
+- _value_set_right = <= <<*|&>?ID>|{constexpr}>               // 变量赋值的右半部分
 - value_set = <ID = {_value_set_right}>                       // 变量赋值
 - value_define_init = {value_define} {_value_set_right};      // 变量声明并初始化
 
 - function_define = {value_define} ID ({value_define}*) {
 	{code}
 }
-- function_call = ID_function({ID_value}?);
+- function_call = ID_function(<ID_value|{constexpr}>?);
 
-- enum = enum ID { (ID (=number)?,)+ };
-- class = class ID { 
+- enum_define = enum ID { (ID (=number)?,)+ };
+- class_define = class ID { 
 	ID() { {code} }	                    // 构造函数
 	~ID() { {code} }	                // 析构函数
 	operator=({value}*) { {code} } 		// 操作符函数

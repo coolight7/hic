@@ -197,8 +197,13 @@ public:
   }
 
   std::shared_ptr<WordItem_c> currentToken() {
-    Assert_d(false == symbolList.empty());
-    return symbolList.back();
+    Assert_d(false == tokenList.empty());
+    return tokenList.back();
+  }
+
+  std::shared_ptr<WordItem_c> getToken(int index) {
+    Assert_d(index >= 0 && index < tokenList.size());
+    return tokenList[index];
   }
 
   void init(std::string_view in_code) {
@@ -470,7 +475,7 @@ public:
   std::shared_ptr<WordItem_c> analyse() {
     auto result = _innerAnalyse();
     if (nullptr != result) {
-      symbolList.push_back(result);
+      tokenList.push_back(result);
     }
     return result;
   }
@@ -495,10 +500,14 @@ public:
     }
   }
 
+  static void debugPrintSymbol(const WordItem_c& word) {
+    std::cout << WordEnumToken_c::toName(word.token) << "\t" << word.name() << std::endl;
+  }
+
   void debugPrintSymbolList() {
-    for (const auto& item : symbolList) {
+    for (const auto& item : tokenList) {
       const auto& word = *item.get();
-      std::cout << WordEnumToken_c::toName(word.token) << "\t" << word.name() << std::endl;
+      debugPrintSymbol(word);
     }
   }
 
@@ -507,5 +516,5 @@ public:
   const char* code_it = nullptr;
   // 作用域符号表
   std::vector<std::map<const std::string, std::shared_ptr<WordItem_c>>> symbolTable{};
-  std::vector<std::shared_ptr<WordItem_c>> symbolList{};
+  std::vector<std::shared_ptr<WordItem_c>> tokenList{};
 };

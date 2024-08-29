@@ -1,8 +1,10 @@
 #include <iostream>
 
 #include "lexical_analyse.h"
+#include "syntactic_analyse.h"
 
 void test_LexicalAnalyse() {
+  std::cout << std::endl << "----------- test_LexicalAnalyse -----------" << std::endl << std::endl;
   LexicalAnalyse_c wordAnalyse;
   wordAnalyse.init(R"(
 int a = 10086;
@@ -55,7 +57,45 @@ s = "sss";
   wordAnalyse.debugPrintSymbolList();
 }
 
-void test_SyntacticAnalysis() {}
+void test_SyntacticAnalysis() {
+  std::cout << std::endl
+            << "----------- test_SyntacticAnalysis -----------" << std::endl
+            << std::endl;
+  SyntacticAnalysis_c analyse;
+  analyse.init(R"(
+int a = 10086;
+int b = 0;
+int c = 0xf7A0;
+int d = 07650;
+
+int main() {
+    d += b;
+    c -= b;
+    d /= b;
+    c *= b;
+    a ??= b ?? c;
+
+    if (a == b || (b == c && c == d)) {
+        d = b;
+    }
+
+    char ch = 'b';
+        // disable=124
+    bool k = false;
+    // disable = fdsa
+    bool g = false;
+    /*disable=uu*/
+    /*ll
+    disable=bbc*/
+
+    s = "sss";
+    s = "adsf \
+    123";
+    return 0;
+}
+  )");
+  assert(analyse.analyse());
+}
 
 int main() {
   std::cout << "<========= test start ========>" << std::endl;
