@@ -25,6 +25,28 @@
 	((static)? <{value_define}|{value_define_init}>;)* 		// 成员变量
 };
 
+### First 集
+- First(value_type) = {value_type} | ID
+- First(value_define) = First(value_type)
+- First(function_define) = First(value_define)
+                         = First(value_type)
+                         = {value_type} | ID
+- First(enum_define) = enum
+- First(class_define) = class
+- First(type_define) = First(enum_define) || First(class_define) 
+                     = {enum, class}
+- First(value_define_init) = First(value_define)
+                           = First(value_type)
+                           = {value_type} | ID
+- First(program) = First(function_define) || First(type_define) || First(value_define_init)
+
+### tree
+- program
+    - function_define/value_define_init = {value_type} | ID
+        - ID -> function_define
+        - First(_value_set_right) = = -> value_define_init
+    - type_define = enum | class
+
 ## 变量声明
 ### 普通
 ```c++

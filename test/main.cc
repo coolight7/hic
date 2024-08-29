@@ -67,6 +67,7 @@ int a = 10086;
 int b = 0;
 int c = 0xf7A0;
 int d = 07650;
+String str = "qiqi";
 
 int main() {
     d += b;
