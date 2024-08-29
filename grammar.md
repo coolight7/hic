@@ -88,7 +88,7 @@ List<String> list1 = <String>["a", "b"];
 List<String> list2 = List<String>["a", "b"];
 ```
 
-- InitMap: 可自定义实现接收参数列表 [a, b, c]:
+- InitMap: 可自定义实现接收键值对参数:
 ```c++
 void fun(InitMap<String, int> list) {}
 

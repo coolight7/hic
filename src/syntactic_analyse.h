@@ -137,9 +137,13 @@ public:
     return nullptr;
   }
 
-  std::shared_ptr<WordItem_c> parse_function_define(std::shared_ptr<WordItem_c> word_ptr) {
-    auto ret_value = parse_value_define(word_ptr);
-    if (nullptr != ret_value) {
+  std::shared_ptr<WordItem_c> parse_function_define(
+      std::shared_ptr<WordItem_c> word_ptr,
+      std::shared_ptr<WordItem_c> value_define_ptr = nullptr) {
+    if (nullptr == value_define_ptr) {
+      value_define_ptr = parse_value_define(word_ptr);
+    }
+    if (nullptr != value_define_ptr) {
       if (assertToken_type(nullptr, WordEnumToken_e::Tid)) {
         if (assertToken_sign(nullptr, "(")) {
           std::shared_ptr<WordItem_c> sign_ptr;
