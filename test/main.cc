@@ -12,29 +12,32 @@ int b  = 0;
 int c =  0xf7A0;
 int d =  07650;
 
-d += b;
-c -= b;
-d /= b;
-c *= b;
-a ??= b ?? c;
+int main() {
+  d += b;
+  c -= b;
+  d /= b;
+  c *= b;
+  a ??= b ?? c;
 
-if (a == b || (b == c && c == d)) {
-    d = b;
+  if (a == b || (b == c && c == d)) {
+      d = b;
+  }
+
+  char ch = 'b';
+
+      // disable=124
+  bool k = false;
+  // disable = fdsa
+  bool g = false;
+  /*disable=uu*/
+  /*ll
+  disable=bbc*/
+
+  s = "sss";
+  s = "adsf \
+  123";
+  return 0;
 }
-
-char ch = 'b';
-
-    // disable=124
-bool k = false;
-// disable = fdsa
-bool g = false;
- /*disable=uu*/
- /*ll
- disable=bbc*/
-
-s = "sss";
- s = "adsf \
-123";
   )");
   while (true) {
     auto word = wordAnalyse.analyse();
@@ -42,12 +45,14 @@ s = "sss";
       break;
     }
     auto& value = *word.get();
-    Assert_d(value.name() != "disable");
+    Assert_d(value.name() != "disable", value.name());
     if (WordEnumToken_e::Tstring == value.token) {
-      Assert_d(value.name() == "adsf \n123" || value.name() == "sss" || value.name() == "b");
+      Assert_d(value.name() == "adsf \n  123" || value.name() == "sss" || value.name() == "b",
+               value.name());
     } else if (WordEnumToken_e::Tnumber == value.token) {
       auto& num = value.toNumber();
-      Assert_d(num.value == 10086 || num.value == 0 || num.value == 0xf7A0 || num.value == 07650);
+      Assert_d(num.value == 10086 || num.value == 0 || num.value == 0xf7A0 || num.value == 07650,
+               num.value);
     } else if (WordEnumToken_e::Tundefined == value.token) {
       break;
     }

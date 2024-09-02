@@ -21,10 +21,10 @@
 #define GENERATE_FUN_ITEM_d(...)                                                                   \
   _NameTagConcat_d(_GENERATE_FUN_ITEM, _MacroArgToTag_d(__VA_ARGS__))(__VA_ARGS__)
 #define _GENERATE_FUN_ITEM() GENERATE_FUN_ITEM_d
-#define _GENERATE_FUN_ITEM1(a)                                                                     \
-  [this](std::shared_ptr<WordItem_c> ptr) -> std::shared_ptr<WordItem_c> { return a(ptr); }
-#define _GENERATE_FUN_ITEMN(a, ...)                                                                \
-  _GENERATE_FUN_ITEM1(a), _MacroDefer_d(_GENERATE_FUN_ITEM)()(__VA_ARGS__)
+#define _GENERATE_FUN_ITEM1(fun)                                                                   \
+  [this](std::shared_ptr<WordItem_c> ptr) -> std::shared_ptr<WordItem_c> { return fun(ptr); }
+#define _GENERATE_FUN_ITEMN(fun, ...)                                                              \
+  _GENERATE_FUN_ITEM1(fun), _MacroDefer_d(_GENERATE_FUN_ITEM)()(__VA_ARGS__)
 
 #define _REBACK_d(word_ptr, tempIndex, ...)                                                        \
   reback_funs(word_ptr, tempIndex, _MoreExpand_d(GENERATE_FUN_ITEM_d(__VA_ARGS__)))
@@ -205,8 +205,9 @@ public:
                                          WordEnumType_e ret_type) {
     return nullptr;
   }
-
-  std::shared_ptr<WordItem_c> parse_code(std::shared_ptr<WordItem_c> word_ptr) { return nullptr; }
+  std::shared_ptr<WordItem_c> parse_expr_void(std::shared_ptr<WordItem_c> word_ptr) {
+    return parse_expr(word_ptr, WordEnumType_e::Tvoid);
+  }
 
   std::shared_ptr<WordItem_c> parse_code_ctrl_break(std::shared_ptr<WordItem_c> word_ptr) {
     return assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Tbreak});
@@ -274,6 +275,17 @@ public:
       }
     }
     return nullptr;
+  }
+
+  std::shared_ptr<WordItem_c> parse_code(std::shared_ptr<WordItem_c> word_ptr) {
+    _GEN_WORD(word);
+    int tempIndex = lexicalAnalyse.tokenIndex;
+    auto ctrl_return = [this](std::shared_ptr<WordItem_c> ptr) -> std::shared_ptr<WordItem_c> {
+      return parse_expr(ptr, WordEnumType_e::Tvoid);
+    };
+    return _REBACK_d(word_ptr, tempIndex, parse_value_define_init, parse_value_set,
+                     parse_code_ctrl_if, parse_code_ctrl_while, parse_code_ctrl_for,
+                     parse_expr_void);
   }
 
   std::shared_ptr<WordItem_c> parse_function_call(std::shared_ptr<WordItem_c> word_ptr) {

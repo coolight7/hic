@@ -21,7 +21,7 @@
 - ctrl_while = while({expr_bool}) { {code} | {ctrl_break} | {ctrl_continue} }
 - ctrl_for = for(<{value_define_init} | {expr}>?;<{expr_bool}>?;<{expr}>?) { {code} | {ctrl_break} | {ctrl_continue} }
 
-- code = {value_define_init} | {value_set} | {ctrl_if} | {ctrl_while} | {ctrl_for} | {expr}
+- code = {value_define_init} | {value_set} | {ctrl_if} | {ctrl_while} | {ctrl_for} | {ctrl_return} | {expr}
 
 - function_define = {value_define} ID ({value_define}*) {
 	{code}
