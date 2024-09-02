@@ -31,6 +31,6 @@ GENERATE_ENUM(WordEnumToken, undefined, number, string, sign, keyword, type, nat
 /** 内置函数
  *
  */
-GENERATE_ENUM(WordEnumNativeCall, print, sizeof, malloc, free, exit, main)
+GENERATE_ENUM(WordEnumNativeCall, print, sizeof, malloc, free, exit)
 
 #include "magic/unset_macro.h"

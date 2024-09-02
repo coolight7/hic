@@ -53,7 +53,6 @@ public:
     auto result =
         reback(std::forward<std::shared_ptr<T>>(word_ptr), tempIndex,
                std::forward<std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<T>)>>(fun));
-    std::cout << "reback: " << result.get() << std::endl;
     if (nullptr != result) {
       return result;
     }
@@ -159,10 +158,19 @@ public:
         if (sign->name() != "*" && sign->name() != "&") {
           return nullptr;
         }
-        next_ptr = nullptr;
+        return next_ptr;
       }
+      return type;
+    }
+    return nullptr;
+  }
+
+  std::shared_ptr<WordItem_c> parse_value_define_id(std::shared_ptr<WordItem_c> word_ptr) {
+    // value_type
+    auto value_define = parse_value_define(word_ptr);
+    if (nullptr != value_define) {
       // ID
-      return assertToken_type(next_ptr, WordEnumToken_e::Tid);
+      return assertToken_type(value_define, WordEnumToken_e::Tid);
     }
     return nullptr;
   }
@@ -201,8 +209,7 @@ public:
   }
 
   std::shared_ptr<WordItem_c> parse_value_define_init(std::shared_ptr<WordItem_c> word_ptr) {
-    std::cout << "parse_value_define_init" << std::endl;
-    auto result = parse_value_define(word_ptr);
+    auto result = parse_value_define_id(word_ptr);
     if (nullptr != result) {
       return parse_value_set_right(nullptr);
     }
@@ -321,13 +328,11 @@ public:
   }
 
   std::shared_ptr<WordItem_c> parse_function_define(std::shared_ptr<WordItem_c> word_ptr) {
-    std::cout << "parse_function_define" << std::endl;
-    auto ret_value = parse_value_define(word_ptr);
-    if (nullptr != ret_value) {
+    if (parse_value_define(word_ptr)) {
       if (assertToken_type(nullptr, WordEnumToken_e::Tid)) {
         if (assertToken_sign(nullptr, "(")) {
           std::shared_ptr<WordItem_c> sign_ptr;
-          while (parse_value_define(nullptr)) {
+          while (parse_value_define_id(nullptr)) {
             _GEN_WORD(sign);
             if (nullptr == assertToken_sign(sign_ptr, ",")) {
               break;
@@ -338,6 +343,27 @@ public:
             if (nullptr != result) {
               return assertToken_sign(nullptr, "}");
             }
+          }
+        }
+      }
+    }
+    return nullptr;
+  }
+
+  std::shared_ptr<WordItem_c> parse_function_noReturn_define(std::shared_ptr<WordItem_c> word_ptr) {
+    if (assertToken_type(word_ptr, WordEnumToken_e::Tid)) {
+      if (assertToken_sign(nullptr, "(")) {
+        std::shared_ptr<WordItem_c> sign_ptr;
+        while (parse_value_define_id(nullptr)) {
+          _GEN_WORD(sign);
+          if (nullptr == assertToken_sign(sign_ptr, ",")) {
+            break;
+          }
+        }
+        if (assertToken_sign(sign_ptr, ")") && assertToken_sign(nullptr, "{")) {
+          auto result = parse_code(nullptr);
+          if (nullptr != result) {
+            return assertToken_sign(nullptr, "}");
           }
         }
       }
@@ -373,7 +399,6 @@ public:
   }
 
   std::shared_ptr<WordItem_c> parse_type_define(std::shared_ptr<WordItem_c> word_ptr) {
-    std::cout << "parse_type_define" << std::endl;
     auto enum_ptr = parse_enum_define(word_ptr);
     if (nullptr != enum_ptr) {
       return enum_ptr;
