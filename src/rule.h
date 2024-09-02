@@ -8,7 +8,7 @@
 /**
  * 关键字（控制）
  */
-GENERATE_ENUM(WordEnumCtrl, const, static, if, else, switch, case, default, break, while, do, for, return)
+GENERATE_ENUM(WordEnumCtrl, const, static, if, else, switch, case, default, break, continue, while, do, for, return)
 
 /**
  * 关键字（变量类型）

@@ -1,7 +1,7 @@
 /**
  * ## 用于定义生成 `enum` 的定义和对应的字符串名称，以及相应的转换函数
  * - 不需要 `#pragma once`，否则可能导致编译异常
- * - 用法详见 [GENERATE_ENUM]
+ * - 用法详见 `GENERATE_ENUM`
  */
 #define _NameTagConcat_d(A, B) _NameTagConcat_1_d(A, B)
 #define _NameTagConcat_1_d(A, B) A##B
@@ -30,19 +30,22 @@
   _NameTagConcat_d(_GENERATE_ENUM_ITEM, _MacroArgToTag_d(__VA_ARGS__))(__VA_ARGS__)
 #define _GENERATE_ENUM_ITEM() GENERATE_ENUM_ITEM_d
 #define _GENERATE_ENUM_ITEM1(a) T##a
-#define _GENERATE_ENUM_ITEMN(a, ...) T##a, _MacroDefer_d(_GENERATE_ENUM_ITEM)()(__VA_ARGS__)
+#define _GENERATE_ENUM_ITEMN(a, ...)                                                               \
+  _GENERATE_ENUM_ITEM1(a), _MacroDefer_d(_GENERATE_ENUM_ITEM)()(__VA_ARGS__)
 
 #define GENERATE_STRING_ITEM_d(...)                                                                \
   _NameTagConcat_d(_GENERATE_STRING_ITEM, _MacroArgToTag_d(__VA_ARGS__))(__VA_ARGS__)
 #define _GENERATE_STRING_ITEM() GENERATE_STRING_ITEM_d
 #define _GENERATE_STRING_ITEM1(a) #a
-#define _GENERATE_STRING_ITEMN(a, ...) #a, _MacroDefer_d(_GENERATE_STRING_ITEM)()(__VA_ARGS__)
+#define _GENERATE_STRING_ITEMN(a, ...)                                                             \
+  _GENERATE_STRING_ITEM1(a), _MacroDefer_d(_GENERATE_STRING_ITEM)()(__VA_ARGS__)
 
 /**
  * ## 定义枚举和对应的字符串名称和转换函数
- * - [name]: 枚举类型名，用于生成：
- *    - enum name_e; 枚举定义；名称由 [name] 后追加 "_e"
- *    - class name_c; 放置枚举的字符串名称和相关转换函数，都是静态变量和静态函数，名称由 [name] 后追加 "_c"
+ * - `name`: 枚举类型名，用于生成：
+ *    - `enum name_e`; 枚举定义；名称由 `name` 后追加 `_e`
+ *    - `class name_c`; 放置枚举的字符串名称和相关转换函数，都是静态变量和静态函数，名称由 `name`
+ * 后追加 `_c`
  */
 #define GENERATE_ENUM(name, ...)                                                                   \
   enum name##_e{_MoreExpand_d(GENERATE_ENUM_ITEM_d(__VA_ARGS__))};                                 \

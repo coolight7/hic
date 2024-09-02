@@ -1,6 +1,9 @@
 #pragma once
+#include <functional>
+#include <memory>
 
 #include "lexical_analyse.h"
+#include "magic/macro.h"
 
 #define _GEN_WORD(name)                                                                            \
   if (nullptr == name##_ptr) {                                                                     \
@@ -15,9 +18,53 @@
   std::shared_ptr<WordItem_c> name##_ptr;                                                          \
   _GEN_WORD(name)
 
+#define GENERATE_FUN_ITEM_d(...)                                                                   \
+  _NameTagConcat_d(_GENERATE_FUN_ITEM, _MacroArgToTag_d(__VA_ARGS__))(__VA_ARGS__)
+#define _GENERATE_FUN_ITEM() GENERATE_FUN_ITEM_d
+#define _GENERATE_FUN_ITEM1(a)                                                                     \
+  [this](std::shared_ptr<WordItem_c> ptr) -> std::shared_ptr<WordItem_c> { return a(ptr); }
+#define _GENERATE_FUN_ITEMN(a, ...)                                                                \
+  _GENERATE_FUN_ITEM1(a), _MacroDefer_d(_GENERATE_FUN_ITEM)()(__VA_ARGS__)
+
+#define _REBACK_d(word_ptr, tempIndex, ...)                                                        \
+  reback_funs(word_ptr, tempIndex, _MoreExpand_d(GENERATE_FUN_ITEM_d(__VA_ARGS__)))
+
 class SyntacticAnalysis_c {
 public:
   void init(std::string_view in_code) { lexicalAnalyse.init(in_code); }
+
+  /**
+   * ## 回溯依次调用
+   */
+  std::shared_ptr<WordItem_c>
+  reback(std::shared_ptr<WordItem_c>&& word_ptr, int tempIndex,
+         std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<WordItem_c>)>&& fun) {
+    lexicalAnalyse.tokenIndex = tempIndex;
+    return fun(word_ptr);
+  }
+  std::shared_ptr<WordItem_c>
+  reback(std::shared_ptr<WordItem_c>&& word_ptr, int tempIndex,
+         std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<WordItem_c>)>&& fun,
+         std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<WordItem_c>)>&& funs...) {
+    auto result = reback(
+        std::forward<std::shared_ptr<WordItem_c>>(word_ptr), tempIndex,
+        std::forward<std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<WordItem_c>)>>(fun));
+    if (nullptr != result) {
+      return result;
+    }
+    return reback(
+        std::forward<std::shared_ptr<WordItem_c>>(word_ptr), tempIndex,
+        std::forward<std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<WordItem_c>)>>(
+            funs));
+  }
+  std::shared_ptr<WordItem_c>
+  reback_funs(std::shared_ptr<WordItem_c> word_ptr, int tempIndex,
+              std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<WordItem_c>)>&& funs...) {
+    return reback(
+        std::forward<std::shared_ptr<WordItem_c>>(word_ptr), tempIndex,
+        std::forward<std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<WordItem_c>)>>(
+            funs));
+  }
 
   std::shared_ptr<WordItem_c> assertToken(std::shared_ptr<WordItem_c> word_ptr,
                                           const WordItem_c& limit, bool startWith = false) {
@@ -51,6 +98,24 @@ public:
   std::shared_ptr<WordItem_c> assertToken_sign(std::shared_ptr<WordItem_c> word_ptr,
                                                const std::string& sign, bool startWith = false) {
     return assertToken(word_ptr, WordItem_default_c{WordEnumToken_e::Tsign, sign}, startWith);
+  }
+
+  // 花括号
+  std::shared_ptr<WordItem_c> tryParse_brace(
+      std::shared_ptr<WordItem_c> word_ptr,
+      const std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<WordItem_c>)>& fun) {
+    _GEN_WORD(word)
+    const auto left_result = assertToken_sign(word_ptr, "{");
+    if (nullptr != left_result) {
+      auto result = tryParse_brace(
+          nullptr, [&fun](std::shared_ptr<WordItem_c> next_ptr) { return fun(next_ptr); });
+      if (nullptr != result) {
+        return assertToken_sign(nullptr, "}");
+      }
+    } else {
+      return fun(word_ptr);
+    }
+    return nullptr;
   }
 
   std::shared_ptr<WordItem_number_c> parse_constexpr_int(std::shared_ptr<WordItem_c> word_ptr) {
@@ -136,25 +201,73 @@ public:
     }
     return nullptr;
   }
+  std::shared_ptr<WordItem_c> parse_expr(std::shared_ptr<WordItem_c> word_ptr,
+                                         WordEnumType_e ret_type) {
+    return nullptr;
+  }
 
-  std::shared_ptr<WordItem_c> parse_function_define(
-      std::shared_ptr<WordItem_c> word_ptr,
-      std::shared_ptr<WordItem_c> value_define_ptr = nullptr) {
-    if (nullptr == value_define_ptr) {
-      value_define_ptr = parse_value_define(word_ptr);
+  std::shared_ptr<WordItem_c> parse_code(std::shared_ptr<WordItem_c> word_ptr) { return nullptr; }
+
+  std::shared_ptr<WordItem_c> parse_code_ctrl_break(std::shared_ptr<WordItem_c> word_ptr) {
+    return assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Tbreak});
+  }
+
+  std::shared_ptr<WordItem_c> parse_code_ctrl_continue(std::shared_ptr<WordItem_c> word_ptr) {
+    return assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Tcontinue});
+  }
+
+  std::shared_ptr<WordItem_c> parse_code_ctrl_return(std::shared_ptr<WordItem_c> word_ptr,
+                                                     WordEnumType_e ret_type) {
+    if (assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Treturn})) {
+      return parse_expr(nullptr, ret_type);
     }
-    if (nullptr != value_define_ptr) {
-      if (assertToken_type(nullptr, WordEnumToken_e::Tid)) {
-        if (assertToken_sign(nullptr, "(")) {
-          std::shared_ptr<WordItem_c> sign_ptr;
-          while (parse_value_define(nullptr)) {
-            _GEN_WORD(sign);
-            if (nullptr == assertToken_sign(sign_ptr, ",")) {
-              break;
-            }
+    return nullptr;
+  }
+
+  std::shared_ptr<WordItem_c> parse_code_ctrl_if(std::shared_ptr<WordItem_c> word_ptr) {
+    if (assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Tif}) &&
+        assertToken_sign(nullptr, "(") && parse_expr(nullptr, WordEnumType_e::Tbool) &&
+        assertToken_sign(nullptr, ")") && assertToken_sign(nullptr, "{")) {
+      _GEN_WORD_DEF(sign);
+      if (assertToken_sign(sign_ptr, "}")) {
+        // 空代码块 {}
+        return sign_ptr;
+      }
+      if (parse_code(nullptr)) {
+        return assertToken_sign(nullptr, "}");
+      }
+    }
+    return nullptr;
+  }
+
+  std::shared_ptr<WordItem_c> parse_code_ctrl_while(std::shared_ptr<WordItem_c> word_ptr) {
+    if (assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Twhile}) &&
+        assertToken_sign(nullptr, "(") && parse_expr(nullptr, WordEnumType_e::Tbool) &&
+        assertToken_sign(nullptr, ")") && assertToken_sign(nullptr, "{")) {
+      _GEN_WORD_DEF(sign);
+      if (assertToken_sign(sign_ptr, "}")) {
+        // 空代码块 {}
+        return sign_ptr;
+      }
+      if (parse_code(nullptr)) {
+        return assertToken_sign(nullptr, "}");
+      }
+    }
+    return nullptr;
+  }
+
+  std::shared_ptr<WordItem_c> parse_code_ctrl_for(std::shared_ptr<WordItem_c> word_ptr) {
+    if (assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Tfor})) {
+      if (assertToken_sign(nullptr, "(")
+          // TODO: 匹配中间的 ;; && parse_expr(nullptr)
+          && assertToken_sign(nullptr, ")")) {
+        if (assertToken_sign(nullptr, "{")) {
+          _GEN_WORD_DEF(sign);
+          if (assertToken_sign(sign_ptr, "}")) {
+            // 空代码块 {}
+            return sign_ptr;
           }
-          if (assertToken_sign(sign_ptr, ")") && assertToken_sign(nullptr, "{")) {
-            // TODO: 函数体 ...
+          if (parse_code(nullptr)) {
             return assertToken_sign(nullptr, "}");
           }
         }
@@ -176,6 +289,28 @@ public:
           }
         }
         return assertToken_sign(sign_ptr, ")");
+      }
+    }
+    return nullptr;
+  }
+
+  std::shared_ptr<WordItem_c> parse_function_define(std::shared_ptr<WordItem_c> word_ptr) {
+    auto ret_value = parse_value_define(word_ptr);
+    if (nullptr != ret_value) {
+      if (assertToken_type(nullptr, WordEnumToken_e::Tid)) {
+        if (assertToken_sign(nullptr, "(")) {
+          std::shared_ptr<WordItem_c> sign_ptr;
+          while (parse_value_define(nullptr)) {
+            _GEN_WORD(sign);
+            if (nullptr == assertToken_sign(sign_ptr, ",")) {
+              break;
+            }
+          }
+          if (assertToken_sign(sign_ptr, ")") && assertToken_sign(nullptr, "{")) {
+            // TODO: 函数体 ...
+            return assertToken_sign(nullptr, "}");
+          }
+        }
       }
     }
     return nullptr;
@@ -230,13 +365,8 @@ public:
       if (word.token == WordEnumToken_e::Tsign && (word.name() == ";")) {
         continue;
       }
-      auto result = parse_type_define(word_ptr);
-      if (nullptr == result) {
-        result = parse_value_define_init(word_ptr);
-        if (nullptr == result) {
-          result = parse_function_define(word_ptr);
-        }
-      }
+      auto result = _REBACK_d(word_ptr, lexicalAnalyse.tokenIndex, parse_type_define,
+                              parse_value_define_init, parse_function_define);
       if (nullptr == result) {
         return false;
       }

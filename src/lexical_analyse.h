@@ -473,10 +473,16 @@ public:
 
   // <isSuccess, str>
   std::shared_ptr<WordItem_c> analyse() {
+    if (tokenIndex >= 0 && tokenIndex < tokenList.size()) {
+      auto result = tokenList[tokenIndex];
+      tokenIndex++;
+      return result;
+    }
     auto result = _innerAnalyse();
     if (nullptr != result) {
       tokenList.push_back(result);
     }
+    tokenIndex = tokenList.size();
     return result;
   }
 
@@ -517,4 +523,5 @@ public:
   // 作用域符号表
   std::vector<std::map<const std::string, std::shared_ptr<WordItem_c>>> symbolTable{};
   std::vector<std::shared_ptr<WordItem_c>> tokenList{};
+  int tokenIndex = -1;
 };

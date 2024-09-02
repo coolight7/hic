@@ -1,7 +1,7 @@
 ## 文法
 - program = {function_define} | {type_define} | {value_define_init} | ~
 
-- constexpr = number | string | true | false | nullptr
+- constexpr = {number} | {string} | true | false | nullptr
 - type_define = {enum_define} | {class_define};
 
 - value_type = void | bool | char | int | long | {ID_enum_type} | {ID_class_type} // 变量类型
@@ -10,10 +10,22 @@
 - value_set = <ID = {_value_set_right}>                       // 变量赋值
 - value_define_init = {value_define} {_value_set_right};      // 变量声明并初始化
 
+- function_call = {ID_function}(<ID_value|{constexpr}>?);
+
+- expr = {function_call} | ~
+
+- ctrl_break = break;
+- ctrl_continue = continue;
+- ctrl_return = return <{ID_value} | {constexpr}>;
+- ctrl_if = <if (expr) { {code} }> <else if (expr) { {code} }>* <else { {code} }>?
+- ctrl_while = while({expr_bool}) { {code} | {ctrl_break} | {ctrl_continue} }
+- ctrl_for = for(<{value_define_init} | {expr}>?;<{expr_bool}>?;<{expr}>?) { {code} | {ctrl_break} | {ctrl_continue} }
+
+- code = {value_define_init} | {value_set} | {ctrl_if} | {ctrl_while} | {ctrl_for} | {expr}
+
 - function_define = {value_define} ID ({value_define}*) {
 	{code}
 }
-- function_call = ID_function(<ID_value|{constexpr}>?);
 
 - enum_define = enum ID { (ID (=number)?,)+ };
 - class_define = class ID { 
