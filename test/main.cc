@@ -100,7 +100,20 @@ int main() {
     return 0;
 }
   )");
-  assert(analyse.analyse());
+  auto rebool = analyse.analyse();
+  if (false == rebool) {
+    int index = analyse.lexicalAnalyse.tokenList.size();
+    if (index > 10) {
+      index -= 10;
+    } else {
+      index = 0;
+    }
+    for (; index < analyse.lexicalAnalyse.tokenList.size(); ++index) {
+      auto& item = analyse.lexicalAnalyse.tokenList[index];
+      LexicalAnalyse_c::debugPrintSymbol(*item);
+    }
+  }
+  assert(rebool);
 }
 
 int main() {
