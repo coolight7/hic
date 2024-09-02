@@ -22,7 +22,8 @@
   _NameTagConcat_d(_GENERATE_FUN_ITEM, _MacroArgToTag_d(__VA_ARGS__))(__VA_ARGS__)
 #define _GENERATE_FUN_ITEM() GENERATE_FUN_ITEM_d
 #define _GENERATE_FUN_ITEM1(fun)                                                                   \
-  [this](std::shared_ptr<WordItem_c> ptr) -> std::shared_ptr<WordItem_c> { return fun(ptr); }
+  std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<WordItem_c>)>(                         \
+      std::bind(&SyntacticAnalysis_c::fun, this, std::placeholders::_1))
 #define _GENERATE_FUN_ITEMN(fun, ...)                                                              \
   _GENERATE_FUN_ITEM1(fun), _MacroDefer_d(_GENERATE_FUN_ITEM)()(__VA_ARGS__)
 
@@ -36,34 +37,39 @@ public:
   /**
    * ## 回溯依次调用
    */
+  template <typename T>
   std::shared_ptr<WordItem_c>
-  reback(std::shared_ptr<WordItem_c>&& word_ptr, int tempIndex,
-         std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<WordItem_c>)>&& fun) {
+  reback(std::shared_ptr<T>&& word_ptr, int tempIndex,
+         std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<T>)>&& fun) {
     lexicalAnalyse.tokenIndex = tempIndex;
     return fun(word_ptr);
   }
+
+  template <typename T, typename... Args>
   std::shared_ptr<WordItem_c>
-  reback(std::shared_ptr<WordItem_c>&& word_ptr, int tempIndex,
-         std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<WordItem_c>)>&& fun,
-         std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<WordItem_c>)>&& funs...) {
-    auto result = reback(
-        std::forward<std::shared_ptr<WordItem_c>>(word_ptr), tempIndex,
-        std::forward<std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<WordItem_c>)>>(fun));
+  reback(std::shared_ptr<T>&& word_ptr, int tempIndex,
+         std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<T>)>&& fun,
+         std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<Args>)>&&... funlist) {
+    auto result =
+        reback(std::forward<std::shared_ptr<T>>(word_ptr), tempIndex,
+               std::forward<std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<T>)>>(fun));
+    std::cout << "reback: " << result.get() << std::endl;
     if (nullptr != result) {
       return result;
     }
-    return reback(
-        std::forward<std::shared_ptr<WordItem_c>>(word_ptr), tempIndex,
-        std::forward<std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<WordItem_c>)>>(
-            funs));
+    if constexpr (sizeof...(funlist) > 0) {
+      return reback(std::forward<std::shared_ptr<T>>(word_ptr), tempIndex,
+                    std::forward<std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<Args>)>>(
+                        funlist)...);
+    }
+    return nullptr;
   }
+
+  template <typename... Args>
   std::shared_ptr<WordItem_c>
   reback_funs(std::shared_ptr<WordItem_c> word_ptr, int tempIndex,
-              std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<WordItem_c>)>&& funs...) {
-    return reback(
-        std::forward<std::shared_ptr<WordItem_c>>(word_ptr), tempIndex,
-        std::forward<std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<WordItem_c>)>>(
-            funs));
+              std::function<std::shared_ptr<WordItem_c>(std::shared_ptr<Args>)>&&... funlist) {
+    return reback(std::move(word_ptr), tempIndex, std::move(funlist)...);
   }
 
   std::shared_ptr<WordItem_c> assertToken(std::shared_ptr<WordItem_c> word_ptr,
@@ -195,16 +201,27 @@ public:
   }
 
   std::shared_ptr<WordItem_c> parse_value_define_init(std::shared_ptr<WordItem_c> word_ptr) {
+    std::cout << "parse_value_define_init" << std::endl;
     auto result = parse_value_define(word_ptr);
     if (nullptr != result) {
       return parse_value_set_right(nullptr);
     }
     return nullptr;
   }
+
   std::shared_ptr<WordItem_c> parse_expr(std::shared_ptr<WordItem_c> word_ptr,
                                          WordEnumType_e ret_type) {
+    std::shared_ptr<WordItem_c> last_ptr;
+    while (true) {
+      _GEN_WORD(word);
+      if (word.token == WordEnumToken_e::Tsign && (word.name() == ";" || word.name() == ")")) {
+        return last_ptr;
+      }
+      last_ptr = word_ptr;
+    }
     return nullptr;
   }
+
   std::shared_ptr<WordItem_c> parse_expr_void(std::shared_ptr<WordItem_c> word_ptr) {
     return parse_expr(word_ptr, WordEnumType_e::Tvoid);
   }
@@ -280,9 +297,6 @@ public:
   std::shared_ptr<WordItem_c> parse_code(std::shared_ptr<WordItem_c> word_ptr) {
     _GEN_WORD(word);
     int tempIndex = lexicalAnalyse.tokenIndex;
-    auto ctrl_return = [this](std::shared_ptr<WordItem_c> ptr) -> std::shared_ptr<WordItem_c> {
-      return parse_expr(ptr, WordEnumType_e::Tvoid);
-    };
     return _REBACK_d(word_ptr, tempIndex, parse_value_define_init, parse_value_set,
                      parse_code_ctrl_if, parse_code_ctrl_while, parse_code_ctrl_for,
                      parse_expr_void);
@@ -307,6 +321,7 @@ public:
   }
 
   std::shared_ptr<WordItem_c> parse_function_define(std::shared_ptr<WordItem_c> word_ptr) {
+    std::cout << "parse_function_define" << std::endl;
     auto ret_value = parse_value_define(word_ptr);
     if (nullptr != ret_value) {
       if (assertToken_type(nullptr, WordEnumToken_e::Tid)) {
@@ -319,8 +334,10 @@ public:
             }
           }
           if (assertToken_sign(sign_ptr, ")") && assertToken_sign(nullptr, "{")) {
-            // TODO: 函数体 ...
-            return assertToken_sign(nullptr, "}");
+            auto result = parse_code(nullptr);
+            if (nullptr != result) {
+              return assertToken_sign(nullptr, "}");
+            }
           }
         }
       }
@@ -356,6 +373,7 @@ public:
   }
 
   std::shared_ptr<WordItem_c> parse_type_define(std::shared_ptr<WordItem_c> word_ptr) {
+    std::cout << "parse_type_define" << std::endl;
     auto enum_ptr = parse_enum_define(word_ptr);
     if (nullptr != enum_ptr) {
       return enum_ptr;
