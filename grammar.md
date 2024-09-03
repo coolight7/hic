@@ -5,10 +5,11 @@
 - type_define = {enum_define} | {class_define};
 
 - value_type = void | bool | char | int | long | {ID_enum_type} | {ID_class_type} // 变量类型
-- value_define = <{value_type}> <*|&>? <ID>                   // 变量声明
+- value_define = <{value_type}> <*|&>?                        // 变量声明
+- value_define_id = <{value_define}> <ID>                     // 变量声明
 - _value_set_right = <= <<*|&>?ID>|{constexpr}>               // 变量赋值的右半部分
-- value_set = <ID = {_value_set_right}>                       // 变量赋值
-- value_define_init = {value_define} {_value_set_right};      // 变量声明并初始化
+- value_set = ID {_value_set_right}                       // 变量赋值
+- value_define_init = {value_define_id} {_value_set_right};      // 变量声明并初始化
 
 - function_call = {ID_function}(<ID_value|{constexpr}>?);
 
@@ -23,7 +24,7 @@
 
 - code = {value_define_init} | {value_set} | {ctrl_if} | {ctrl_while} | {ctrl_for} | {ctrl_return} | {expr}
 
-- function_define = {value_define} ID ({value_define}*) {
+- function_define = {value_define} ID ({value_define_id}*) {
 	{code}
 }
 
@@ -34,7 +35,7 @@
 	operator=({value}*) { {code} } 		// 操作符函数
 
 	((static)? {function_define})*  	// 成员函数
-	((static)? <{value_define}|{value_define_init}>;)* 		// 成员变量
+	((static)? <{value_define_id}|{value_define_init}>;)* 		// 成员变量
 };
 
 ### First 集
