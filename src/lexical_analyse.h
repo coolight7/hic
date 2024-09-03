@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <optional>
@@ -514,7 +515,15 @@ public:
   }
 
   static void debugPrintSymbol(const WordItem_c& word) {
-    std::cout << WordEnumToken_c::toName(word.token) << "\t" << word.name() << std::endl;
+    const auto& str = WordEnumToken_c::toName(word.token);
+    std::cout << str << " ";
+    int fill = 10 - str.size();
+    if (fill > 0) {
+      while (fill-- > 0) {
+        std::cout << "-";
+      }
+    }
+    std::cout << " " << word.name() << std::endl;
   }
 
   void debugPrintSymbolList() {

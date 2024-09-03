@@ -92,13 +92,17 @@ public:
 
   void debugPrint(int tab = 0) {
     if (isWord) {
+      for (int i = tab; i-- > 0;) {
+        std::cout << "  ";
+      }
+      std::cout << "|" << std::endl;
       for (const auto& item : wordList) {
         if (tab > 0) {
           for (int i = tab; i-- > 0;) {
-            std::cout << "   ";
+            std::cout << "  ";
           }
         }
-        std::cout << "|--";
+        std::cout << "|-";
         LexicalAnalyse_c::debugPrintSymbol(*item);
       }
     } else {
@@ -266,8 +270,8 @@ public:
 
   std::shared_ptr<SyntaxNode_c> parse_value_define_id(std::shared_ptr<WordItem_c> word_ptr) {
     // value_type
-    auto re_node = std::make_shared<SyntaxNode_c>(false);
-    if (re_node->add(parse_value_define(word_ptr))) {
+    auto re_node = parse_value_define(word_ptr);
+    if (nullptr != re_node) {
       // ID
       if (re_node->add(assertToken_type(nullptr, WordEnumToken_e::Tid))) {
         return re_node;
