@@ -31,14 +31,26 @@ class WordItem_ctrl_c;
 class WordItem_type_c;
 class WordItem_nativeCall_c;
 
-class WordItem_c {
+class WordItem_c : public ListNode_c {
 public:
-  WordItem_c() : token(WordEnumToken_e::Tundefined) {}
+  WordItem_c() : ListNode_c(ListNodeType_e::Lexical), token(WordEnumToken_e::Tundefined) {}
 
-  WordItem_c(WordEnumToken_e in_token) : token(in_token) {}
+  WordItem_c(WordEnumToken_e in_token) : ListNode_c(ListNodeType_e::Lexical), token(in_token) {}
   WordItem_c(const WordItem_c&) = delete;
 
   virtual const std::string& name() const { return HicUtil_c::emptyString; }
+
+  void printInfo() const override {
+    const auto& str = WordEnumToken_c::toName(token);
+    std::cout << str << " ";
+    int fill = 10 - str.size();
+    if (fill > 0) {
+      while (fill-- > 0) {
+        std::cout << "-";
+      }
+    }
+    std::cout << " " << name() << std::endl;
+  }
 
   template <typename _T, typename... _Args>
   static std::shared_ptr<WordItem_c> make_shared(_Args... args) {
@@ -514,22 +526,10 @@ public:
     }
   }
 
-  static void debugPrintSymbol(const WordItem_c& word) {
-    const auto& str = WordEnumToken_c::toName(word.token);
-    std::cout << str << " ";
-    int fill = 10 - str.size();
-    if (fill > 0) {
-      while (fill-- > 0) {
-        std::cout << "-";
-      }
-    }
-    std::cout << " " << word.name() << std::endl;
-  }
-
   void debugPrintSymbolList() {
     for (const auto& item : tokenList) {
       const auto& word = *item.get();
-      debugPrintSymbol(word);
+      word.printInfo();
     }
   }
 

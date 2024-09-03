@@ -46,3 +46,18 @@ public:
               << std::endl;                                                                        \
     std::cout << '\t' << std::format(tip, ##__VA_ARGS__) << std::endl;                             \
   }
+
+enum ListNodeType_e {
+  Lexical,
+  Syntactic,
+};
+
+class ListNode_c {
+public:
+  ListNode_c(ListNodeType_e in_type) : nodeType(in_type) {}
+  ListNode_c(const ListNode_c&) = delete;
+
+  virtual void printInfo() const {}
+
+  ListNodeType_e nodeType;
+};

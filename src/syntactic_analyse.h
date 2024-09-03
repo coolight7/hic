@@ -5,6 +5,7 @@
 
 #include "lexical_analyse.h"
 #include "magic/macro.h"
+#include "util.h"
 
 /**
  * - 注意此处也需要 `##__VA_ARGS__`，否则会多传 ，给 UtilLog导致展开异常
@@ -41,59 +42,50 @@
   reback_funs(word_ptr, tempIndex, _MoreExpand_d(GENERATE_FUN_ITEM_d(__VA_ARGS__)))
 
 // 语法树节点
-class SyntaxNode_c {
+class SyntaxNode_c : public ListNode_c {
 public:
   template <typename... _Args>
   inline static std::shared_ptr<SyntaxNode_c> make_exp(std::shared_ptr<_Args>... args) {
     auto re_ptr = std::make_shared<SyntaxNode_c>(false);
-    re_ptr->expList.emplace_back(args...);
+    re_ptr->children.emplace_back(args...);
     return re_ptr;
   }
 
   template <typename... _Args>
   inline static std::shared_ptr<SyntaxNode_c> make_word(std::shared_ptr<_Args>... args) {
     auto re_ptr = std::make_shared<SyntaxNode_c>(true);
-    re_ptr->wordList.emplace_back(args...);
+    re_ptr->children.emplace_back(args...);
     return re_ptr;
   }
 
-  SyntaxNode_c(bool in_isWord) : isWord(in_isWord) {}
+  SyntaxNode_c(bool isWord) : ListNode_c(ListNodeType_e::Syntactic) {}
 
   bool add(std::shared_ptr<SyntaxNode_c> ptr) {
-    assert(false == isWord);
     if (nullptr != ptr) {
-      if (false == isWord) {
-        expList.emplace_back(std::move(ptr));
-        return true;
-      }
+      children.push_back(ptr);
+      return true;
     }
     return false;
   }
 
   bool add(std::shared_ptr<WordItem_c> ptr) {
     if (nullptr != ptr) {
-      if (false == isWord) {
-        return add(make_word(ptr));
-      } else {
-        wordList.push_back(ptr);
-        return true;
-      }
+      children.push_back(ptr);
+      return true;
     }
     return false;
   }
 
-  bool isEmpty() {
-    if (isWord) {
-      return wordList.empty();
-    } else {
-      return expList.empty();
-    }
-  }
+  bool isEmpty() { return children.empty(); }
+
+  void printInfo() const override { debugPrint(); }
 
   void debugPrint(const size_t tab = 1, std::function<size_t()> onOutPrefix = nullptr) const {
-    if (isWord) {
-      int index = 0;
-      for (const auto& item : wordList) {
+    int index = 0;
+    for (const auto& item : children) {
+      switch (item->nodeType) {
+      case ListNodeType_e::Lexical: {
+        // word
         if (tab > 0) {
           size_t prefixTab = 0;
           if (nullptr != onOutPrefix) {
@@ -103,19 +95,17 @@ public:
             std::cout << "   ";
           }
         }
-        if (wordList.size() == index + 1) {
+        if (children.size() == index + 1) {
           // end
           std::cout << "  └──";
         } else {
           std::cout << "  ├──";
         }
-        LexicalAnalyse_c::debugPrintSymbol(*item);
-        index++;
-      }
-    } else {
-      int index = 0;
-      for (const auto& item : expList) {
-        bool isEnd = (index == expList.size() - 1);
+        item->printInfo();
+      } break;
+      case ListNodeType_e::Syntactic: {
+        // Syntax
+        bool isEnd = (index == children.size() - 1);
 
         size_t prefixTab = 0;
         if (nullptr != onOutPrefix) {
@@ -125,11 +115,18 @@ public:
           std::cout << "   ";
         }
         if (isEnd) {
-          std::cout << "  └──┐" << std::endl;
+          std::cout << "  └──┐";
         } else {
-          std::cout << "  ├──┐" << std::endl;
+          std::cout << "  ├──┐";
         }
-        item->debugPrint(tab + 1, [&onOutPrefix, isEnd]() -> size_t {
+        SyntaxNode_c* item_ptr = (SyntaxNode_c*)item.get();
+        if (nullptr != item_ptr->node) {
+          // 节点包含内容
+          std::cout << "#";
+          item_ptr->node->printInfo();
+        }
+        std::cout << std::endl;
+        item_ptr->debugPrint(tab + 1, [&onOutPrefix, isEnd]() -> size_t {
           size_t size = 0;
           if (nullptr != onOutPrefix) {
             size = onOutPrefix();
@@ -142,19 +139,16 @@ public:
           }
           return size + 1;
         });
-        index++;
+      } break;
+      default:
+        break;
       }
+      index++;
     }
   }
 
-  /**
-   * ## 是否叶子节点
-   * - [叶子节点] 只存储 [wordList]
-   * - [非叶子节点] 只存储 表达式 [expList]
-   */
-  bool isWord;
-  std::list<std::shared_ptr<SyntaxNode_c>> expList{};
-  std::list<std::shared_ptr<WordItem_c>> wordList{};
+  std::shared_ptr<WordItem_c> node = nullptr;
+  std::list<std::shared_ptr<ListNode_c>> children{};
 };
 
 class SyntacticAnalysis_c {
@@ -656,7 +650,7 @@ public:
         return false;
       }
       root.add(result);
-      LexicalAnalyse_c::debugPrintSymbol(*lexicalAnalyse.currentToken());
+      lexicalAnalyse.currentToken()->printInfo();
     }
     return true;
   }
