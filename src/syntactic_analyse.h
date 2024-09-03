@@ -355,11 +355,26 @@ public:
                                            WordEnumType_e ret_type) {
     auto re_node = std::make_shared<SyntaxNode_c>(true);
     std::shared_ptr<WordItem_c> last_ptr;
+    int group = 0;
     while (true) {
       _GEN_WORD(word);
-      if (word.token == WordEnumToken_e::Tsign && (word.name() == ";" || word.name() == ")")) {
-        lexicalAnalyse.tokenBack();
-        return re_node;
+      if (word.token == WordEnumToken_e::Tsign) {
+        bool doRet = false;
+        if (word.name() == "(") {
+          ++group;
+        } else if (word.name() == ";") {
+          doRet = true;
+        } else if (word.name() == ")") {
+          group--;
+          if (group < 0) {
+            // 遇到额外多出 ) 才退出
+            doRet = true;
+          }
+        }
+        if (doRet) {
+          lexicalAnalyse.tokenBack();
+          return re_node;
+        }
       }
       re_node->add(word_ptr);
       last_ptr = word_ptr;

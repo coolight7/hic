@@ -81,7 +81,7 @@ int main() {
     c *= b;
     a ??= b ?? c;
 
-    if (a == b || b == c) {
+    if (a == b || (b == c && a == c)) {
         d = b;
     }
 
