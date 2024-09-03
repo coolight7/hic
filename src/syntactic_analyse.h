@@ -88,7 +88,8 @@ public:
         return word_ptr;
       }
     }
-    SynLog(Twarning, "");
+    SynLog(Twarning, "[assertToken] faild; word: {}, expect: {}", word.toString(),
+           limit.toString());
     return nullptr;
   }
 
@@ -171,7 +172,7 @@ public:
         return sign;
       }
       // 下一个 [token] 不是符号，回退一个
-      lexicalAnalyse.tokenIndex--;
+      lexicalAnalyse.tokenBack();
       return type;
     }
     return nullptr;
@@ -234,9 +235,11 @@ public:
     while (true) {
       _GEN_WORD(word);
       if (word.token == WordEnumToken_e::Tsign && (word.name() == ";" || word.name() == ")")) {
+        lexicalAnalyse.tokenBack();
         return last_ptr;
       }
       last_ptr = word_ptr;
+      word_ptr = nullptr;
     }
     return nullptr;
   }
@@ -259,6 +262,10 @@ public:
       return parse_expr(nullptr, ret_type);
     }
     return nullptr;
+  }
+
+  std::shared_ptr<WordItem_c> parse_code_ctrl_return_void(std::shared_ptr<WordItem_c> word_ptr) {
+    return parse_code_ctrl_return(word_ptr, WordEnumType_e::Tvoid);
   }
 
   std::shared_ptr<WordItem_c> parse_code_ctrl_if(std::shared_ptr<WordItem_c> word_ptr) {
@@ -314,11 +321,20 @@ public:
   }
 
   std::shared_ptr<WordItem_c> parse_code(std::shared_ptr<WordItem_c> word_ptr) {
-    _GEN_WORD(word);
-    int tempIndex = lexicalAnalyse.tokenIndex;
-    return _REBACK_d(word_ptr, tempIndex, parse_value_define_init, parse_value_set,
-                     parse_code_ctrl_if, parse_code_ctrl_while, parse_code_ctrl_for,
-                     parse_expr_void);
+    std::shared_ptr<WordItem_c> result;
+    do {
+      _GEN_WORD(word);
+      if (word.token == WordEnumToken_e::Tsign && (word.name() == ";")) {
+        word_ptr = nullptr;
+        continue;
+      }
+      int tempIndex = lexicalAnalyse.tokenIndex;
+      result = _REBACK_d(word_ptr, tempIndex, parse_value_define_init, parse_value_set,
+                         parse_code_ctrl_if, parse_code_ctrl_while, parse_code_ctrl_for,
+                         parse_code_ctrl_return_void, parse_expr_void);
+      word_ptr = nullptr;
+    } while (nullptr != result);
+    return result;
   }
 
   std::shared_ptr<WordItem_c> parse_function_call(std::shared_ptr<WordItem_c> word_ptr) {
@@ -344,7 +360,8 @@ public:
       if (assertToken_type(nullptr, WordEnumToken_e::Tid)) {
         if (assertToken_sign(nullptr, "(")) {
           std::shared_ptr<WordItem_c> sign_ptr;
-          while (parse_value_define_id(nullptr)) {
+          _GEN_WORD(sign);
+          while (parse_value_define_id(sign_ptr)) {
             _GEN_WORD(sign);
             if (nullptr == assertToken_sign(sign_ptr, ",")) {
               break;

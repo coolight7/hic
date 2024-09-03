@@ -69,6 +69,10 @@ public:
 
   virtual ~WordItem_c() {}
 
+  std::string toString() const {
+    return std::format("[{}] {}", WordEnumToken_c::toName(token), name());
+  }
+
   WordEnumToken_e token;
 };
 
@@ -486,6 +490,8 @@ public:
     tokenIndex = tokenList.size();
     return result;
   }
+
+  void tokenBack(size_t size = 1) { tokenIndex -= size; }
 
   void debugPrintSymbolTable(bool printKeyword) {
     int i = 0;
