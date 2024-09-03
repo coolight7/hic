@@ -108,6 +108,7 @@ int main() {
     } else {
       index = 0;
     }
+    UtilLog(Tdebug, "", 0, "## End last Token:");
     for (; index < analyse.lexicalAnalyse.tokenList.size(); ++index) {
       auto& item = analyse.lexicalAnalyse.tokenList[index];
       LexicalAnalyse_c::debugPrintSymbol(*item);

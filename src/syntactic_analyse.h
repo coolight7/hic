@@ -41,6 +41,9 @@
 
 class SyntacticAnalysis_c {
 public:
+  inline static bool enableLog_assertToken = false;
+  inline static bool enableLog_parseCode = true;
+
   void init(std::string_view in_code) { lexicalAnalyse.init(in_code); }
 
   /**
@@ -88,8 +91,10 @@ public:
         return word_ptr;
       }
     }
-    SynLog(Twarning, "[assertToken] faild; word: {}, expect: {}", word.toString(),
-           limit.toString());
+    if (enableLog_assertToken) {
+      SynLog(Twarning, "[assertToken] faild; word: {}, expect: {}", word.toString(),
+             limit.toString());
+    }
     return nullptr;
   }
 
@@ -277,7 +282,7 @@ public:
         // 空代码块 {}
         return sign_ptr;
       }
-      if (parse_code(nullptr)) {
+      if (parse_code(sign_ptr)) {
         return assertToken_sign(nullptr, "}");
       }
     }
@@ -320,20 +325,47 @@ public:
     return nullptr;
   }
 
+  /**
+   * 不取外围的大括号 { code }
+   */
   std::shared_ptr<WordItem_c> parse_code(std::shared_ptr<WordItem_c> word_ptr) {
     std::shared_ptr<WordItem_c> result;
+    if (enableLog_parseCode) {
+      SynLog(Tdebug, "parse_code ========> ");
+    }
     do {
       _GEN_WORD(word);
-      if (word.token == WordEnumToken_e::Tsign && (word.name() == ";")) {
-        word_ptr = nullptr;
-        continue;
+      if (word.token == WordEnumToken_e::Tsign) {
+        if (word.name() == ";") {
+          word_ptr = nullptr;
+          continue;
+        } else if (word.name() == "}") {
+          lexicalAnalyse.tokenBack();
+          break;
+        }
       }
       int tempIndex = lexicalAnalyse.tokenIndex;
       result = _REBACK_d(word_ptr, tempIndex, parse_value_define_init, parse_value_set,
                          parse_code_ctrl_if, parse_code_ctrl_while, parse_code_ctrl_for,
                          parse_code_ctrl_return_void, parse_expr_void);
+      if (nullptr != result && enableLog_parseCode) {
+        // 打印 code
+        if (enableLog_parseCode) {
+          SynLog(Tdebug, "  parse_code/line ------ ");
+        }
+        for (int index = tempIndex - 1; index < lexicalAnalyse.tokenList.size(); ++index) {
+          const auto& item = lexicalAnalyse.tokenList[index];
+          LexicalAnalyse_c::debugPrintSymbol(*item);
+          if (item == result) {
+            break;
+          }
+        }
+      }
       word_ptr = nullptr;
     } while (nullptr != result);
+    if (enableLog_parseCode) {
+      SynLog(Tdebug, "parse_code <------------- ");
+    }
     return result;
   }
 
