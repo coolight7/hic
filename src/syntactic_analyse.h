@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <list>
 #include <memory>
 
 #include "lexical_analyse.h"
@@ -38,6 +39,47 @@
 
 #define _REBACK_d(word_ptr, tempIndex, ...)                                                        \
   reback_funs(word_ptr, tempIndex, _MoreExpand_d(GENERATE_FUN_ITEM_d(__VA_ARGS__)))
+
+// 语法树节点
+class SyntaxNode_c {
+public:
+  template <typename... _Args>
+  inline static std::shared_ptr<SyntaxNode_c> make_exp(std::shared_ptr<_Args>&&... args) {
+    auto re_ptr = std::make_shared<SyntaxNode_c>();
+    re_ptr->isWord = false;
+    re_ptr->expList.emplace_back(std::forward<std::shared_ptr<_Args>>(args)...);
+    return re_ptr;
+  }
+
+  template <typename... _Args>
+  inline static std::shared_ptr<SyntaxNode_c> make_word(std::shared_ptr<_Args>&&... args) {
+    auto re_ptr = std::make_shared<SyntaxNode_c>();
+    re_ptr->isWord = true;
+    re_ptr->wordList.emplace_back(std::forward<std::shared_ptr<_Args>>(args)...);
+    return re_ptr;
+  }
+
+  SyntaxNode_c() {}
+
+  void addExp(std::shared_ptr<SyntaxNode_c>&& ptr) {
+    assert(false == isWord);
+    expList.emplace_back(std::forward<std::shared_ptr<SyntaxNode_c>>(ptr));
+  }
+
+  void addWord(std::shared_ptr<WordItem_c>&& ptr) {
+    assert(true == isWord);
+    wordList.emplace_back(std::forward<std::shared_ptr<WordItem_c>>(ptr));
+  }
+
+  /**
+   * ## 是否叶子节点
+   * - [叶子节点] 只存储 [wordList]
+   * - [非叶子节点] 只存储 表达式 [expList]
+   */
+  bool isWord = false;
+  std::list<std::shared_ptr<SyntaxNode_c>> expList{};
+  std::list<std::shared_ptr<WordItem_c>> wordList{};
+};
 
 class SyntacticAnalysis_c {
 public:
