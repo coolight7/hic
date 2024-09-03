@@ -60,6 +60,15 @@ public:
 
   SyntaxNode_c(bool isWord) : ListNode_c(ListNodeType_e::Syntactic) {}
 
+  bool set(std::shared_ptr<WordItem_c> ptr) {
+    assert(nullptr == node);
+    if (nullptr == ptr) {
+      node = ptr;
+      return true;
+    }
+    return false;
+  }
+
   bool add(std::shared_ptr<SyntaxNode_c> ptr) {
     if (nullptr != ptr) {
       children.push_back(ptr);
@@ -309,21 +318,11 @@ public:
     return nullptr;
   }
 
-  std::shared_ptr<SyntaxNode_c> parse_value_set_right(std::shared_ptr<WordItem_c> word_ptr) {
-    auto re_node = std::make_shared<SyntaxNode_c>(false);
-    if (re_node->add(assertToken_sign(word_ptr, "="))) {
-      if (re_node->add(parse_expr(nullptr, WordEnumType_e::Tvoid))) {
-        return re_node;
-      }
-    }
-    return nullptr;
-  }
-
   std::shared_ptr<SyntaxNode_c> parse_value_set(std::shared_ptr<WordItem_c> word_ptr) {
     auto pre_node = std::make_shared<SyntaxNode_c>(true);
     if (pre_node->add(assertToken_type(word_ptr, WordEnumToken_e::Tid))) {
-      if (pre_node->add(assertToken_sign(nullptr, "="))) {
-        auto re_node = SyntaxNode_c::make_exp(pre_node);
+      auto re_node = SyntaxNode_c::make_exp(pre_node);
+      if (re_node->add(assertToken_sign(nullptr, "="))) {
         if (re_node->add(parse_expr(nullptr, WordEnumType_e::Tvoid))) {
           return re_node;
         }
@@ -335,8 +334,8 @@ public:
   std::shared_ptr<SyntaxNode_c> parse_value_define_init(std::shared_ptr<WordItem_c> word_ptr) {
     auto pre_node = parse_value_define_id(word_ptr);
     if (pre_node) {
-      if (pre_node->add(assertToken_sign(nullptr, "="))) {
-        auto re_node = SyntaxNode_c::make_exp(pre_node);
+      auto re_node = SyntaxNode_c::make_exp(pre_node);
+      if (re_node->add(assertToken_sign(nullptr, "="))) {
         if (re_node->add(parse_expr(nullptr, WordEnumType_e::Tvoid))) {
           return re_node;
         }
