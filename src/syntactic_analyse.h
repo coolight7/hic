@@ -5,6 +5,15 @@
 #include "lexical_analyse.h"
 #include "magic/macro.h"
 
+/**
+ * - 注意此处也需要 `##__VA_ARGS__`，否则会多传 ，给 UtilLog导致展开异常
+ */
+#define SynLog(level, tip, ...)                                                                    \
+  UtilLog(level,                                                                                   \
+          "[" + WordEnumToken_c::toName(lexicalAnalyse.currentToken()->token) + "] " +             \
+              lexicalAnalyse.currentToken()->name(),                                               \
+          lexicalAnalyse.current_line, tip, ##__VA_ARGS__)
+
 #define _GEN_WORD(name)                                                                            \
   if (nullptr == name##_ptr) {                                                                     \
     name##_ptr = lexicalAnalyse.analyse();                                                         \
@@ -79,6 +88,7 @@ public:
         return word_ptr;
       }
     }
+    SynLog(Twarning, "");
     return nullptr;
   }
 
@@ -158,8 +168,10 @@ public:
         if (sign->name() != "*" && sign->name() != "&") {
           return nullptr;
         }
-        return next_ptr;
+        return sign;
       }
+      // 下一个 [token] 不是符号，回退一个
+      lexicalAnalyse.tokenIndex--;
       return type;
     }
     return nullptr;
@@ -170,7 +182,7 @@ public:
     auto value_define = parse_value_define(word_ptr);
     if (nullptr != value_define) {
       // ID
-      return assertToken_type(value_define, WordEnumToken_e::Tid);
+      return assertToken_type(nullptr, WordEnumToken_e::Tid);
     }
     return nullptr;
   }

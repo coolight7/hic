@@ -11,7 +11,10 @@
 #include "rule.h"
 #include "util.h"
 
-#define WordPrintLine(level, tip, ...) UtilPrintLine(level, "", current_line, tip, __VA_ARGS__)
+/**
+ * - 注意此处也需要 `##__VA_ARGS__`，否则会多传 ，给 UtilLog导致展开异常
+ */
+#define WordLog(level, tip, ...) UtilLog(level, "", current_line, tip, ##__VA_ARGS__)
 
 class WordValue_c {
 public:
@@ -283,8 +286,7 @@ public:
             step = 8;
           } else if ('0' == *code_it) {
             // 连续 0，警告！
-            WordPrintLine(HicLogLevel_e::Twarning,
-                          "数值开头不应使用连续的0；该值将被认为是十进制{}", "");
+            WordLog(Twarning, "数值开头不应使用连续的0；该值将被认为是十进制{}", "");
           }
         }
         do {
@@ -306,8 +308,7 @@ public:
               item = *code_it - '0';
             } else {
               if ('8' == *code_it || '9' == *code_it) {
-                WordPrintLine(HicLogLevel_e::Terror, "预期为8进制的数值，却包含了字符：{}",
-                              *code_it);
+                WordLog(Terror, "预期为8进制的数值，却包含了字符：{}", *code_it);
                 return nullptr;
               }
               break;
@@ -371,7 +372,7 @@ public:
           }
         }
         if (nullptr == end) {
-          WordPrintLine(HicLogLevel_e::Terror, "字符串缺少右边界：{}", startSign);
+          WordLog(Terror, "字符串缺少右边界：{}", startSign);
           return nullptr;
         } else {
           return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tstring, value);
@@ -407,7 +408,7 @@ public:
           if (hasEnd) {
             continue;
           } else {
-            WordPrintLine(HicLogLevel_e::Terror, "多行注释 /* 缺少右边界 {}", "");
+            WordLog(Terror, "多行注释 /* 缺少右边界");
             return nullptr;
           }
         }

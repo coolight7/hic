@@ -39,9 +39,10 @@ public:
   inline static const std::string emptyString{};
 };
 
-#define UtilPrintLine(level, path, line, tip, ...)                                                 \
+#define UtilLog(level, path, line, tip, ...)                                                       \
   {                                                                                                \
-    std::cout << std::format("[{}] {}, line({}):", HicLogLevel_c::toName(level), path, line)       \
+    std::cout << std::format("[{}] {}, line({}):", HicLogLevel_c::toName(HicLogLevel_e::level),    \
+                             path, line)                                                           \
               << std::endl;                                                                        \
     std::cout << '\t' << std::format(tip, ##__VA_ARGS__) << std::endl;                             \
   }
