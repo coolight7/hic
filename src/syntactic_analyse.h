@@ -334,7 +334,7 @@ public:
   std::shared_ptr<WordItem_c> parse_code(std::shared_ptr<WordItem_c> word_ptr) {
     std::shared_ptr<WordItem_c> result;
     if (enableLog_parseCode) {
-      SynLog(Tdebug, "parse_code ========> ");
+      SynLog(Tdebug, "parse_code -----vvv------ ");
     }
     do {
       _GEN_WORD(word);
@@ -354,7 +354,7 @@ public:
       if (nullptr != result && enableLog_parseCode) {
         // 打印 code
         if (enableLog_parseCode) {
-          SynLog(Tdebug, "  parse_code/line ------ ");
+          SynLog(Tdebug, "  - parse_code/line --vvv-- ");
         }
         for (int index = tempIndex - 1; index < lexicalAnalyse.tokenList.size(); ++index) {
           const auto& item = lexicalAnalyse.tokenList[index];
@@ -367,7 +367,7 @@ public:
       word_ptr = nullptr;
     } while (nullptr != result);
     if (enableLog_parseCode) {
-      SynLog(Tdebug, "parse_code <------------- ");
+      SynLog(Tdebug, "parse_code -----^^^----- ");
     }
     return result;
   }
