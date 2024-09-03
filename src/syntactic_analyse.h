@@ -46,21 +46,21 @@ public:
   template <typename... _Args>
   inline static std::shared_ptr<SyntaxNode_c> make_exp(std::shared_ptr<_Args>... args) {
     auto re_ptr = std::make_shared<SyntaxNode_c>(false);
-    re_ptr->expList.emplace_back(std::forward<std::shared_ptr<_Args>>(args)...);
+    re_ptr->expList.emplace_back(args...);
     return re_ptr;
   }
 
   template <typename... _Args>
   inline static std::shared_ptr<SyntaxNode_c> make_word(std::shared_ptr<_Args>... args) {
     auto re_ptr = std::make_shared<SyntaxNode_c>(true);
-    re_ptr->isWord = true;
-    re_ptr->wordList.emplace_back(std::forward<std::shared_ptr<_Args>>(args)...);
+    re_ptr->wordList.emplace_back(args...);
     return re_ptr;
   }
 
   SyntaxNode_c(bool in_isWord) : isWord(in_isWord) {}
 
   bool add(std::shared_ptr<SyntaxNode_c> ptr) {
+    assert(false == isWord);
     if (nullptr != ptr) {
       if (false == isWord) {
         expList.emplace_back(std::move(ptr));
@@ -90,24 +90,59 @@ public:
     }
   }
 
-  void debugPrint(int tab = 0) {
+  void debugPrint(const size_t tab = 1, std::function<size_t()> onOutPrefix = nullptr) const {
     if (isWord) {
-      for (int i = tab; i-- > 0;) {
-        std::cout << "  ";
-      }
-      std::cout << "|" << std::endl;
+      int index = 0;
       for (const auto& item : wordList) {
         if (tab > 0) {
-          for (int i = tab; i-- > 0;) {
-            std::cout << "  ";
+          size_t prefixTab = 0;
+          if (nullptr != onOutPrefix) {
+            prefixTab = onOutPrefix();
+          }
+          for (int i = tab - prefixTab - 1; i-- > 0;) {
+            std::cout << "   ";
           }
         }
-        std::cout << "|-";
+        if (wordList.size() == index + 1) {
+          // end
+          std::cout << "  └──";
+        } else {
+          std::cout << "  ├──";
+        }
         LexicalAnalyse_c::debugPrintSymbol(*item);
+        index++;
       }
     } else {
+      int index = 0;
       for (const auto& item : expList) {
-        item->debugPrint(tab + 1);
+        bool isEnd = (index == expList.size() - 1);
+
+        size_t prefixTab = 0;
+        if (nullptr != onOutPrefix) {
+          prefixTab = onOutPrefix();
+        }
+        for (int i = tab - prefixTab - 1; i-- > 0;) {
+          std::cout << "   ";
+        }
+        if (isEnd) {
+          std::cout << "  └──┐" << std::endl;
+        } else {
+          std::cout << "  ├──┐" << std::endl;
+        }
+        item->debugPrint(tab + 1, [&onOutPrefix, isEnd]() -> size_t {
+          size_t size = 0;
+          if (nullptr != onOutPrefix) {
+            size = onOutPrefix();
+          }
+          if (false == isEnd) {
+            // 补充
+            std::cout << "  │";
+          } else {
+            std::cout << "   ";
+          }
+          return size + 1;
+        });
+        index++;
       }
     }
   }
@@ -291,20 +326,26 @@ public:
   }
 
   std::shared_ptr<SyntaxNode_c> parse_value_set(std::shared_ptr<WordItem_c> word_ptr) {
-    auto re_node = std::make_shared<SyntaxNode_c>(false);
-    if (re_node->add(assertToken_type(word_ptr, WordEnumToken_e::Tid))) {
-      if (re_node->add(parse_value_set_right(nullptr))) {
-        return re_node;
+    auto pre_node = std::make_shared<SyntaxNode_c>(true);
+    if (pre_node->add(assertToken_type(word_ptr, WordEnumToken_e::Tid))) {
+      if (pre_node->add(assertToken_sign(nullptr, "="))) {
+        auto re_node = SyntaxNode_c::make_exp(pre_node);
+        if (re_node->add(parse_expr(nullptr, WordEnumType_e::Tvoid))) {
+          return re_node;
+        }
       }
     }
     return nullptr;
   }
 
   std::shared_ptr<SyntaxNode_c> parse_value_define_init(std::shared_ptr<WordItem_c> word_ptr) {
-    auto re_node = std::make_shared<SyntaxNode_c>(false);
-    if (re_node->add(parse_value_define_id(word_ptr))) {
-      if (re_node->add(parse_value_set_right(nullptr))) {
-        return re_node;
+    auto pre_node = parse_value_define_id(word_ptr);
+    if (pre_node) {
+      if (pre_node->add(assertToken_sign(nullptr, "="))) {
+        auto re_node = SyntaxNode_c::make_exp(pre_node);
+        if (re_node->add(parse_expr(nullptr, WordEnumType_e::Tvoid))) {
+          return re_node;
+        }
       }
     }
     return nullptr;
