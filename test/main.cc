@@ -95,8 +95,7 @@ int main() {
     disable=bbc*/
 
     s = "sss";
-    s = "adsf \
-    123";
+    s = "adsf 123";
     return 0;
 }
   )");
