@@ -277,6 +277,7 @@ public:
     if (assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Tif}) &&
         assertToken_sign(nullptr, "(") && parse_expr(nullptr, WordEnumType_e::Tbool) &&
         assertToken_sign(nullptr, ")") && assertToken_sign(nullptr, "{")) {
+      // if (expr) { code }
       _GEN_WORD_DEF(sign);
       if (assertToken_sign(sign_ptr, "}")) {
         // 空代码块 {}
@@ -293,6 +294,7 @@ public:
     if (assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Twhile}) &&
         assertToken_sign(nullptr, "(") && parse_expr(nullptr, WordEnumType_e::Tbool) &&
         assertToken_sign(nullptr, ")") && assertToken_sign(nullptr, "{")) {
+      // while (expr) { code }
       _GEN_WORD_DEF(sign);
       if (assertToken_sign(sign_ptr, "}")) {
         // 空代码块 {}
@@ -307,9 +309,10 @@ public:
 
   std::shared_ptr<WordItem_c> parse_code_ctrl_for(std::shared_ptr<WordItem_c> word_ptr) {
     if (assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Tfor})) {
-      if (assertToken_sign(nullptr, "(")
-          // TODO: 匹配中间的 ;; && parse_expr(nullptr)
-          && assertToken_sign(nullptr, ")")) {
+      if (assertToken_sign(nullptr, "(") && parse_expr_void(nullptr) &&
+          parse_expr(nullptr, WordEnumType_e ::Tbool) && parse_expr_void(nullptr) &&
+          assertToken_sign(nullptr, ")")) {
+        // for (expr;expr;expr) { code }
         if (assertToken_sign(nullptr, "{")) {
           _GEN_WORD_DEF(sign);
           if (assertToken_sign(sign_ptr, "}")) {
