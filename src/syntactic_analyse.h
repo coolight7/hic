@@ -636,6 +636,10 @@ public:
     return nullptr;
   }
 
+  /**
+   * ## 表达式解析
+   * - 优先级爬山
+   */
   std::shared_ptr<SyntaxNode_expr_c> parse_expr(std::shared_ptr<WordItem_c> word_ptr,
                                                 WordEnumType_e ret_type) {
     auto re_node = std::make_shared<SyntaxNode_expr_c>();
