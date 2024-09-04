@@ -29,19 +29,23 @@
   std::shared_ptr<WordItem_c> name##_ptr;                                                          \
   _GEN_WORD(name)
 
-#define GENERATE_FUN_ITEM_d(...)                                                                   \
+#define _GENERATE_FUN_ITEM_d(...)                                                                  \
   _NameTagConcat_d(_GENERATE_FUN_ITEM, _MacroArgToTag_d(__VA_ARGS__))(__VA_ARGS__)
-#define _GENERATE_FUN_ITEM() GENERATE_FUN_ITEM_d
+#define _GENERATE_FUN_ITEM() _GENERATE_FUN_ITEM_d
 #define _GENERATE_FUN_ITEM1(fun)                                                                   \
   std::function<std::shared_ptr<SyntaxNode_c>(std::shared_ptr<WordItem_c>)>(                       \
       std::bind(&SyntacticAnalysis_c::fun, this, std::placeholders::_1))
 #define _GENERATE_FUN_ITEMN(fun, ...)                                                              \
   _GENERATE_FUN_ITEM1(fun), _MacroDefer_d(_GENERATE_FUN_ITEM)()(__VA_ARGS__)
 
+/**
+ * ## 回溯分析
+ * - 见 [reback_funs]
+ */
 #define _REBACK_d(word_ptr, tempIndex, ...)                                                        \
-  reback_funs(word_ptr, tempIndex, _MoreExpand_d(GENERATE_FUN_ITEM_d(__VA_ARGS__)))
+  reback_funs(word_ptr, tempIndex, _MoreExpand_d(_GENERATE_FUN_ITEM_d(__VA_ARGS__)))
 
-#define GEN_VALUE(type, name)                                                                      \
+#define _GEN_VALUE(type, name)                                                                     \
   bool set_##name(std::shared_ptr<type> in_ptr) {                                                  \
     if (nullptr == in_ptr) {                                                                       \
       return false;                                                                                \
@@ -51,7 +55,7 @@
   }                                                                                                \
   std::shared_ptr<type> name;
 
-#define PRINT_WORD_PREFIX(isEnd)                                                                   \
+#define _PRINT_WORD_PREFIX(isEnd)                                                                  \
   {                                                                                                \
     if (tab > 0) {                                                                                 \
       size_t prefixTab = 0;                                                                        \
@@ -69,7 +73,7 @@
     }                                                                                              \
   }
 
-#define PRINT_NODE_PREFIX(isEnd, name)                                                             \
+#define _PRINT_NODE_PREFIX(isEnd, name)                                                            \
   {                                                                                                \
     size_t prefixTab = 0;                                                                          \
     if (nullptr != onOutPrefix) {                                                                  \
@@ -197,12 +201,12 @@ public:
       switch (item->nodeType) {
       case ListNodeType_e::Lexical: {
         // word
-        PRINT_WORD_PREFIX(children.size() == index + 1);
+        _PRINT_WORD_PREFIX(children.size() == index + 1);
         item->printInfo();
       } break;
       case ListNodeType_e::Syntactic: {
         // Syntax
-        PRINT_NODE_PREFIX((index == children.size() - 1), item);
+        _PRINT_NODE_PREFIX((index == children.size() - 1), item);
       } break;
       default:
         break;
@@ -221,13 +225,13 @@ public:
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
-    PRINT_WORD_PREFIX(false);
+    _PRINT_WORD_PREFIX(false);
     value_type->printInfo();
-    PRINT_WORD_PREFIX(true);
+    _PRINT_WORD_PREFIX(true);
     SyntaxNodeValueClass_c::print(valueClass);
   }
 
-  GEN_VALUE(WordItem_c, value_type);
+  _GEN_VALUE(WordItem_c, value_type);
   SyntaxNodeValueClass_e valueClass = SyntaxNodeValueClass_e::Crude;
 };
 
@@ -237,13 +241,13 @@ public:
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
-    PRINT_NODE_PREFIX(false, value_define);
-    PRINT_WORD_PREFIX(true);
+    _PRINT_NODE_PREFIX(false, value_define);
+    _PRINT_WORD_PREFIX(true);
     id->printInfo();
   }
 
-  GEN_VALUE(SyntaxNode_value_define_c, value_define);
-  GEN_VALUE(WordItem_c, id);
+  _GEN_VALUE(SyntaxNode_value_define_c, value_define);
+  _GEN_VALUE(WordItem_c, id);
 };
 
 class SyntaxNode_value_define_init_c : public SyntaxNode_c {
@@ -252,15 +256,15 @@ public:
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
-    PRINT_NODE_PREFIX(false, define_id);
-    PRINT_WORD_PREFIX(false);
+    _PRINT_NODE_PREFIX(false, define_id);
+    _PRINT_WORD_PREFIX(false);
     std::cout << "sign ... =" << std::endl;
-    PRINT_NODE_PREFIX(true, data);
+    _PRINT_NODE_PREFIX(true, data);
   }
 
-  GEN_VALUE(SyntaxNode_value_define_id_c, define_id);
+  _GEN_VALUE(SyntaxNode_value_define_id_c, define_id);
   // =
-  GEN_VALUE(SyntaxNode_c, data);
+  _GEN_VALUE(SyntaxNode_c, data);
 };
 
 /**
@@ -274,13 +278,13 @@ public:
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
-    PRINT_WORD_PREFIX(false);
+    _PRINT_WORD_PREFIX(false);
     SyntaxNodeValueClass_c::print(valueClass);
-    PRINT_NODE_PREFIX(true, value);
+    _PRINT_NODE_PREFIX(true, value);
   }
 
   SyntaxNodeValueClass_e valueClass = SyntaxNodeValueClass_e::Crude;
-  GEN_VALUE(SyntaxNode_c, value); // ID | constexpr
+  _GEN_VALUE(SyntaxNode_c, value); // ID | constexpr
 };
 
 class SyntaxNode_function_call_c : public SyntaxNode_c {
@@ -289,12 +293,12 @@ public:
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
-    PRINT_WORD_PREFIX(children.empty());
+    _PRINT_WORD_PREFIX(children.empty());
     name->printInfo();
     SyntaxNode_c::debugPrint(tab, onOutPrefix);
   }
 
-  GEN_VALUE(WordItem_c, name);
+  _GEN_VALUE(WordItem_c, name);
 };
 
 class SyntaxNode_expr_c : public SyntaxNode_c {
@@ -308,12 +312,12 @@ public:
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
-    PRINT_WORD_PREFIX(false);
+    _PRINT_WORD_PREFIX(false);
     std::cout << "return" << std::endl;
-    PRINT_NODE_PREFIX(true, data);
+    _PRINT_NODE_PREFIX(true, data);
   }
 
-  GEN_VALUE(SyntaxNode_expr_c, data);
+  _GEN_VALUE(SyntaxNode_expr_c, data);
 };
 
 class SyntaxNode_if_branch_c : public SyntaxNode_c {
@@ -322,12 +326,12 @@ public:
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
-    PRINT_NODE_PREFIX(false, if_expr);
-    PRINT_NODE_PREFIX(true, if_body);
+    _PRINT_NODE_PREFIX(false, if_expr);
+    _PRINT_NODE_PREFIX(true, if_body);
   }
   // if 条件，如果为 nullptr，则无条件，即为 else_body
-  GEN_VALUE(SyntaxNode_expr_c, if_expr);
-  GEN_VALUE(SyntaxNode_c, if_body);
+  _GEN_VALUE(SyntaxNode_expr_c, if_expr);
+  _GEN_VALUE(SyntaxNode_c, if_body);
 };
 
 class SyntaxNode_if_c : public SyntaxNode_c {
@@ -338,7 +342,7 @@ public:
                   std::function<size_t()> onOutPrefix = nullptr) const override {
     int index = 0;
     for (const auto& item : branchs) {
-      PRINT_WORD_PREFIX(false);
+      _PRINT_WORD_PREFIX(false);
       bool isEnd = (index + 1 == branchs.size());
       if (0 == index) {
         std::cout << "if" << std::endl;
@@ -347,7 +351,7 @@ public:
       } else {
         std::cout << "else if" << std::endl;
       }
-      PRINT_NODE_PREFIX(isEnd, item);
+      _PRINT_NODE_PREFIX(isEnd, item);
       ++index;
     }
   }
@@ -369,14 +373,14 @@ public:
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
-    PRINT_WORD_PREFIX(false);
+    _PRINT_WORD_PREFIX(false);
     std::cout << "while" << std::endl;
-    PRINT_NODE_PREFIX(false, loop_expr);
-    PRINT_NODE_PREFIX(true, body);
+    _PRINT_NODE_PREFIX(false, loop_expr);
+    _PRINT_NODE_PREFIX(true, body);
   }
 
-  GEN_VALUE(SyntaxNode_expr_c, loop_expr);
-  GEN_VALUE(SyntaxNode_c, body);
+  _GEN_VALUE(SyntaxNode_expr_c, loop_expr);
+  _GEN_VALUE(SyntaxNode_c, body);
 };
 
 class SyntaxNode_for_c : public SyntaxNode_c {
@@ -385,18 +389,18 @@ public:
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
-    PRINT_WORD_PREFIX(false);
+    _PRINT_WORD_PREFIX(false);
     std::cout << "for" << std::endl;
-    PRINT_NODE_PREFIX(false, start_expr);
-    PRINT_NODE_PREFIX(false, loop_expr);
-    PRINT_NODE_PREFIX(false, loop_end_expr);
-    PRINT_NODE_PREFIX(true, body);
+    _PRINT_NODE_PREFIX(false, start_expr);
+    _PRINT_NODE_PREFIX(false, loop_expr);
+    _PRINT_NODE_PREFIX(false, loop_end_expr);
+    _PRINT_NODE_PREFIX(true, body);
   }
 
-  GEN_VALUE(SyntaxNode_expr_c, start_expr);
-  GEN_VALUE(SyntaxNode_expr_c, loop_expr);
-  GEN_VALUE(SyntaxNode_expr_c, loop_end_expr);
-  GEN_VALUE(SyntaxNode_c, body);
+  _GEN_VALUE(SyntaxNode_expr_c, start_expr);
+  _GEN_VALUE(SyntaxNode_expr_c, loop_expr);
+  _GEN_VALUE(SyntaxNode_expr_c, loop_end_expr);
+  _GEN_VALUE(SyntaxNode_c, body);
 };
 
 class SyntaxNode_function_define_c : public SyntaxNode_c {
@@ -405,15 +409,15 @@ public:
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
-    PRINT_WORD_PREFIX(false);
+    _PRINT_WORD_PREFIX(false);
     std::cout << "Function" << std::endl;
-    PRINT_NODE_PREFIX(false, return_type);
-    PRINT_WORD_PREFIX(false);
+    _PRINT_NODE_PREFIX(false, return_type);
+    _PRINT_WORD_PREFIX(false);
     name->printInfo();
     for (const auto& item : args) {
-      PRINT_NODE_PREFIX(false, item);
+      _PRINT_NODE_PREFIX(false, item);
     }
-    PRINT_NODE_PREFIX(true, body);
+    _PRINT_NODE_PREFIX(true, body);
   }
 
   bool addArg(std::shared_ptr<SyntaxNode_value_define_id_c> arg) {
@@ -424,10 +428,10 @@ public:
     return true;
   }
 
-  GEN_VALUE(SyntaxNode_value_define_c, return_type);
-  GEN_VALUE(WordItem_c, name);
+  _GEN_VALUE(SyntaxNode_value_define_c, return_type);
+  _GEN_VALUE(WordItem_c, name);
   std::list<std::shared_ptr<SyntaxNode_value_define_id_c>> args;
-  GEN_VALUE(SyntaxNode_c, body);
+  _GEN_VALUE(SyntaxNode_c, body);
 };
 
 class SyntaxNode_enum_define_c : public SyntaxNode_c {
@@ -436,14 +440,14 @@ public:
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
-    PRINT_WORD_PREFIX(false);
+    _PRINT_WORD_PREFIX(false);
     std::cout << "Enum" << std::endl;
-    PRINT_WORD_PREFIX(false);
+    _PRINT_WORD_PREFIX(false);
     name->printInfo();
     SyntaxNode_c::debugPrint(tab, onOutPrefix);
   }
 
-  GEN_VALUE(WordItem_c, name);
+  _GEN_VALUE(WordItem_c, name);
 };
 
 class SyntacticAnalysis_c {
@@ -454,7 +458,8 @@ public:
   void init(std::string_view in_code) { lexicalAnalyse.init(in_code); }
 
   /**
-   * ## 回溯依次调用
+   * ## 回溯分析
+   * - 见 [reback_funs]
    */
   template <typename T>
   std::shared_ptr<SyntaxNode_c>
@@ -463,7 +468,10 @@ public:
     lexicalAnalyse.tokenIndex = tempIndex;
     return fun(word_ptr);
   }
-
+  /**
+   * ## 回溯分析
+   * - 见 [reback_funs]
+   */
   template <typename T, typename... Args>
   std::shared_ptr<SyntaxNode_c>
   reback(std::shared_ptr<T>&& word_ptr, int tempIndex,
@@ -484,6 +492,12 @@ public:
     return nullptr;
   }
 
+  /**
+   * ## 回溯分析
+   * - 按 [funlist] 的函数顺序依次调用尝试解析从 [tempIndex] 开始的 token，如果分析失败，会将
+   * [lexicalAnalyse] 回退到 [tempIndex] 后调用下一个函数尝试，直到有函数成功解析，则结束返回
+   * 其返回值；若 [funlist] 的函数都不能解析将返回 [nullptr]
+   */
   template <typename... Args>
   std::shared_ptr<SyntaxNode_c>
   reback_funs(std::shared_ptr<WordItem_c> word_ptr, int tempIndex,
@@ -955,3 +969,14 @@ public:
   SyntaxNode_c root = SyntaxNode_c{};
   LexicalAnalyse_c lexicalAnalyse{};
 };
+
+#undef _GEN_WORD
+#undef _GEN_WORD_DEF
+#undef _GENERATE_FUN_ITEM_d
+#undef _GENERATE_FUN_ITEM
+#undef _GENERATE_FUN_ITEM1
+#undef _GENERATE_FUN_ITEMN
+#undef _REBACK_d
+#undef _GEN_VALUE
+#undef _PRINT_WORD_PREFIX
+#undef _PRINT_NODE_PREFIX
