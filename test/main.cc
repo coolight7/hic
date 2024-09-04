@@ -75,7 +75,7 @@ int d = 07650;
 int* f = &d;
 String str = "qiqi";
 
-int main(String args, int size) {
+int main(String* args, int size) {
     d += b;
     c -= b;
     d /= b;

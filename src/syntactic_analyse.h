@@ -51,6 +51,56 @@
   }                                                                                                \
   std::shared_ptr<type> name;
 
+#define PRINT_WORD_PREFIX(isEnd)                                                                   \
+  {                                                                                                \
+    if (tab > 0) {                                                                                 \
+      size_t prefixTab = 0;                                                                        \
+      if (nullptr != onOutPrefix) {                                                                \
+        prefixTab = onOutPrefix();                                                                 \
+      }                                                                                            \
+      for (int i = tab - prefixTab - 1; i-- > 0;) {                                                \
+        std::cout << "   ";                                                                        \
+      }                                                                                            \
+    }                                                                                              \
+    if (isEnd) {                                                                                   \
+      std::cout << "  └──";                                                                        \
+    } else {                                                                                       \
+      std::cout << "  ├──";                                                                        \
+    }                                                                                              \
+  }
+
+#define PRINT_NODE_PREFIX(isEnd, name)                                                             \
+  {                                                                                                \
+    size_t prefixTab = 0;                                                                          \
+    if (nullptr != onOutPrefix) {                                                                  \
+      prefixTab = onOutPrefix();                                                                   \
+    }                                                                                              \
+    for (int i = tab - prefixTab - 1; i-- > 0;) {                                                  \
+      std::cout << "   ";                                                                          \
+    }                                                                                              \
+    bool isEndValue = isEnd;                                                                       \
+    if (isEndValue) {                                                                              \
+      std::cout << "  └──┐";                                                                       \
+    } else {                                                                                       \
+      std::cout << "  ├──┐";                                                                       \
+    }                                                                                              \
+    std::cout << std::endl;                                                                        \
+    SyntaxNode_c* name##_ptr = (SyntaxNode_c*)name.get();                                          \
+    name##_ptr->debugPrint(tab + 1, [&onOutPrefix, isEndValue]() -> size_t {                       \
+      size_t size = 0;                                                                             \
+      if (nullptr != onOutPrefix) {                                                                \
+        size = onOutPrefix();                                                                      \
+      }                                                                                            \
+      if (false == isEndValue) {                                                                   \
+                                                                                                   \
+        std::cout << "  │";                                                                        \
+      } else {                                                                                     \
+        std::cout << "   ";                                                                        \
+      }                                                                                            \
+      return size + 1;                                                                             \
+    });                                                                                            \
+  }
+
 enum SyntaxNodeType_e {
   Group, // 分组节点，自身无特殊意义
   ValueDefine,
@@ -63,6 +113,28 @@ enum SyntaxNodeValueClass_e {
   Crude,   // 值类型
   Pointer, // 指针
   Referer, // 引用
+};
+
+class SyntaxNodeValueClass_c {
+public:
+  inline static std::string toName(SyntaxNodeValueClass_e type) {
+    switch (type) {
+    case SyntaxNodeValueClass_e::Crude: {
+      return "Crude";
+    } break;
+    case SyntaxNodeValueClass_e::Pointer: {
+      return "Pointer/*";
+    } break;
+    case SyntaxNodeValueClass_e::Referer: {
+      return "Referer/&";
+    } break;
+    default:
+      break;
+    }
+    return "";
+  }
+
+  inline static void print(SyntaxNodeValueClass_e type) { std::cout << toName(type) << std::endl; }
 };
 
 // 语法树节点
@@ -100,64 +172,19 @@ public:
 
   void printInfo() const override { debugPrint(); }
 
-  void debugPrint(const size_t tab = 1, std::function<size_t()> onOutPrefix = nullptr) const {
+  virtual void debugPrint(const size_t tab = 1,
+                          std::function<size_t()> onOutPrefix = nullptr) const {
     int index = 0;
     for (const auto& item : children) {
       switch (item->nodeType) {
       case ListNodeType_e::Lexical: {
         // word
-        if (tab > 0) {
-          size_t prefixTab = 0;
-          if (nullptr != onOutPrefix) {
-            prefixTab = onOutPrefix();
-          }
-          for (int i = tab - prefixTab - 1; i-- > 0;) {
-            std::cout << "   ";
-          }
-        }
-        if (children.size() == index + 1) {
-          // end
-          std::cout << "  └──";
-        } else {
-          std::cout << "  ├──";
-        }
+        PRINT_WORD_PREFIX(children.size() == index + 1);
         item->printInfo();
       } break;
       case ListNodeType_e::Syntactic: {
         // Syntax
-        bool isEnd = (index == children.size() - 1);
-
-        size_t prefixTab = 0;
-        if (nullptr != onOutPrefix) {
-          prefixTab = onOutPrefix();
-        }
-        for (int i = tab - prefixTab - 1; i-- > 0;) {
-          std::cout << "   ";
-        }
-        if (isEnd) {
-          std::cout << "  └──┐";
-        } else {
-          std::cout << "  ├──┐";
-        }
-        SyntaxNode_c* item_ptr = (SyntaxNode_c*)item.get();
-        // if (nullptr != item_ptr->node) {
-        //   // 节点包含内容
-        //   std::cout << "# " << item_ptr->node->name();
-        // }
-        std::cout << std::endl;
-        item_ptr->debugPrint(tab + 1, [&onOutPrefix, isEnd]() -> size_t {
-          size_t size = 0;
-          if (nullptr != onOutPrefix) {
-            size = onOutPrefix();
-          }
-          if (false == isEnd) {
-            // 补充
-            std::cout << "  │";
-          } else {
-            std::cout << "   ";
-          }
-          return size + 1;
-        });
+        PRINT_NODE_PREFIX((index == children.size() - 1), item);
       } break;
       default:
         break;
@@ -174,6 +201,14 @@ class SyntaxNode_value_define_c : public SyntaxNode_c {
 public:
   SyntaxNode_value_define_c() : SyntaxNode_c(SyntaxNodeType_e::ValueDefine) {}
 
+  void debugPrint(const size_t tab = 1,
+                  std::function<size_t()> onOutPrefix = nullptr) const override {
+    PRINT_WORD_PREFIX(false);
+    value_type->printInfo();
+    PRINT_WORD_PREFIX(true);
+    SyntaxNodeValueClass_c::print(valueClass);
+  }
+
   GEN_VALUE(WordItem_c, value_type);
   SyntaxNodeValueClass_e valueClass = SyntaxNodeValueClass_e::Crude;
 };
@@ -182,6 +217,13 @@ class SyntaxNode_value_define_id_c : public SyntaxNode_c {
 public:
   SyntaxNode_value_define_id_c() : SyntaxNode_c(SyntaxNodeType_e::ValueDefineId) {}
 
+  void debugPrint(const size_t tab = 1,
+                  std::function<size_t()> onOutPrefix = nullptr) const override {
+    PRINT_NODE_PREFIX(false, value_define);
+    PRINT_WORD_PREFIX(true);
+    id->printInfo();
+  }
+
   GEN_VALUE(SyntaxNode_value_define_c, value_define);
   GEN_VALUE(WordItem_c, id);
 };
@@ -189,6 +231,17 @@ public:
 class SyntaxNode_value_set_c : public SyntaxNode_c {
 public:
   SyntaxNode_value_set_c() : SyntaxNode_c(SyntaxNodeType_e::ValueSet) {}
+
+  void debugPrint(const size_t tab = 1,
+                  std::function<size_t()> onOutPrefix = nullptr) const override {
+    PRINT_WORD_PREFIX(false);
+    id->printInfo();
+    PRINT_WORD_PREFIX(false);
+    std::cout << "sign ... =" << std::endl;
+    PRINT_WORD_PREFIX(false);
+    SyntaxNodeValueClass_c::print(dataClass);
+    PRINT_NODE_PREFIX(true, data);
+  }
 
   GEN_VALUE(WordItem_c, id);
   // =
@@ -199,6 +252,16 @@ public:
 class SyntaxNode_value_define_init_c : public SyntaxNode_c {
 public:
   SyntaxNode_value_define_init_c() : SyntaxNode_c(SyntaxNodeType_e::ValueDefineInit) {}
+
+  void debugPrint(const size_t tab = 1,
+                  std::function<size_t()> onOutPrefix = nullptr) const override {
+    PRINT_NODE_PREFIX(false, define_id);
+    PRINT_WORD_PREFIX(false);
+    std::cout << "sign ... =" << std::endl;
+    PRINT_WORD_PREFIX(false);
+    SyntaxNodeValueClass_c::print(dataClass);
+    PRINT_NODE_PREFIX(true, data);
+  }
 
   GEN_VALUE(SyntaxNode_value_define_id_c, define_id);
   // =
@@ -732,6 +795,6 @@ public:
     return true;
   }
 
-  SyntaxNode_c root = SyntaxNode_c();
+  SyntaxNode_c root = SyntaxNode_c{};
   LexicalAnalyse_c lexicalAnalyse{};
 };
