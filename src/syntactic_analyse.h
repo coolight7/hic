@@ -46,12 +46,12 @@ class SyntaxNode_c : public ListNode_c {
 public:
   template <typename... _Args>
   inline static std::shared_ptr<SyntaxNode_c> make_node(std::shared_ptr<_Args>... args) {
-    auto re_ptr = std::make_shared<SyntaxNode_c>(false);
+    auto re_ptr = std::make_shared<SyntaxNode_c>();
     re_ptr->children.push_back(args...);
     return re_ptr;
   }
 
-  SyntaxNode_c(bool isWord) : ListNode_c(ListNodeType_e::Syntactic) {}
+  SyntaxNode_c() : ListNode_c(ListNodeType_e::Syntactic) {}
 
   const std::string& name() const override {
     if (nullptr != node) {
@@ -286,7 +286,7 @@ public:
 
   std::shared_ptr<SyntaxNode_c> parse_value_define(std::shared_ptr<WordItem_c> word_ptr) {
     // value_type
-    auto re_node = std::make_shared<SyntaxNode_c>(true);
+    auto re_node = std::make_shared<SyntaxNode_c>();
     if (re_node->add(parse_value_type(word_ptr))) {
       // 指针或引用
       _GEN_WORD_DEF(next);
@@ -318,7 +318,7 @@ public:
   }
 
   std::shared_ptr<SyntaxNode_c> parse_value_set(std::shared_ptr<WordItem_c> word_ptr) {
-    auto pre_node = std::make_shared<SyntaxNode_c>(true);
+    auto pre_node = std::make_shared<SyntaxNode_c>();
     if (pre_node->add(assertToken_type(word_ptr, WordEnumToken_e::Tid))) {
       auto re_node = SyntaxNode_c::make_node(pre_node);
       if (re_node->add(assertToken_sign(nullptr, "="))) {
@@ -345,7 +345,7 @@ public:
 
   std::shared_ptr<SyntaxNode_c> parse_expr(std::shared_ptr<WordItem_c> word_ptr,
                                            WordEnumType_e ret_type) {
-    auto re_node = std::make_shared<SyntaxNode_c>(true);
+    auto re_node = std::make_shared<SyntaxNode_c>();
     std::shared_ptr<WordItem_c> last_ptr;
     int group = 0;
     while (true) {
@@ -397,7 +397,7 @@ public:
 
   std::shared_ptr<SyntaxNode_c> parse_code_ctrl_return(std::shared_ptr<WordItem_c> word_ptr,
                                                        WordEnumType_e ret_type) {
-    auto re_node = std::make_shared<SyntaxNode_c>(false);
+    auto re_node = std::make_shared<SyntaxNode_c>();
     if (re_node->add(assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Treturn}))) {
       if (re_node->add(parse_expr(nullptr, ret_type))) {
         return re_node;
@@ -411,7 +411,7 @@ public:
   }
 
   std::shared_ptr<SyntaxNode_c> parse_code_ctrl_if(std::shared_ptr<WordItem_c> word_ptr) {
-    auto re_node = std::make_shared<SyntaxNode_c>(false);
+    auto re_node = std::make_shared<SyntaxNode_c>();
     if (re_node->add(assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Tif})) &&
         re_node->add(assertToken_sign(nullptr, "(")) &&
         re_node->add(parse_expr(nullptr, WordEnumType_e::Tbool)) &&
@@ -431,7 +431,7 @@ public:
   }
 
   std::shared_ptr<SyntaxNode_c> parse_code_ctrl_while(std::shared_ptr<WordItem_c> word_ptr) {
-    auto re_node = std::make_shared<SyntaxNode_c>(false);
+    auto re_node = std::make_shared<SyntaxNode_c>();
     if (re_node->add(assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Twhile})) &&
         re_node->add(assertToken_sign(nullptr, "(")) &&
         re_node->add(parse_expr(nullptr, WordEnumType_e::Tbool)) &&
@@ -451,7 +451,7 @@ public:
   }
 
   std::shared_ptr<SyntaxNode_c> parse_code_ctrl_for(std::shared_ptr<WordItem_c> word_ptr) {
-    auto re_node = std::make_shared<SyntaxNode_c>(false);
+    auto re_node = std::make_shared<SyntaxNode_c>();
     if (re_node->add(assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Tfor}))) {
       if (re_node->add(assertToken_sign(nullptr, "(")) && re_node->add(parse_expr_void(nullptr)) &&
           re_node->add(parse_expr(nullptr, WordEnumType_e ::Tbool)) &&
@@ -476,7 +476,7 @@ public:
    * 不取外围的大括号 { code }
    */
   std::shared_ptr<SyntaxNode_c> parse_code(std::shared_ptr<WordItem_c> word_ptr) {
-    auto re_node = std::make_shared<SyntaxNode_c>(false);
+    auto re_node = std::make_shared<SyntaxNode_c>();
     std::shared_ptr<SyntaxNode_c> result;
     if (enableLog_parseCode) {
       SynLog(Tdebug, "parse_code -----vvv------ ");
@@ -518,7 +518,7 @@ public:
 
   // {ID_funName} ()
   std::shared_ptr<SyntaxNode_c> parse_function_call(std::shared_ptr<WordItem_c> word_ptr) {
-    auto re_node = std::make_shared<SyntaxNode_c>(false);
+    auto re_node = std::make_shared<SyntaxNode_c>();
     if (re_node->add(assertToken_type(word_ptr, WordEnumToken_e::Tid))) {
       if (re_node->add(assertToken_sign(nullptr, "("))) {
         std::shared_ptr<WordItem_c> sign_ptr;
@@ -539,7 +539,7 @@ public:
 
   std::shared_ptr<SyntaxNode_c> parse_function_define(std::shared_ptr<WordItem_c> word_ptr) {
     // {返回值} {函数名} ({参数列表}*) { {code} }
-    auto re_node = std::make_shared<SyntaxNode_c>(false);
+    auto re_node = std::make_shared<SyntaxNode_c>();
     if (re_node->add(parse_value_define(word_ptr))) {
       // 返回值
       if (re_node->add(assertToken_type(nullptr, WordEnumToken_e::Tid))) {
@@ -569,7 +569,7 @@ public:
   std::shared_ptr<SyntaxNode_c>
   parse_function_noReturn_define(std::shared_ptr<WordItem_c> word_ptr) {
     // {函数名} ({参数列表}*) { {code} }
-    auto re_node = std::make_shared<SyntaxNode_c>(false);
+    auto re_node = std::make_shared<SyntaxNode_c>();
     if (re_node->add(assertToken_type(word_ptr, WordEnumToken_e::Tid))) {
       if (re_node->add(assertToken_sign(nullptr, "("))) {
         std::shared_ptr<WordItem_c> sign_ptr;
@@ -590,7 +590,7 @@ public:
   }
 
   std::shared_ptr<SyntaxNode_c> parse_enum_define(std::shared_ptr<WordItem_c> word_ptr) {
-    auto re_node = std::make_shared<SyntaxNode_c>(false);
+    auto re_node = std::make_shared<SyntaxNode_c>();
     if (re_node->add(assertToken(word_ptr, WordItem_type_c{WordEnumType_e::Tenum}))) {
       if (re_node->add(assertToken_type(nullptr, WordEnumToken_e::Tid)) &&
           re_node->add(assertToken_sign(nullptr, "{"))) {
@@ -612,7 +612,7 @@ public:
   }
 
   std::shared_ptr<SyntaxNode_c> parse_class_define(std::shared_ptr<WordItem_c> word_ptr) {
-    auto re_node = std::make_shared<SyntaxNode_c>(false);
+    auto re_node = std::make_shared<SyntaxNode_c>();
     auto result = assertToken(word_ptr, WordItem_type_c{WordEnumType_e::Tclass});
     if (nullptr != result) {
       // TODO: class code
