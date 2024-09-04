@@ -362,6 +362,73 @@ public:
   std::list<std::shared_ptr<SyntaxNode_if_branch_c>> branchs;
 };
 
+class SyntaxNode_while_c : public SyntaxNode_c {
+public:
+  SyntaxNode_while_c() : SyntaxNode_c(SyntaxNodeType_e::CtrlWhile) {}
+
+  void debugPrint(const size_t tab = 1,
+                  std::function<size_t()> onOutPrefix = nullptr) const override {
+    PRINT_WORD_PREFIX(false);
+    std::cout << "while" << std::endl;
+    PRINT_NODE_PREFIX(false, loop_expr);
+    PRINT_NODE_PREFIX(true, body);
+  }
+
+  GEN_VALUE(SyntaxNode_expr_c, loop_expr);
+  GEN_VALUE(SyntaxNode_c, body);
+};
+
+class SyntaxNode_for_c : public SyntaxNode_c {
+public:
+  SyntaxNode_for_c() : SyntaxNode_c(SyntaxNodeType_e::CtrlFor) {}
+
+  void debugPrint(const size_t tab = 1,
+                  std::function<size_t()> onOutPrefix = nullptr) const override {
+    PRINT_WORD_PREFIX(false);
+    std::cout << "for" << std::endl;
+    PRINT_NODE_PREFIX(false, start_expr);
+    PRINT_NODE_PREFIX(false, loop_expr);
+    PRINT_NODE_PREFIX(false, loop_end_expr);
+    PRINT_NODE_PREFIX(true, body);
+  }
+
+  GEN_VALUE(SyntaxNode_expr_c, start_expr);
+  GEN_VALUE(SyntaxNode_expr_c, loop_expr);
+  GEN_VALUE(SyntaxNode_expr_c, loop_end_expr);
+  GEN_VALUE(SyntaxNode_c, body);
+};
+
+class SyntaxNode_function_define_c : public SyntaxNode_c {
+public:
+  SyntaxNode_function_define_c() : SyntaxNode_c(SyntaxNodeType_e::FunctionDefine) {}
+
+  void debugPrint(const size_t tab = 1,
+                  std::function<size_t()> onOutPrefix = nullptr) const override {
+    PRINT_WORD_PREFIX(false);
+    std::cout << "Function" << std::endl;
+    PRINT_NODE_PREFIX(false, return_type);
+    PRINT_WORD_PREFIX(false);
+    name->printInfo();
+    for (const auto& item : args) {
+      PRINT_NODE_PREFIX(false, item);
+    }
+    PRINT_NODE_PREFIX(true, body);
+  }
+
+  bool addArg(std::shared_ptr<SyntaxNode_value_define_id_c> arg) {
+    if (nullptr == arg) {
+      return false;
+    }
+    args.push_back(arg);
+    return true;
+  }
+
+  GEN_VALUE(SyntaxNode_value_define_c, return_type);
+  GEN_VALUE(WordItem_c, name);
+  std::list<std::shared_ptr<SyntaxNode_value_define_id_c>> args;
+  GEN_VALUE(SyntaxNode_c, body);
+};
+
 class SyntacticAnalysis_c {
 public:
   inline static bool enableLog_assertToken = false;
@@ -627,40 +694,39 @@ public:
     return nullptr;
   }
 
-  std::shared_ptr<SyntaxNode_c> parse_code_ctrl_while(std::shared_ptr<WordItem_c> word_ptr) {
-    auto re_node = std::make_shared<SyntaxNode_c>();
-    if (re_node->add(assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Twhile})) &&
-        re_node->add(assertToken_sign(nullptr, "(")) &&
-        re_node->add(parse_expr(nullptr, WordEnumType_e::Tbool)) &&
-        re_node->add(assertToken_sign(nullptr, ")")) &&
-        re_node->add(assertToken_sign(nullptr, "{"))) {
+  std::shared_ptr<SyntaxNode_while_c> parse_code_ctrl_while(std::shared_ptr<WordItem_c> word_ptr) {
+    auto re_node = std::make_shared<SyntaxNode_while_c>();
+    if (assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Twhile}) &&
+        assertToken_sign(nullptr, "(") &&
+        re_node->set_loop_expr(parse_expr(nullptr, WordEnumType_e::Tbool)) &&
+        assertToken_sign(nullptr, ")") && assertToken_sign(nullptr, "{")) {
       // while (expr) { code }
       _GEN_WORD_DEF(sign);
-      if (re_node->add(assertToken_sign(sign_ptr, "}"))) {
+      if (assertToken_sign(sign_ptr, "}")) {
         // 空代码块 {}
         return re_node;
       }
-      if (re_node->add(parse_code(nullptr)) && re_node->add(assertToken_sign(nullptr, "}"))) {
+      if (re_node->set_body(parse_code(nullptr)) && assertToken_sign(nullptr, "}")) {
         return re_node;
       }
     }
     return nullptr;
   }
 
-  std::shared_ptr<SyntaxNode_c> parse_code_ctrl_for(std::shared_ptr<WordItem_c> word_ptr) {
-    auto re_node = std::make_shared<SyntaxNode_c>();
-    if (re_node->add(assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Tfor}))) {
-      if (re_node->add(assertToken_sign(nullptr, "(")) && re_node->add(parse_expr_void(nullptr)) &&
-          re_node->add(parse_expr(nullptr, WordEnumType_e ::Tbool)) &&
-          re_node->add(parse_expr_void(nullptr)) && re_node->add(assertToken_sign(nullptr, ")"))) {
+  std::shared_ptr<SyntaxNode_for_c> parse_code_ctrl_for(std::shared_ptr<WordItem_c> word_ptr) {
+    auto re_node = std::make_shared<SyntaxNode_for_c>();
+    if (assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Tfor})) {
+      if (assertToken_sign(nullptr, "(") && re_node->set_start_expr(parse_expr_void(nullptr)) &&
+          re_node->set_loop_expr(parse_expr(nullptr, WordEnumType_e ::Tbool)) &&
+          re_node->set_loop_end_expr(parse_expr_void(nullptr)) && assertToken_sign(nullptr, ")")) {
         // for (expr;expr;expr) { code }
-        if (re_node->add(assertToken_sign(nullptr, "{"))) {
+        if (assertToken_sign(nullptr, "{")) {
           _GEN_WORD_DEF(sign);
-          if (re_node->add(assertToken_sign(sign_ptr, "}"))) {
+          if (assertToken_sign(sign_ptr, "}")) {
             // 空代码块 {}
             return re_node;
           }
-          if (re_node->add(parse_code(nullptr)) && re_node->add(assertToken_sign(nullptr, "}"))) {
+          if (re_node->set_body(parse_code(nullptr)) && assertToken_sign(nullptr, "}")) {
             return re_node;
           }
         }
@@ -738,29 +804,32 @@ public:
     return nullptr;
   }
 
-  std::shared_ptr<SyntaxNode_c> parse_function_define(std::shared_ptr<WordItem_c> word_ptr) {
+  std::shared_ptr<SyntaxNode_function_define_c>
+  parse_function_define(std::shared_ptr<WordItem_c> word_ptr) {
     // {返回值} {函数名} ({参数列表}*) { {code} }
-    auto re_node = std::make_shared<SyntaxNode_c>();
-    if (re_node->add(parse_value_define(word_ptr))) {
-      // 返回值
-      if (re_node->add(assertToken_type(nullptr, WordEnumToken_e::Tid))) {
-        // 函数名
-        if (re_node->add(assertToken_sign(nullptr, "("))) {
+    auto re_node = std::make_shared<SyntaxNode_function_define_c>();
+    // 返回值
+    if (re_node->set_return_type(parse_value_define(word_ptr))) {
+      // 函数名
+      if (re_node->set_name(assertToken_type(nullptr, WordEnumToken_e::Tid))) {
+        // 参数列表
+        if (assertToken_sign(nullptr, "(")) {
           std::shared_ptr<WordItem_c> sign_ptr;
-          // 参数列表
           _GEN_WORD(sign);
-          while (re_node->add(parse_value_define_id(sign_ptr))) {
+          while (true) {
+            if (false == re_node->addArg(parse_value_define_id(sign_ptr))) {
+              break;
+            }
             sign_ptr = nullptr;
             _GEN_WORD(sign);
-            if (false == re_node->add(assertToken_sign(sign_ptr, ","))) {
+            if (nullptr == assertToken_sign(sign_ptr, ",")) {
               break;
             }
             sign_ptr = nullptr;
           }
           // code
-          if (re_node->add(assertToken_sign(sign_ptr, ")")) &&
-              re_node->add(assertToken_sign(nullptr, "{")) && re_node->add(parse_code(nullptr)) &&
-              re_node->add(assertToken_sign(nullptr, "}"))) {
+          if (assertToken_sign(sign_ptr, ")") && assertToken_sign(nullptr, "{") &&
+              re_node->set_body(parse_code(nullptr)) && assertToken_sign(nullptr, "}")) {
             return re_node;
           }
         }

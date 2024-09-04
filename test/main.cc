@@ -87,7 +87,7 @@ int main(String* args, int size) {
     a ??= b ?? c;
 
     int ret = test(1, 2);
-
+    test(3, 4);
     if (a == b || (b == c && a == c)) {
         d = b;
     }
