@@ -289,7 +289,8 @@ public:
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
-    PRINT_NODE_PREFIX(false, name);
+    PRINT_WORD_PREFIX(children.empty());
+    name->printInfo();
     SyntaxNode_c::debugPrint(tab, onOutPrefix);
   }
 
@@ -626,6 +627,7 @@ public:
     auto re_node = std::make_shared<SyntaxNode_expr_c>();
     std::shared_ptr<WordItem_c> last_ptr;
     int group = 0;
+    // 如果不在 () 内，遇到 , 就需要退出
     while (true) {
       _GEN_WORD(word);
       if (word.token == WordEnumToken_e::Tsign) {
@@ -640,9 +642,14 @@ public:
             // 遇到额外多出 ) 才退出
             doRet = true;
           }
+        } else if (word.name() == "," && group == 0) {
+          doRet = true;
         }
         if (doRet) {
           lexicalAnalyse.tokenBack();
+          if (re_node->isEmpty()) {
+            return nullptr;
+          }
           return re_node;
         }
       }
@@ -773,9 +780,9 @@ public:
       }
       // word 非终结符
       int tempIndex = lexicalAnalyse.tokenIndex;
-      result = _REBACK_d(word_ptr, tempIndex, parse_value_define_init, parse_code_ctrl_if,
-                         parse_code_ctrl_while, parse_code_ctrl_for, parse_code_ctrl_return_void,
-                         parse_expr_void);
+      result = _REBACK_d(word_ptr, tempIndex, parse_value_define_init, parse_function_call,
+                         parse_code_ctrl_if, parse_code_ctrl_while, parse_code_ctrl_for,
+                         parse_code_ctrl_return_void, parse_expr_void);
       if (false == re_node->add(result)) {
         // 解析失败
         return nullptr;
@@ -811,6 +818,7 @@ public:
           if (nullptr == assertToken_sign(sign_ptr, ",")) {
             break;
           }
+          sign_ptr = nullptr;
         }
         if (assertToken_sign(sign_ptr, ")")) {
           return re_node;
