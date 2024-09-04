@@ -439,7 +439,7 @@ public:
     std::cout << "Enum" << std::endl;
     PRINT_WORD_PREFIX(false);
     name->printInfo();
-    SyntaxNode_c::debugPrint();
+    SyntaxNode_c::debugPrint(tab, onOutPrefix);
   }
 
   GEN_VALUE(WordItem_c, name);
@@ -885,11 +885,14 @@ public:
         // ID 列表
         std::shared_ptr<WordItem_c> sign_ptr;
         // TODO: 解析 id <= number>?
-        while (re_node->add(assertToken_type(nullptr, WordEnumToken_e::Tid))) {
+        _GEN_WORD(sign);
+        while (re_node->add(assertToken_type(sign_ptr, WordEnumToken_e::Tid))) {
+          sign_ptr = nullptr;
           _GEN_WORD(sign);
           if (nullptr == assertToken_sign(sign_ptr, ",")) {
             break;
           }
+          sign_ptr = nullptr;
         }
         if (assertToken_sign(sign_ptr, "}")) {
           return re_node;

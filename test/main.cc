@@ -79,6 +79,12 @@ int test(int a, int b) {
   return (a + b);
 }
 
+enum Hello_e {
+  A1,
+  B2,
+  CC
+};
+
 int main(String* args, int size) {
     d += b;
     c -= b;

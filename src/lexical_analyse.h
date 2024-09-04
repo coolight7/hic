@@ -270,7 +270,7 @@ public:
           const char* end = nullptr;
           while (code_it != raw_code.end() &&
                  ((*code_it >= 'a' && *code_it <= 'z') || (*code_it >= 'A' && *code_it <= 'Z') ||
-                  '_' == *code_it)) {
+                  (*code_it >= '0' && *code_it <= '9') || '_' == *code_it)) {
             ++code_it;
           }
           end = code_it;
