@@ -429,6 +429,22 @@ public:
   GEN_VALUE(SyntaxNode_c, body);
 };
 
+class SyntaxNode_enum_define_c : public SyntaxNode_c {
+public:
+  SyntaxNode_enum_define_c() : SyntaxNode_c(SyntaxNodeType_e::EnumDefine) {}
+
+  void debugPrint(const size_t tab = 1,
+                  std::function<size_t()> onOutPrefix = nullptr) const override {
+    PRINT_WORD_PREFIX(false);
+    std::cout << "Enum" << std::endl;
+    PRINT_WORD_PREFIX(false);
+    name->printInfo();
+    SyntaxNode_c::debugPrint();
+  }
+
+  GEN_VALUE(WordItem_c, name);
+};
+
 class SyntacticAnalysis_c {
 public:
   inline static bool enableLog_assertToken = false;
@@ -843,17 +859,16 @@ public:
     // {函数名} ({参数列表}*) { {code} }
     auto re_node = std::make_shared<SyntaxNode_c>();
     if (re_node->add(assertToken_type(word_ptr, WordEnumToken_e::Tid))) {
-      if (re_node->add(assertToken_sign(nullptr, "("))) {
+      if (assertToken_sign(nullptr, "(")) {
         std::shared_ptr<WordItem_c> sign_ptr;
         while (re_node->add(parse_value_define_id(nullptr))) {
           _GEN_WORD(sign);
-          if (false == re_node->add(assertToken_sign(sign_ptr, ","))) {
+          if (nullptr == assertToken_sign(sign_ptr, ",")) {
             break;
           }
         }
-        if (re_node->add(assertToken_sign(sign_ptr, ")")) &&
-            re_node->add(assertToken_sign(nullptr, "{")) && re_node->add(parse_code(nullptr)) &&
-            re_node->add(assertToken_sign(nullptr, "}"))) {
+        if (assertToken_sign(sign_ptr, ")") && assertToken_sign(nullptr, "{") &&
+            re_node->add(parse_code(nullptr)) && assertToken_sign(nullptr, "}")) {
           return re_node;
         }
       }
@@ -861,21 +876,22 @@ public:
     return nullptr;
   }
 
-  std::shared_ptr<SyntaxNode_c> parse_enum_define(std::shared_ptr<WordItem_c> word_ptr) {
-    auto re_node = std::make_shared<SyntaxNode_c>();
-    if (re_node->add(assertToken(word_ptr, WordItem_type_c{WordEnumType_e::Tenum}))) {
-      if (re_node->add(assertToken_type(nullptr, WordEnumToken_e::Tid)) &&
-          re_node->add(assertToken_sign(nullptr, "{"))) {
+  std::shared_ptr<SyntaxNode_enum_define_c>
+  parse_enum_define(std::shared_ptr<WordItem_c> word_ptr) {
+    auto re_node = std::make_shared<SyntaxNode_enum_define_c>();
+    if (assertToken(word_ptr, WordItem_type_c{WordEnumType_e::Tenum})) {
+      if (re_node->set_name(assertToken_type(nullptr, WordEnumToken_e::Tid)) &&
+          assertToken_sign(nullptr, "{")) {
         // ID 列表
         std::shared_ptr<WordItem_c> sign_ptr;
         // TODO: 解析 id <= number>?
         while (re_node->add(assertToken_type(nullptr, WordEnumToken_e::Tid))) {
           _GEN_WORD(sign);
-          if (false == re_node->add(assertToken_sign(sign_ptr, ","))) {
+          if (nullptr == assertToken_sign(sign_ptr, ",")) {
             break;
           }
         }
-        if (re_node->add(assertToken_sign(sign_ptr, "}"))) {
+        if (assertToken_sign(sign_ptr, "}")) {
           return re_node;
         }
       }
