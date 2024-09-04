@@ -75,12 +75,18 @@ int d = 07650;
 int* f = &d;
 String str = "qiqi";
 
+int test(int a, int b) {
+  return (a + b);
+}
+
 int main(String* args, int size) {
     d += b;
     c -= b;
     d /= b;
     c *= b;
     a ??= b ?? c;
+
+    int ret = test(1, 2);
 
     if (a == b || (b == c && a == c)) {
         d = b;
