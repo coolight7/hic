@@ -45,20 +45,20 @@
 class SyntaxNode_c : public ListNode_c {
 public:
   template <typename... _Args>
-  inline static std::shared_ptr<SyntaxNode_c> make_exp(std::shared_ptr<_Args>... args) {
+  inline static std::shared_ptr<SyntaxNode_c> make_node(std::shared_ptr<_Args>... args) {
     auto re_ptr = std::make_shared<SyntaxNode_c>(false);
-    re_ptr->children.emplace_back(args...);
-    return re_ptr;
-  }
-
-  template <typename... _Args>
-  inline static std::shared_ptr<SyntaxNode_c> make_word(std::shared_ptr<_Args>... args) {
-    auto re_ptr = std::make_shared<SyntaxNode_c>(true);
-    re_ptr->children.emplace_back(args...);
+    re_ptr->children.push_back(args...);
     return re_ptr;
   }
 
   SyntaxNode_c(bool isWord) : ListNode_c(ListNodeType_e::Syntactic) {}
+
+  const std::string& name() const override {
+    if (nullptr != node) {
+      return node->name();
+    }
+    return HicUtil_c::emptyString;
+  }
 
   bool set(std::shared_ptr<WordItem_c> ptr) {
     assert(nullptr == node);
@@ -131,8 +131,7 @@ public:
         SyntaxNode_c* item_ptr = (SyntaxNode_c*)item.get();
         if (nullptr != item_ptr->node) {
           // 节点包含内容
-          std::cout << "#";
-          item_ptr->node->printInfo();
+          std::cout << "# " << item_ptr->node->name();
         }
         std::cout << std::endl;
         item_ptr->debugPrint(tab + 1, [&onOutPrefix, isEnd]() -> size_t {
@@ -321,7 +320,7 @@ public:
   std::shared_ptr<SyntaxNode_c> parse_value_set(std::shared_ptr<WordItem_c> word_ptr) {
     auto pre_node = std::make_shared<SyntaxNode_c>(true);
     if (pre_node->add(assertToken_type(word_ptr, WordEnumToken_e::Tid))) {
-      auto re_node = SyntaxNode_c::make_exp(pre_node);
+      auto re_node = SyntaxNode_c::make_node(pre_node);
       if (re_node->add(assertToken_sign(nullptr, "="))) {
         if (re_node->add(parse_expr(nullptr, WordEnumType_e::Tvoid))) {
           return re_node;
@@ -334,7 +333,7 @@ public:
   std::shared_ptr<SyntaxNode_c> parse_value_define_init(std::shared_ptr<WordItem_c> word_ptr) {
     auto pre_node = parse_value_define_id(word_ptr);
     if (pre_node) {
-      auto re_node = SyntaxNode_c::make_exp(pre_node);
+      auto re_node = SyntaxNode_c::make_node(pre_node);
       if (re_node->add(assertToken_sign(nullptr, "="))) {
         if (re_node->add(parse_expr(nullptr, WordEnumType_e::Tvoid))) {
           return re_node;
@@ -383,7 +382,7 @@ public:
   std::shared_ptr<SyntaxNode_c> parse_code_ctrl_break(std::shared_ptr<WordItem_c> word_ptr) {
     auto ptr = assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Tbreak});
     if (nullptr != ptr) {
-      return SyntaxNode_c::make_word(ptr);
+      return SyntaxNode_c::make_node(ptr);
     }
     return nullptr;
   }
@@ -391,7 +390,7 @@ public:
   std::shared_ptr<SyntaxNode_c> parse_code_ctrl_continue(std::shared_ptr<WordItem_c> word_ptr) {
     auto ptr = assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Tcontinue});
     if (nullptr != ptr) {
-      return SyntaxNode_c::make_word(ptr);
+      return SyntaxNode_c::make_node(ptr);
     }
     return nullptr;
   }

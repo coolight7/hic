@@ -58,6 +58,7 @@ public:
   ListNode_c(const ListNode_c&) = delete;
 
   virtual void printInfo() const {}
+  virtual const std::string& name() const { return HicUtil_c::emptyString; }
 
   ListNodeType_e nodeType;
 };

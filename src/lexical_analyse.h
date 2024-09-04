@@ -38,7 +38,7 @@ public:
   WordItem_c(WordEnumToken_e in_token) : ListNode_c(ListNodeType_e::Lexical), token(in_token) {}
   WordItem_c(const WordItem_c&) = delete;
 
-  virtual const std::string& name() const { return HicUtil_c::emptyString; }
+  const std::string& name() const override { return HicUtil_c::emptyString; }
 
   void printInfo() const override {
     const auto& str = WordEnumToken_c::toName(token);
