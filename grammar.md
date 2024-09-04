@@ -11,7 +11,7 @@
 - value_set = ID {_value_set_right}                       // 变量赋值
 - value_define_init = {value_define_id} {_value_set_right};      // 变量声明并初始化
 
-- function_call = {ID_function}(<ID_value|{constexpr}>?);
+- function_call = {ID_function}(<<*/&>?ID_value|{constexpr}>*);
 
 - expr = {function_call} | ~
 

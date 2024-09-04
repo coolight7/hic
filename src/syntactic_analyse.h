@@ -103,10 +103,27 @@
 
 enum SyntaxNodeType_e {
   Group, // 分组节点，自身无特殊意义
+
+  Value,
   ValueDefine,
   ValueDefineId,
   ValueSet,
   ValueDefineInit,
+
+  FunctionCall,
+  Expr,
+  CtrlBreak,
+  CtrlContinue,
+  CtrlReturn,
+  CtrlIf,
+  CtrlWhile,
+  CtrlFor,
+  Code,
+
+  FunctionDefine,
+  EnumDefine,
+  ClassDefine,
+  TypeDefine,
 };
 
 enum SyntaxNodeValueClass_e {
@@ -228,27 +245,6 @@ public:
   GEN_VALUE(WordItem_c, id);
 };
 
-class SyntaxNode_value_set_c : public SyntaxNode_c {
-public:
-  SyntaxNode_value_set_c() : SyntaxNode_c(SyntaxNodeType_e::ValueSet) {}
-
-  void debugPrint(const size_t tab = 1,
-                  std::function<size_t()> onOutPrefix = nullptr) const override {
-    PRINT_WORD_PREFIX(false);
-    id->printInfo();
-    PRINT_WORD_PREFIX(false);
-    std::cout << "sign ... =" << std::endl;
-    PRINT_WORD_PREFIX(false);
-    SyntaxNodeValueClass_c::print(dataClass);
-    PRINT_NODE_PREFIX(true, data);
-  }
-
-  GEN_VALUE(WordItem_c, id);
-  // =
-  SyntaxNodeValueClass_e dataClass = SyntaxNodeValueClass_e::Crude;
-  GEN_VALUE(SyntaxNode_c, data); // ID | constexpr
-};
-
 class SyntaxNode_value_define_init_c : public SyntaxNode_c {
 public:
   SyntaxNode_value_define_init_c() : SyntaxNode_c(SyntaxNodeType_e::ValueDefineInit) {}
@@ -258,15 +254,19 @@ public:
     PRINT_NODE_PREFIX(false, define_id);
     PRINT_WORD_PREFIX(false);
     std::cout << "sign ... =" << std::endl;
-    PRINT_WORD_PREFIX(false);
-    SyntaxNodeValueClass_c::print(dataClass);
     PRINT_NODE_PREFIX(true, data);
   }
 
   GEN_VALUE(SyntaxNode_value_define_id_c, define_id);
   // =
-  SyntaxNodeValueClass_e dataClass = SyntaxNodeValueClass_e::Crude;
-  GEN_VALUE(SyntaxNode_c, data); // ID | constexpr
+  GEN_VALUE(SyntaxNode_c, data);
+};
+
+class SyntaxNode_function_call_c : public SyntaxNode_c {
+public:
+  SyntaxNode_function_call_c() : SyntaxNode_c(SyntaxNodeType_e::FunctionCall) {}
+
+  GEN_VALUE(WordItem_c, name);
 };
 
 class SyntacticAnalysis_c {
@@ -432,50 +432,12 @@ public:
     return nullptr;
   }
 
-  std::shared_ptr<SyntaxNode_value_set_c> parse_value_set(std::shared_ptr<WordItem_c> word_ptr) {
-    auto re_node = std::make_shared<SyntaxNode_value_set_c>();
-    if (re_node->set_id(assertToken_type(word_ptr, WordEnumToken_e::Tid))) {
-      if (assertToken_sign(nullptr, "=")) {
-        // 指针或引用
-        _GEN_WORD_DEF(next);
-        const auto sign = assertToken_type(next_ptr, WordEnumToken_e::Tsign);
-        if (nullptr != sign) {
-          if (sign->name() == "*") {
-            re_node->dataClass = SyntaxNodeValueClass_e::Pointer;
-          } else if (sign->name() == "&") {
-            re_node->dataClass = SyntaxNodeValueClass_e::Referer;
-          } else {
-            return nullptr;
-          }
-          next_ptr = nullptr;
-        }
-        if (re_node->set_data(parse_expr(next_ptr, WordEnumType_e::Tvoid))) {
-          return re_node;
-        }
-      }
-    }
-    return nullptr;
-  }
-
   std::shared_ptr<SyntaxNode_value_define_init_c>
   parse_value_define_init(std::shared_ptr<WordItem_c> word_ptr) {
     auto re_node = std::make_shared<SyntaxNode_value_define_init_c>();
     if (re_node->set_define_id(parse_value_define_id(word_ptr))) {
       if (assertToken_sign(nullptr, "=")) {
-        // 指针或引用
-        _GEN_WORD_DEF(next);
-        const auto sign = assertToken_type(next_ptr, WordEnumToken_e::Tsign);
-        if (nullptr != sign) {
-          if (sign->name() == "*") {
-            re_node->dataClass = SyntaxNodeValueClass_e::Pointer;
-          } else if (sign->name() == "&") {
-            re_node->dataClass = SyntaxNodeValueClass_e::Referer;
-          } else {
-            return nullptr;
-          }
-          next_ptr = nullptr;
-        }
-        if (re_node->set_data(parse_expr(next_ptr, WordEnumType_e::Tvoid))) {
+        if (re_node->set_data(parse_expr(nullptr, WordEnumType_e::Tvoid))) {
           return re_node;
         }
       }
@@ -634,9 +596,9 @@ public:
       }
       // word 非终结符
       int tempIndex = lexicalAnalyse.tokenIndex;
-      result = _REBACK_d(word_ptr, tempIndex, parse_value_define_init, parse_value_set,
-                         parse_code_ctrl_if, parse_code_ctrl_while, parse_code_ctrl_for,
-                         parse_code_ctrl_return_void, parse_expr_void);
+      result = _REBACK_d(word_ptr, tempIndex, parse_value_define_init, parse_code_ctrl_if,
+                         parse_code_ctrl_while, parse_code_ctrl_for, parse_code_ctrl_return_void,
+                         parse_expr_void);
       if (false == re_node->add(result)) {
         // 解析失败
         return nullptr;
