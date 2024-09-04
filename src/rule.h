@@ -33,4 +33,62 @@ GENERATE_ENUM(WordEnumToken, undefined, number, string, sign, keyword, type, nat
  */
 GENERATE_ENUM(WordEnumNativeCall, print, sizeof, malloc, free, exit)
 
+/**
+ * ## 符号优先级
+ * - 1
+ *  - EndAddAdd      // expr++
+ *  - EndSubSub      // expr--
+ *  - CurvesGroup    // ()
+ *  - SquareGroup    // []
+ *  - Dot            // .
+ *  - QueryDot       // ?.
+ * - 2
+ *  - Not            // !expr
+ *  - Shift          // ~expr
+ *  - StartAddAdd    // ++expr
+ *  - StartSubSub    // --expr
+ * - 3
+ *  - Multi          // *
+ *  - Division       // /
+ *  - Semicolon      // %
+ * - 4
+ *  - Add           // +
+ *  - Sub           // -
+ * - 5
+ *  - BitLeftMove   // <<
+ *  - BitRightMove  // >>
+ * - 6
+ *  - BitAnd        // &
+ * - 7
+ *  - BitOr         // |
+ * - 8
+ *  - GreaterOrEqual // >=
+ *  - Greater        // >
+ *  - LessOrEqual    // <=
+ *  - Less           // <
+ * - 9
+ *  - Equal          // ==
+ *  - NotEqual       // !=
+ * - 10
+ *  - And            // &&
+ * - 11
+ *  - Or             // ||
+ * - 12
+ *  - NullMerge      // ??
+ * - 13
+ *  - IfElse         // expr ? if_body : else_body
+ * - 14
+ *  - Set            // =
+ *  - SetMulti       // *=
+ *  - SetDivision    // /=
+ *  - SetAdd         // +=
+ *  - SetSub         // -=
+ *  - SetNullMerge   // ??=
+ */
+GENERATE_ENUM(WordEnumExpr, EndAddAdd, EndSubSub, CurvesGroup, SquareGroup, Dot, QueryDot, Not,
+              Shift, StartAddAdd, StartSubSub, Multi, Division, Semicolon, Add, Sub, BitLeftMove,
+              BitRightMove, BitAnd, BitOr, GreaterOrEqual, Greater, LessOrEqual, Less, Equal,
+              NotEqual, And, Or, NullMerge, IfElse, Set, SetMulti, SetDivision, SetAdd, SetSub,
+              SetNullMerge)
+
 #include "magic/unset_macro.h"

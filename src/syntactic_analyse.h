@@ -2,6 +2,7 @@
 #include <functional>
 #include <list>
 #include <memory>
+#include <stack>
 
 #include "lexical_analyse.h"
 #include "magic/macro.h"
@@ -642,7 +643,9 @@ public:
    */
   std::shared_ptr<SyntaxNode_expr_c> parse_expr(std::shared_ptr<WordItem_c> word_ptr,
                                                 WordEnumType_e ret_type) {
+    std::stack<ListNode_c> dataStack, signStack;
     auto re_node = std::make_shared<SyntaxNode_expr_c>();
+
     std::shared_ptr<WordItem_c> last_ptr;
     int group = 0;
     // 如果不在 () 内，遇到 , 就需要退出
