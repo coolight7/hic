@@ -41,6 +41,30 @@
 #define _REBACK_d(word_ptr, tempIndex, ...)                                                        \
   reback_funs(word_ptr, tempIndex, _MoreExpand_d(GENERATE_FUN_ITEM_d(__VA_ARGS__)))
 
+#define GEN_VALUE(type, name)                                                                      \
+  bool set_##name(std::shared_ptr<type> in_ptr) {                                                  \
+    if (nullptr == in_ptr) {                                                                       \
+      return false;                                                                                \
+    }                                                                                              \
+    name = in_ptr;                                                                                 \
+    return true;                                                                                   \
+  }                                                                                                \
+  std::shared_ptr<type> name;
+
+enum SyntaxNodeType_e {
+  Group, // 分组节点，自身无特殊意义
+  ValueDefine,
+  ValueDefineId,
+  ValueSet,
+  ValueDefineInit,
+};
+
+enum SyntaxNodeValueClass_e {
+  Crude,   // 值类型
+  Pointer, // 指针
+  Referer, // 引用
+};
+
 // 语法树节点
 class SyntaxNode_c : public ListNode_c {
 public:
@@ -51,23 +75,10 @@ public:
     return re_ptr;
   }
 
-  SyntaxNode_c() : ListNode_c(ListNodeType_e::Syntactic) {}
+  SyntaxNode_c() : ListNode_c(ListNodeType_e::Syntactic), syntaxType(SyntaxNodeType_e::Group) {}
+  SyntaxNode_c(SyntaxNodeType_e type) : ListNode_c(ListNodeType_e::Syntactic), syntaxType(type) {}
 
-  const std::string& name() const override {
-    if (nullptr != node) {
-      return node->name();
-    }
-    return HicUtil_c::emptyString;
-  }
-
-  bool set(std::shared_ptr<WordItem_c> ptr) {
-    assert(nullptr == node);
-    if (nullptr == ptr) {
-      node = ptr;
-      return true;
-    }
-    return false;
-  }
+  const std::string& name() const override { return HicUtil_c::emptyString; }
 
   bool add(std::shared_ptr<SyntaxNode_c> ptr) {
     if (nullptr != ptr) {
@@ -129,10 +140,10 @@ public:
           std::cout << "  ├──┐";
         }
         SyntaxNode_c* item_ptr = (SyntaxNode_c*)item.get();
-        if (nullptr != item_ptr->node) {
-          // 节点包含内容
-          std::cout << "# " << item_ptr->node->name();
-        }
+        // if (nullptr != item_ptr->node) {
+        //   // 节点包含内容
+        //   std::cout << "# " << item_ptr->node->name();
+        // }
         std::cout << std::endl;
         item_ptr->debugPrint(tab + 1, [&onOutPrefix, isEnd]() -> size_t {
           size_t size = 0;
@@ -155,8 +166,44 @@ public:
     }
   }
 
-  std::shared_ptr<WordItem_c> node = nullptr;
+  SyntaxNodeType_e syntaxType;
   std::list<std::shared_ptr<ListNode_c>> children{};
+};
+
+class SyntaxNode_value_define_c : public SyntaxNode_c {
+public:
+  SyntaxNode_value_define_c() : SyntaxNode_c(SyntaxNodeType_e::ValueDefine) {}
+
+  GEN_VALUE(WordItem_c, value_type);
+  SyntaxNodeValueClass_e valueClass = SyntaxNodeValueClass_e::Crude;
+};
+
+class SyntaxNode_value_define_id_c : public SyntaxNode_c {
+public:
+  SyntaxNode_value_define_id_c() : SyntaxNode_c(SyntaxNodeType_e::ValueDefineId) {}
+
+  GEN_VALUE(SyntaxNode_value_define_c, value_define);
+  GEN_VALUE(WordItem_c, id);
+};
+
+class SyntaxNode_value_set_c : public SyntaxNode_c {
+public:
+  SyntaxNode_value_set_c() : SyntaxNode_c(SyntaxNodeType_e::ValueSet) {}
+
+  GEN_VALUE(WordItem_c, id);
+  // =
+  SyntaxNodeValueClass_e dataClass = SyntaxNodeValueClass_e::Crude;
+  GEN_VALUE(SyntaxNode_c, data); // ID | constexpr
+};
+
+class SyntaxNode_value_define_init_c : public SyntaxNode_c {
+public:
+  SyntaxNode_value_define_init_c() : SyntaxNode_c(SyntaxNodeType_e::ValueDefineInit) {}
+
+  GEN_VALUE(SyntaxNode_value_define_id_c, define_id);
+  // =
+  SyntaxNodeValueClass_e dataClass = SyntaxNodeValueClass_e::Crude;
+  GEN_VALUE(SyntaxNode_c, data); // ID | constexpr
 };
 
 class SyntacticAnalysis_c {
@@ -284,18 +331,22 @@ public:
     return nullptr;
   }
 
-  std::shared_ptr<SyntaxNode_c> parse_value_define(std::shared_ptr<WordItem_c> word_ptr) {
+  std::shared_ptr<SyntaxNode_value_define_c>
+  parse_value_define(std::shared_ptr<WordItem_c> word_ptr) {
     // value_type
-    auto re_node = std::make_shared<SyntaxNode_c>();
-    if (re_node->add(parse_value_type(word_ptr))) {
+    auto re_node = std::make_shared<SyntaxNode_value_define_c>();
+    if (re_node->set_value_type(parse_value_type(word_ptr))) {
       // 指针或引用
       _GEN_WORD_DEF(next);
       const auto sign = assertToken_type(next_ptr, WordEnumToken_e::Tsign);
       if (nullptr != sign) {
-        if (sign->name() != "*" && sign->name() != "&") {
+        if (sign->name() == "*") {
+          re_node->valueClass = SyntaxNodeValueClass_e::Pointer;
+        } else if (sign->name() == "&") {
+          re_node->valueClass = SyntaxNodeValueClass_e::Referer;
+        } else {
           return nullptr;
         }
-        re_node->add(sign);
         return re_node;
       }
       // 下一个 [token] 不是符号，回退一个
@@ -305,24 +356,37 @@ public:
     return nullptr;
   }
 
-  std::shared_ptr<SyntaxNode_c> parse_value_define_id(std::shared_ptr<WordItem_c> word_ptr) {
+  std::shared_ptr<SyntaxNode_value_define_id_c>
+  parse_value_define_id(std::shared_ptr<WordItem_c> word_ptr) {
     // value_type
-    auto re_node = parse_value_define(word_ptr);
-    if (nullptr != re_node) {
+    auto re_node = std::make_shared<SyntaxNode_value_define_id_c>();
+    if (re_node->set_value_define(parse_value_define(word_ptr))) {
       // ID
-      if (re_node->add(assertToken_type(nullptr, WordEnumToken_e::Tid))) {
+      if (re_node->set_id(assertToken_type(nullptr, WordEnumToken_e::Tid))) {
         return re_node;
       }
     }
     return nullptr;
   }
 
-  std::shared_ptr<SyntaxNode_c> parse_value_set(std::shared_ptr<WordItem_c> word_ptr) {
-    auto pre_node = std::make_shared<SyntaxNode_c>();
-    if (pre_node->add(assertToken_type(word_ptr, WordEnumToken_e::Tid))) {
-      auto re_node = SyntaxNode_c::make_node(pre_node);
-      if (re_node->add(assertToken_sign(nullptr, "="))) {
-        if (re_node->add(parse_expr(nullptr, WordEnumType_e::Tvoid))) {
+  std::shared_ptr<SyntaxNode_value_set_c> parse_value_set(std::shared_ptr<WordItem_c> word_ptr) {
+    auto re_node = std::make_shared<SyntaxNode_value_set_c>();
+    if (re_node->set_id(assertToken_type(word_ptr, WordEnumToken_e::Tid))) {
+      if (assertToken_sign(nullptr, "=")) {
+        // 指针或引用
+        _GEN_WORD_DEF(next);
+        const auto sign = assertToken_type(next_ptr, WordEnumToken_e::Tsign);
+        if (nullptr != sign) {
+          if (sign->name() == "*") {
+            re_node->dataClass = SyntaxNodeValueClass_e::Pointer;
+          } else if (sign->name() == "&") {
+            re_node->dataClass = SyntaxNodeValueClass_e::Referer;
+          } else {
+            return nullptr;
+          }
+          next_ptr = nullptr;
+        }
+        if (re_node->set_data(parse_expr(next_ptr, WordEnumType_e::Tvoid))) {
           return re_node;
         }
       }
@@ -330,12 +394,25 @@ public:
     return nullptr;
   }
 
-  std::shared_ptr<SyntaxNode_c> parse_value_define_init(std::shared_ptr<WordItem_c> word_ptr) {
-    auto pre_node = parse_value_define_id(word_ptr);
-    if (pre_node) {
-      auto re_node = SyntaxNode_c::make_node(pre_node);
-      if (re_node->add(assertToken_sign(nullptr, "="))) {
-        if (re_node->add(parse_expr(nullptr, WordEnumType_e::Tvoid))) {
+  std::shared_ptr<SyntaxNode_value_define_init_c>
+  parse_value_define_init(std::shared_ptr<WordItem_c> word_ptr) {
+    auto re_node = std::make_shared<SyntaxNode_value_define_init_c>();
+    if (re_node->set_define_id(parse_value_define_id(word_ptr))) {
+      if (assertToken_sign(nullptr, "=")) {
+        // 指针或引用
+        _GEN_WORD_DEF(next);
+        const auto sign = assertToken_type(next_ptr, WordEnumToken_e::Tsign);
+        if (nullptr != sign) {
+          if (sign->name() == "*") {
+            re_node->dataClass = SyntaxNodeValueClass_e::Pointer;
+          } else if (sign->name() == "&") {
+            re_node->dataClass = SyntaxNodeValueClass_e::Referer;
+          } else {
+            return nullptr;
+          }
+          next_ptr = nullptr;
+        }
+        if (re_node->set_data(parse_expr(next_ptr, WordEnumType_e::Tvoid))) {
           return re_node;
         }
       }
@@ -549,10 +626,12 @@ public:
           // 参数列表
           _GEN_WORD(sign);
           while (re_node->add(parse_value_define_id(sign_ptr))) {
+            sign_ptr = nullptr;
             _GEN_WORD(sign);
             if (false == re_node->add(assertToken_sign(sign_ptr, ","))) {
               break;
             }
+            sign_ptr = nullptr;
           }
           // code
           if (re_node->add(assertToken_sign(sign_ptr, ")")) &&
@@ -653,6 +732,6 @@ public:
     return true;
   }
 
-  SyntaxNode_c root = SyntaxNode_c(false);
+  SyntaxNode_c root = SyntaxNode_c();
   LexicalAnalyse_c lexicalAnalyse{};
 };

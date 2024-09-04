@@ -70,11 +70,12 @@ void test_SyntacticAnalysis() {
   analyse.init(R"(
 int a = 10086;
 int b = 0;
-int* c = 0xf7A0;
+int c = 0xf7A0;
 int d = 07650;
+int* f = &d;
 String str = "qiqi";
 
-int main() {
+int main(String args, int size) {
     d += b;
     c -= b;
     d /= b;
@@ -85,6 +86,7 @@ int main() {
         d = b;
     }
 
+    int ok = *c;
     char ch = 'b';
         // disable=124
     bool k = false;
