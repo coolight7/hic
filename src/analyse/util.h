@@ -41,6 +41,11 @@ template <typename _T> inline std::string format(_T arg) {
 class HicUtil_c {
 public:
   inline static const std::string emptyString{};
+
+  template <typename RET, typename ARG>
+  inline static std::shared_ptr<RET> toType(std::shared_ptr<ARG> arg) {
+    return *(static_cast<std::shared_ptr<RET>*>((void*)&arg));
+  }
 };
 
 #define UtilLog(level, path, line, tip, ...)                                                       \

@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "analyse/lexical_analyse.h"
+#include "analyse/semantic_analyse.h"
 #include "analyse/syntactic_analyse.h"
 
 void test_LexicalAnalyse() {
@@ -57,7 +58,6 @@ int main() {
       break;
     }
   }
-  wordAnalyse.debugPrintSymbolTable(false);
   std::cout << std::endl << "-----------------------" << std::endl << std::endl;
   wordAnalyse.debugPrintTokenList();
 }
@@ -130,7 +130,81 @@ int main(String* args, int size) {
     }
   }
   UtilLog(Tdebug, "", 0, "## tree:");
-  analyse.root.debugPrint();
+  analyse.root->debugPrint();
+  assert(rebool);
+}
+
+void test_SemanticAnalyse() {
+  std::cout << std::endl
+            << "----------- test_SemanticAnalyse -----------" << std::endl
+            << std::endl;
+  SemanticAnalyse_c analyse;
+  analyse.init(R"(
+int a = 10086;
+int b = 0;
+int c = 0xf7A0;
+int d = 07650;
+int* f = &d;
+int f = "error";
+String str = "qiqi";
+
+int test(int a, int b) {
+  return (a + b);
+}
+
+enum Hello_e {
+  A1,
+  B2,
+  CC
+};
+
+int main(String* args, int size) {
+    d += b;
+    c -= b;
+    d /= b;
+    c *= b;
+    a ??= b ?? c;
+
+    int ret = test(1, 2);
+    test(3, 4);
+    test(3,);
+    test();
+    if (a == b || (b == c && a == c)) {
+        d = b;
+    }
+
+    int ok = *c;
+    char ch = 'b';
+        // disable=124
+    bool k = false;
+    // disable = fdsa
+    bool g = false;
+    /*disable=uu*/
+    /*ll
+    disable=bbc*/
+
+    s = "sss";
+    s = "adsf 123";
+    return 0;
+}
+  )");
+  auto rebool = analyse.analyse();
+  if (false == rebool) {
+    int index = analyse.syntacticAnalysis.lexicalAnalyse.tokenList.size();
+    if (index > 10) {
+      index -= 10;
+    } else {
+      index = 0;
+    }
+    UtilLog(Tdebug, "", 0, "## End last Token:");
+    for (; index < analyse.syntacticAnalysis.lexicalAnalyse.tokenList.size(); ++index) {
+      auto& item = analyse.syntacticAnalysis.lexicalAnalyse.tokenList[index];
+      item->printInfo();
+    }
+  } else {
+    UtilLog(Tdebug, "", 0, "## tree:");
+    analyse.syntacticAnalysis.root->debugPrint();
+  }
   assert(rebool);
 }
 
@@ -138,6 +212,7 @@ int main() {
   std::cout << "<========= test start ========>" << std::endl;
   test_LexicalAnalyse();
   test_SyntacticAnalysis();
+  test_SemanticAnalyse();
   std::cout << "<========= test  end  ========>" << std::endl;
   return 0;
 }

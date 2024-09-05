@@ -105,6 +105,7 @@ GENERATE_ENUM(WordEnumOperator, Undefined, None, EndAddAdd, EndSubSub, LeftCurve
 enum ListNodeType_e {
   Lexical,
   Syntactic,
+  Symbol,
 };
 
 class ListNode_c {

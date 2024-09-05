@@ -109,30 +109,25 @@
   }
 
 enum SyntaxNodeType_e {
-  Group, // 分组节点，自身无特殊意义
+  Normal, // 分组节点，自身无特殊意义
+  Group,  // {}，隔离符号范围
 
   Value,
   ValueDefine,
   ValueDefineId,
-  ValueSet,
   ValueDefineInit,
 
   FunctionCall,
-  Expr,
   Operator,
-  CtrlBreak,
-  CtrlContinue,
   CtrlReturn,
   CtrlIfBranch,
   CtrlIf,
   CtrlWhile,
   CtrlFor,
-  Code,
 
   FunctionDefine,
   EnumDefine,
   ClassDefine,
-  TypeDefine,
 };
 
 enum SyntaxNodeValueClass_e {
@@ -173,7 +168,7 @@ public:
     return re_ptr;
   }
 
-  SyntaxNode_c() : ListNode_c(ListNodeType_e::Syntactic), syntaxType(SyntaxNodeType_e::Group) {}
+  SyntaxNode_c() : ListNode_c(ListNodeType_e::Syntactic), syntaxType(SyntaxNodeType_e::Normal) {}
   SyntaxNode_c(SyntaxNodeType_e type) : ListNode_c(ListNodeType_e::Syntactic), syntaxType(type) {}
 
   const std::string& name() const override { return HicUtil_c::emptyString; }
@@ -215,6 +210,11 @@ public:
   std::list<std::shared_ptr<ListNode_c>> children{};
 };
 
+class SyntaxNode_group_c : public SyntaxNode_c {
+public:
+  SyntaxNode_group_c() : SyntaxNode_c(SyntaxNodeType_e::Group) {}
+};
+
 class SyntaxNode_value_define_c : public SyntaxNode_c {
 public:
   SyntaxNode_value_define_c() : SyntaxNode_c(SyntaxNodeType_e::ValueDefine) {}
@@ -243,7 +243,7 @@ public:
   }
 
   _GEN_VALUE(SyntaxNode_value_define_c, value_define);
-  _GEN_VALUE(WordItem_c, id);
+  _GEN_VALUE(WordItem_default_c, id);
 };
 
 class SyntaxNode_value_define_init_c : public SyntaxNode_c {
@@ -339,7 +339,7 @@ public:
   }
   // if 条件，如果为 nullptr，则无条件，即为 else_body
   _GEN_VALUE(SyntaxNode_operator_c, if_expr);
-  _GEN_VALUE(SyntaxNode_c, if_body);
+  _GEN_VALUE(SyntaxNode_group_c, if_body);
 };
 
 class SyntaxNode_if_c : public SyntaxNode_c {
@@ -388,7 +388,7 @@ public:
   }
 
   _GEN_VALUE(SyntaxNode_operator_c, loop_expr);
-  _GEN_VALUE(SyntaxNode_c, body);
+  _GEN_VALUE(SyntaxNode_group_c, body);
 };
 
 class SyntaxNode_for_c : public SyntaxNode_c {
@@ -408,7 +408,7 @@ public:
   _GEN_VALUE(SyntaxNode_operator_c, start_expr);
   _GEN_VALUE(SyntaxNode_operator_c, loop_expr);
   _GEN_VALUE(SyntaxNode_operator_c, loop_end_expr);
-  _GEN_VALUE(SyntaxNode_c, body);
+  _GEN_VALUE(SyntaxNode_group_c, body);
 };
 
 class SyntaxNode_function_define_c : public SyntaxNode_c {
@@ -439,7 +439,7 @@ public:
   _GEN_VALUE(SyntaxNode_value_define_c, return_type);
   _GEN_VALUE(WordItem_c, name);
   std::list<std::shared_ptr<SyntaxNode_value_define_id_c>> args;
-  _GEN_VALUE(SyntaxNode_c, body);
+  _GEN_VALUE(SyntaxNode_group_c, body);
 };
 
 class SyntaxNode_enum_define_c : public SyntaxNode_c {
@@ -640,7 +640,8 @@ public:
     auto re_node = std::make_shared<SyntaxNode_value_define_id_c>();
     if (re_node->set_value_define(parse_value_define(word_ptr))) {
       // ID
-      if (re_node->set_id(assertToken_type(WordEnumToken_e::Tid))) {
+      if (re_node->set_id(
+              HicUtil_c::toType<WordItem_default_c>(assertToken_type(WordEnumToken_e::Tid)))) {
         return re_node;
       }
     }
@@ -841,22 +842,14 @@ public:
     return nullptr;
   }
 
-  std::shared_ptr<SyntaxNode_c>
+  std::shared_ptr<WordItem_c>
   parse_code_ctrl_break(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
-    auto ptr = assertToken(WordItem_ctrl_c{WordEnumCtrl_e::Tbreak}, word_ptr);
-    if (nullptr != ptr) {
-      return SyntaxNode_c::make_node(ptr);
-    }
-    return nullptr;
+    return assertToken(WordItem_ctrl_c{WordEnumCtrl_e::Tbreak}, word_ptr);
   }
 
-  std::shared_ptr<SyntaxNode_c>
+  std::shared_ptr<WordItem_c>
   parse_code_ctrl_continue(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
-    auto ptr = assertToken(WordItem_ctrl_c{WordEnumCtrl_e::Tcontinue}, word_ptr);
-    if (nullptr != ptr) {
-      return SyntaxNode_c::make_node(ptr);
-    }
-    return nullptr;
+    return assertToken(WordItem_ctrl_c{WordEnumCtrl_e::Tcontinue}, word_ptr);
   }
 
   std::shared_ptr<SyntaxNode_ctrl_return_c>
@@ -944,8 +937,8 @@ public:
   /**
    * 不取外围的大括号 { code }
    */
-  std::shared_ptr<SyntaxNode_c> parse_code(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
-    auto re_node = std::make_shared<SyntaxNode_c>();
+  std::shared_ptr<SyntaxNode_group_c> parse_code(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
+    auto re_node = std::make_shared<SyntaxNode_group_c>();
     std::shared_ptr<SyntaxNode_c> result;
     if (enableLog_parseCode) {
       SynLog(Tdebug, "parse_code -----vvv------ ");
@@ -955,9 +948,18 @@ public:
       if (WordEnumToken_e::Toperator == word.token) {
         auto& sign = word.toOperator();
         if (WordEnumOperator_e::TSemicolon == sign.value) {
+          // ;
           word_ptr = nullptr;
           continue;
+        } else if (WordEnumOperator_e::TLeftFlowerGroup == sign.value) {
+          // { code }
+          auto result = parse_code();
+          if (re_node->add(result) && assertToken_sign("}")) {
+            word_ptr = nullptr;
+            continue;
+          }
         } else if (WordEnumOperator_e::TRightFlowerGroup == sign.value) {
+          // }
           lexicalAnalyse.tokenBack();
           break;
         }
@@ -1131,14 +1133,14 @@ public:
       if (nullptr == result) {
         return false;
       }
-      root.add(result);
+      root->add(result);
       lexicalAnalyse.currentToken()->printInfo();
     }
     return true;
   }
 
   // 语法分析结果，抽象语法树根节点
-  SyntaxNode_c root = SyntaxNode_c{};
+  std::shared_ptr<SyntaxNode_c> root = std::make_shared<SyntaxNode_c>();
   // 词法分析器
   LexicalAnalyse_c lexicalAnalyse{};
 };

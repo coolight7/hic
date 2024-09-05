@@ -11,6 +11,5 @@ int main() {
   )");
   std::cout << "analyse..." << std::endl;
   analyse.analyse();
-  analyse.lexicalAnalyse.debugPrintSymbolTable(false);
   return 0;
 }
