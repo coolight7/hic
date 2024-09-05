@@ -20,13 +20,13 @@ GENERATE_ENUM(WordEnumType, void, char, bool, int, int64, float, float64, pointe
  * Tundefined,
  * Tnumber,     // 数值
  * Tstring,     // 字符串
- * Tsign,       // 符号
+ * Toperator    // 操作符
  * Tkeyword,    // 关键字
  * Ttype,       // 类型
  * TnativeCall, // 内置函数
  * Tid,         // 名称
  */
-GENERATE_ENUM(WordEnumToken, undefined, number, string, sign, keyword, type, nativeCall, id)
+GENERATE_ENUM(WordEnumToken, undefined, number, string, operator, keyword, type, nativeCall, id)
 
 /** 内置函数
  *
@@ -41,7 +41,7 @@ GENERATE_ENUM(WordEnumNativeCall, print, sizeof, malloc, free, exit)
  *  - CurvesGroup    // ()
  *  - SquareGroup    // []
  *  - Dot            // .
- *  - QueryDot       // ?.
+ *  - NullDot        // ?.
  * - 2
  *  - Not            // !expr
  *  - Shift          // ~expr
@@ -50,7 +50,7 @@ GENERATE_ENUM(WordEnumNativeCall, print, sizeof, malloc, free, exit)
  * - 3
  *  - Multi          // *
  *  - Division       // /
- *  - Semicolon      // %
+ *  - Percent        // %
  * - 4
  *  - Add           // +
  *  - Sub           // -
@@ -79,16 +79,24 @@ GENERATE_ENUM(WordEnumNativeCall, print, sizeof, malloc, free, exit)
  *  - IfElse         // expr ? if_body : else_body
  * - 14
  *  - Set            // =
+ *  - SetBitOr       // |=
+ *  - SetBitAnd      // &=
  *  - SetMulti       // *=
  *  - SetDivision    // /=
  *  - SetAdd         // +=
  *  - SetSub         // -=
  *  - SetNullMerge   // ??=
+ *
+ * ##
+ *  - FlowerGroup    // {}
+ *  - Semicolon      // ;
+ *  - Comma          // ,
  */
-GENERATE_ENUM(WordEnumExpr, EndAddAdd, EndSubSub, CurvesGroup, SquareGroup, Dot, QueryDot, Not,
-              Shift, StartAddAdd, StartSubSub, Multi, Division, Semicolon, Add, Sub, BitLeftMove,
-              BitRightMove, BitAnd, BitOr, GreaterOrEqual, Greater, LessOrEqual, Less, Equal,
-              NotEqual, And, Or, NullMerge, IfElse, Set, SetMulti, SetDivision, SetAdd, SetSub,
-              SetNullMerge)
+GENERATE_ENUM(WordEnumOperator, Undefined, EndAddAdd, EndSubSub, LeftCurvesGroup, RightCurvesGroup,
+              LeftSquareGroup, RightSquareGroup, Dot, NullDot, Not, Shift, StartAddAdd, StartSubSub,
+              Multi, Division, Percent, Add, Sub, BitLeftMove, BitRightMove, BitAnd, BitOr,
+              GreaterOrEqual, Greater, LessOrEqual, Less, Equal, NotEqual, And, Or, NullMerge,
+              IfElse, Set, SetBitOr, SetBitAnd, SetMulti, SetDivision, SetAdd, SetSub, SetNullMerge,
+              LeftFlowerGroup, RightFlowerGroup, Semicolon, Comma)
 
 #include "magic/unset_macro.h"

@@ -14,24 +14,28 @@ GENERATE_ENUM(HicLogLevel, error, warning, info, debug, close)
 
 #include "magic/unset_macro.h"
 
-void assertPrint() {}
-template <typename _T> constexpr void assertPrint(_T arg) { std::cout << arg << std::endl; }
-template <typename... _Args> constexpr void assertPrint(const char* str, _Args&&... args) {
-  std::cout << std::format(str, std::forward<_Args>(args)...) << std::endl;
+namespace std {
+inline std::string format() { return ""; }
+template <typename _T> inline std::string format(_T arg) {
+  std::cout << arg << std::endl;
+  return "";
 }
+}; // namespace std
+
 /**
  * ## 断言
  * - 强制需要显式 == != > < 判断
  */
 #define Assert_d(inbool, ...)                                                                      \
   {                                                                                                \
-    const auto str = std::string_view(#inbool);                                                    \
-    assert(str.contains("=") || str.contains(">") || str.contains("<"));                           \
-    const auto rebool = inbool;                                                                    \
+    const auto __inbool_code = std::string_view(#inbool);                                          \
+    assert(__inbool_code.contains("=") || __inbool_code.contains(">") ||                           \
+           __inbool_code.contains("<"));                                                           \
+    const bool rebool = (inbool);                                                                  \
     if (false == rebool) {                                                                         \
-      assertPrint(__VA_ARGS__);                                                                    \
+      std::cout << std::format(__VA_ARGS__) << std::endl;                                          \
+      assert(rebool&& #inbool);                                                                    \
     }                                                                                              \
-    assert(inbool);                                                                                \
   }
 
 class HicUtil_c {
