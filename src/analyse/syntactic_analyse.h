@@ -98,7 +98,6 @@
         size = onOutPrefix();                                                                      \
       }                                                                                            \
       if (false == isEndValue) {                                                                   \
-                                                                                                   \
         std::cout << "  │";                                                                        \
       } else {                                                                                     \
         std::cout << "   ";                                                                        \
