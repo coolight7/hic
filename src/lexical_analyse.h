@@ -26,6 +26,7 @@ public:
 };
 
 class WordItem_default_c;
+class WordItem_operator_c;
 class WordItem_number_c;
 class WordItem_ctrl_c;
 class WordItem_type_c;
@@ -58,24 +59,27 @@ public:
     return std::shared_ptr<WordItem_c>(ptr);
   }
 
-  WordItem_default_c& toDefault() {
-    Assert_d(WordEnumToken_e::Tstring == token || WordEnumToken_e::Tsign == token ||
-             WordEnumToken_e::Tid == token);
+  WordItem_default_c& toDefault() const {
+    Assert_d(WordEnumToken_e::Tstring == token || WordEnumToken_e::Tid == token);
     return *((WordItem_default_c*)this);
   }
-  WordItem_number_c& toNumber() {
+  WordItem_operator_c& toOperator() const {
+    Assert_d(WordEnumToken_e::Toperator == token);
+    return *((WordItem_operator_c*)this);
+  }
+  WordItem_number_c& toNumber() const {
     Assert_d(WordEnumToken_e::Tnumber == token);
     return *((WordItem_number_c*)this);
   }
-  WordItem_ctrl_c& toKeyword() {
+  WordItem_ctrl_c& toKeyword() const {
     Assert_d(WordEnumToken_e::Tkeyword == token);
     return *((WordItem_ctrl_c*)this);
   }
-  WordItem_type_c& toType() {
+  WordItem_type_c& toType() const {
     Assert_d(WordEnumToken_e::Ttype == token);
     return *((WordItem_type_c*)this);
   }
-  WordItem_nativeCall_c& toNativeCall() {
+  WordItem_nativeCall_c& toNativeCall() const {
     Assert_d(WordEnumToken_e::TnativeCall == token);
     return *((WordItem_nativeCall_c*)this);
   }
@@ -100,6 +104,156 @@ public:
   const std::string& name() const override { return value; }
 
   std::string value;
+};
+
+class WordItem_operator_c : public WordItem_c {
+public:
+  WordItem_operator_c(WordEnumOperator_e in_value)
+      : WordItem_c(WordEnumToken_e::Toperator), value(in_value) {}
+
+  const std::string& name() const override { return toSign(value); }
+
+  inline static const std::array<const std::string, 44> signlist = {
+      "[Undefine]", "expr++", "expr--", "(",  ")",      "[",  "]",  ".",  "?.", "!expr", "~expr",
+      "++expr",     "--expr", "*",      "/",  "%",      "+",  "-",  "<<", ">>", "&",     "|",
+      ">=",         ">",      "<=",     "<",  "==",     "!=", "&&", "||", "??", "? :",   "=",
+      "*=",         "/=",     "+=",     "-=", R"(??=)", "{",  "}",  ";",  ",",
+  };
+
+  inline static constexpr const std::string& toSign(WordEnumOperator_e value) {
+    static_assert(WordEnumOperator_c::namelist.size() == signlist.size());
+    return signlist[WordEnumOperator_c::toInt(value)];
+  }
+
+  inline static constexpr WordEnumOperator_e toEnum(const std::string_view str) {
+    if ("++" == str) {
+      return WordEnumOperator_e::TEndAddAdd;
+    }
+    if ("--" == str) {
+      return WordEnumOperator_e::TEndSubSub;
+    }
+    if ("(" == str) {
+      return WordEnumOperator_e::TLeftCurvesGroup;
+    }
+    if (")" == str) {
+      return WordEnumOperator_e::TRightCurvesGroup;
+    }
+    if ("[" == str) {
+      return WordEnumOperator_e::TLeftSquareGroup;
+    }
+    if ("]" == str) {
+      return WordEnumOperator_e::TRightSquareGroup;
+    }
+    if ("." == str) {
+      return WordEnumOperator_e::TDot;
+    }
+    if ("?." == str) {
+      return WordEnumOperator_e::TNullDot;
+    }
+    if ("!" == str) {
+      return WordEnumOperator_e::TNot;
+    }
+    if ("~" == str) {
+      return WordEnumOperator_e::TShift;
+    }
+    if ("++" == str) {
+      return WordEnumOperator_e::TStartAddAdd;
+    }
+    if ("--" == str) {
+      return WordEnumOperator_e::TStartSubSub;
+    }
+    if ("*" == str) {
+      return WordEnumOperator_e::TMulti;
+    }
+    if ("/" == str) {
+      return WordEnumOperator_e::TDivision;
+    }
+    if ("%" == str) {
+      return WordEnumOperator_e::TPercent;
+    }
+    if ("+" == str) {
+      return WordEnumOperator_e::TAdd;
+    }
+    if ("-" == str) {
+      return WordEnumOperator_e::TSub;
+    }
+    if ("<<" == str) {
+      return WordEnumOperator_e::TBitLeftMove;
+    }
+    if (">>" == str) {
+      return WordEnumOperator_e::TBitRightMove;
+    }
+    if ("&" == str) {
+      return WordEnumOperator_e::TBitAnd;
+    }
+    if ("|" == str) {
+      return WordEnumOperator_e::TBitOr;
+    }
+    if (">=" == str) {
+      return WordEnumOperator_e::TGreaterOrEqual;
+    }
+    if (">" == str) {
+      return WordEnumOperator_e::TGreater;
+    }
+    if ("<=" == str) {
+      return WordEnumOperator_e::TLessOrEqual;
+    }
+    if ("<" == str) {
+      return WordEnumOperator_e::TLess;
+    }
+    if ("==" == str) {
+      return WordEnumOperator_e::TEqual;
+    }
+    if ("!=" == str) {
+      return WordEnumOperator_e::TNotEqual;
+    }
+    if ("&&" == str) {
+      return WordEnumOperator_e::TAnd;
+    }
+    if ("||" == str) {
+      return WordEnumOperator_e::TOr;
+    }
+    if ("??" == str) {
+      return WordEnumOperator_e::TNullMerge;
+    }
+    if ("? :" == str) {
+      return WordEnumOperator_e::TIfElse;
+    }
+    if ("=" == str) {
+      return WordEnumOperator_e::TSet;
+    }
+    if ("*=" == str) {
+      return WordEnumOperator_e::TSetMulti;
+    }
+    if ("/=" == str) {
+      return WordEnumOperator_e::TSetDivision;
+    }
+    if ("+=" == str) {
+      return WordEnumOperator_e::TSetAdd;
+    }
+    if ("-=" == str) {
+      return WordEnumOperator_e::TSetSub;
+    }
+    if (str == R"(??=)") {
+      return WordEnumOperator_e::TSetNullMerge;
+    }
+    if ("{" == str) {
+      return WordEnumOperator_e::TLeftFlowerGroup;
+    }
+    if ("}" == str) {
+      return WordEnumOperator_e::TRightFlowerGroup;
+    }
+    if (";" == str) {
+      return WordEnumOperator_e::TSemicolon;
+    }
+    if ("," == str) {
+      return WordEnumOperator_e::TComma;
+    }
+    Assert_d(true == false, "未知操作符: {}", str);
+    return WordEnumOperator_e::TUndefined;
+  }
+
+  WordEnumOperator_e value;
 };
 
 class WordItem_number_c : public WordItem_c {
@@ -429,61 +583,112 @@ public:
             return nullptr;
           }
         }
+        if (';' == it) {
+          return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TSemicolon);
+        }
+        if (',' == it) {
+          return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TComma);
+        }
+        if ('(' == it) {
+          return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TLeftCurvesGroup);
+        } else if (')' == it) {
+          return WordItem_c::make_shared<WordItem_operator_c>(
+              WordEnumOperator_e::TRightCurvesGroup);
+        }
         if ('{' == it) {
           symbolTablePush();
-          return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tsign,
-                                                             std::string(&it, 1));
-        }
-        if ('}' == it) {
+          return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TLeftFlowerGroup);
+        } else if ('}' == it) {
           symbolTablePop();
-          return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tsign,
-                                                             std::string(&it, 1));
+          return WordItem_c::make_shared<WordItem_operator_c>(
+              WordEnumOperator_e::TRightFlowerGroup);
         }
-        if ('(' == it || ')' == it) {
-          return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tsign,
-                                                             std::string(&it, 1));
+        if ('[' == it) {
+          return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TLeftSquareGroup);
+        } else if (']' == it) {
+          return WordItem_c::make_shared<WordItem_operator_c>(
+              WordEnumOperator_e::TRightSquareGroup);
         }
-        const char* start = code_it - 1;
-        const char* end = code_it;
         do {
           if ('|' == it || '&' == it) {
-            if (it == *code_it || '=' == *code_it) {
-              // || |=
-              // && &=
-              ++code_it;
-              end = code_it;
-              ++code_it;
+            if (it == *code_it) {
+              // || &&
+              code_it++;
+              if ('|' == it) {
+                return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TOr);
+              }
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TAnd);
+            } else if ('=' == *code_it) {
+              // |= &=
+              code_it++;
+              if ('|' == it) {
+                return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TSetBitOr);
+              }
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TSetBitAnd);
             }
-            break;
+            if ('|' == it) {
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TBitOr);
+            }
+            return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TBitAnd);
           }
-          if ('=' == it || '>' == it || '<' == it || '+' == it || '-' == it || '*' == it ||
-              '/' == it) {
-            if ('=' == *code_it) {
-              // == >= += -= *= /=
-              ++code_it;
-              end = code_it;
-              ++code_it;
+          if ('=' == *code_it) {
+            // == >= += -= *= /=
+            code_it++;
+            switch (it) {
+            case '=':
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TEqual);
+            case '>':
+              return WordItem_c::make_shared<WordItem_operator_c>(
+                  WordEnumOperator_e::TGreaterOrEqual);
+            case '<':
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TLessOrEqual);
+            case '+':
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TSetAdd);
+            case '-':
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TSetSub);
+            case '*':
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TSetMulti);
+            case '/':
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TSetDivision);
             }
-            break;
+          } else {
+            switch (it) {
+            case '=':
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TSet);
+            case '>':
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TGreater);
+            case '<':
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TLess);
+            case '+':
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TAdd);
+            case '-':
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TSub);
+            case '*':
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TMulti);
+            case '/':
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TDivision);
+            }
           }
           if ('?' == it) {
             if ('?' == *code_it) {
-              // ??
               ++code_it;
               if ('=' == *code_it) {
                 // ??=
                 ++code_it;
+                return WordItem_c::make_shared<WordItem_operator_c>(
+                    WordEnumOperator_e::TSetNullMerge);
+              } else {
+                // ??
+                return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TNullMerge);
               }
             } else if ('.' == *code_it) {
               // ?.
               ++code_it;
+              return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TNullDot);
             }
-            end = code_it;
           }
         } while (false);
-        Assert_d(nullptr != end);
-        return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tsign,
-                                                           std::string{start, end});
+        Assert_d(true == false, "未知符号: {}", it);
       }
     }
     return nullptr;
