@@ -14,10 +14,14 @@
                        _47, _48, _49, TARGET, ...)                                                 \
   TARGET
 
+/**
+ * ## 获得可变参数的个数
+ * - 50, ##__VA_ARGS__ 可在无参数时移除 50 之后的第一个,逗号，使得 _MacroArgSize_d() 正常返回 0
+ */
 #define _MacroArgSize_d(...)                                                                       \
-  _MacroArgSize_1_d(__VA_ARGS__, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35,   \
+  _MacroArgSize_1_d(50, ##__VA_ARGS__, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, \
                     34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,    \
-                    15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1)
+                    15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0)
 #define _MacroArgSize_1_d(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15,    \
                           _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, _26, _27, _28, _29,    \
                           _30, _31, _32, _33, _34, _35, _36, _37, _38, _39, _40, _41, _42, _43,    \
@@ -27,7 +31,9 @@
 #define _MoreExpand_d(...) _MoreExpand_1_d(_MoreExpand_1_d(_MoreExpand_1_d(__VA_ARGS__)))
 #define _MoreExpand_1_d(...) _MoreExpand_2_d(_MoreExpand_2_d(_MoreExpand_2_d(__VA_ARGS__)))
 #define _MoreExpand_2_d(...) _MoreExpand_3_d(_MoreExpand_3_d(_MoreExpand_3_d(__VA_ARGS__)))
-#define _MoreExpand_3_d(...) __VA_ARGS__
+#define _MoreExpand_3_d(...) _MoreExpand_4_d(_MoreExpand_4_d(_MoreExpand_4_d(__VA_ARGS__)))
+#define _MoreExpand_4_d(...) _MoreExpand_5_d(_MoreExpand_5_d(_MoreExpand_5_d(__VA_ARGS__)))
+#define _MoreExpand_5_d(...) __VA_ARGS__
 
 #define _MacroEmpty_d()
 #define _MacroDefer_d(ID) ID _MacroEmpty_d()
