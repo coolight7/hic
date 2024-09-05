@@ -100,3 +100,20 @@ GENERATE_ENUM(WordEnumOperator, Undefined, None, EndAddAdd, EndSubSub, LeftCurve
               SetAdd, SetSub, SetNullMerge, LeftFlowerGroup, RightFlowerGroup, Semicolon, Comma)
 
 #include "magic/unset_macro.h"
+#include "util.h"
+
+enum ListNodeType_e {
+  Lexical,
+  Syntactic,
+};
+
+class ListNode_c {
+public:
+  ListNode_c(ListNodeType_e in_type) : nodeType(in_type) {}
+  ListNode_c(const ListNode_c&) = delete;
+
+  virtual void printInfo() const {}
+  virtual const std::string& name() const { return HicUtil_c::emptyString; }
+
+  ListNodeType_e nodeType;
+};

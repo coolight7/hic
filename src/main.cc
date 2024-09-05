@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "syntactic_analyse.h"
+#include "analyse/syntactic_analyse.h"
 
 int main() {
   std::cout << "hello world" << std::endl;

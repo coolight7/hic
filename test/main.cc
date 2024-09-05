@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "lexical_analyse.h"
-#include "syntactic_analyse.h"
+#include "analyse/lexical_analyse.h"
+#include "analyse/syntactic_analyse.h"
 
 void test_LexicalAnalyse() {
   std::cout << std::endl << "----------- test_LexicalAnalyse -----------" << std::endl << std::endl;

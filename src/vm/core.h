@@ -1,3 +1,5 @@
+#pragma once
+
 class HicCore_c {
 public:
   static constexpr int stackSize = 1024 * 8;
