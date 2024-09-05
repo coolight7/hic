@@ -235,6 +235,7 @@ public:
       return WordEnumOperator_e::TSetSub;
     }
     if (str == R"(??=)") {
+      // fix `trigraph ??= ignored, use -trigraphs to enable`
       return WordEnumOperator_e::TSetNullMerge;
     }
     if ("{" == str) {
