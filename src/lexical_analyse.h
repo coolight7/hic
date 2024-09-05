@@ -114,11 +114,12 @@ public:
   const std::string& name() const override { return toSign(value); }
 
   // `R"()"` fix warning `trigraph ??= ignored, use -trigraphs to enable`
-  inline static const std::array<const std::string, 44> signlist = {
-      "[Undefine]", "expr++", "expr--", "(",  ")",      "[",  "]",  ".",  "?.", "!expr", "~expr",
-      "++expr",     "--expr", "*",      "/",  "%",      "+",  "-",  "<<", ">>", "&",     "|",
-      ">=",         ">",      "<=",     "<",  "==",     "!=", "&&", "||", "??", "? :",   "=",
-      "*=",         "/=",     "+=",     "-=", R"(??=)", "{",  "}",  ";",  ",",
+  inline static const std::array<const std::string, 47> signlist = {
+      "[Undefine]", "",       "expr++", "expr--", "(",      ")",      "[",      "]",   ".",
+      "?.",         "Level1", "!expr",  "~expr",  "++expr", "--expr", "Level2", "*",   "/",
+      "%",          "+",      "-",      "<<",     ">>",     "&",      "|",      ">=",  ">",
+      "<=",         "<",      "==",     "!=",     "&&",     "||",     "??",     "? :", "=",
+      "*=",         "/=",     "+=",     "-=",     R"(??=)", "{",      "}",      ";",   ",",
   };
 
   inline static constexpr const std::string& toSign(WordEnumOperator_e value) {
@@ -253,6 +254,30 @@ public:
     }
     Assert_d(true == false, "未知操作符: {}", str);
     return WordEnumOperator_e::TUndefined;
+  }
+
+  inline static int toLevel(WordEnumOperator_e type) {
+    Assert_d(type != WordEnumOperator_e::TUndefined && type != WordEnumOperator_e::TLevel1 &&
+             type != WordEnumOperator_e::TLevel2);
+    int index = WordEnumOperator_c::toInt(type);
+    if (index < WordEnumOperator_c::toInt(WordEnumOperator_e::TLevel1)) {
+      return 1;
+    }
+    if (index < WordEnumOperator_c::toInt(WordEnumOperator_e::TLevel2)) {
+      return 2;
+    }
+    return index;
+  }
+
+  /**
+   * ## [left] 优先级是否大于 [right]
+   * - result > 0  : [left] 的优先级小于 [right]
+   * - result == 0 : [left] 的优先级等于 [right]，注意此时 [left] 和 [right] 不一定是相同
+   * 符号，部分符号的优先级是相等的。
+   * - result < 0  : [left] 的优先级大于 [right]
+   */
+  inline static int compare(WordEnumOperator_e left, WordEnumOperator_e right) {
+    return toLevel(left) - toLevel(right);
   }
 
   WordEnumOperator_e value;

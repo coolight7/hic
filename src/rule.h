@@ -92,11 +92,11 @@ GENERATE_ENUM(WordEnumNativeCall, print, sizeof, malloc, free, exit)
  *  - Semicolon      // ;
  *  - Comma          // ,
  */
-GENERATE_ENUM(WordEnumOperator, Undefined, EndAddAdd, EndSubSub, LeftCurvesGroup, RightCurvesGroup,
-              LeftSquareGroup, RightSquareGroup, Dot, NullDot, Not, Shift, StartAddAdd, StartSubSub,
-              Multi, Division, Percent, Add, Sub, BitLeftMove, BitRightMove, BitAnd, BitOr,
-              GreaterOrEqual, Greater, LessOrEqual, Less, Equal, NotEqual, And, Or, NullMerge,
-              IfElse, Set, SetBitOr, SetBitAnd, SetMulti, SetDivision, SetAdd, SetSub, SetNullMerge,
-              LeftFlowerGroup, RightFlowerGroup, Semicolon, Comma)
+GENERATE_ENUM(WordEnumOperator, Undefined, None, EndAddAdd, EndSubSub, LeftCurvesGroup,
+              RightCurvesGroup, LeftSquareGroup, RightSquareGroup, Dot, NullDot, Level1, Not, Shift,
+              StartAddAdd, StartSubSub, Level2, Multi, Division, Percent, Add, Sub, BitLeftMove,
+              BitRightMove, BitAnd, BitOr, GreaterOrEqual, Greater, LessOrEqual, Less, Equal,
+              NotEqual, And, Or, NullMerge, IfElse, Set, SetBitOr, SetBitAnd, SetMulti, SetDivision,
+              SetAdd, SetSub, SetNullMerge, LeftFlowerGroup, RightFlowerGroup, Semicolon, Comma)
 
 #include "magic/unset_macro.h"

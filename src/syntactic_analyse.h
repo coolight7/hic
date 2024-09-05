@@ -117,6 +117,7 @@ enum SyntaxNodeType_e {
 
   FunctionCall,
   Expr,
+  Operator,
   CtrlBreak,
   CtrlContinue,
   CtrlReturn,
@@ -175,15 +176,7 @@ public:
 
   const std::string& name() const override { return HicUtil_c::emptyString; }
 
-  bool add(std::shared_ptr<SyntaxNode_c> ptr) {
-    if (nullptr != ptr) {
-      children.push_back(ptr);
-      return true;
-    }
-    return false;
-  }
-
-  bool add(std::shared_ptr<WordItem_c> ptr) {
+  bool add(std::shared_ptr<ListNode_c> ptr) {
     if (nullptr != ptr) {
       children.push_back(ptr);
       return true;
@@ -302,9 +295,21 @@ public:
   _GEN_VALUE(WordItem_c, name);
 };
 
-class SyntaxNode_expr_c : public SyntaxNode_c {
+class SyntaxNode_operator_c : public SyntaxNode_c {
 public:
-  SyntaxNode_expr_c() : SyntaxNode_c(SyntaxNodeType_e::Expr) {}
+  SyntaxNode_operator_c(WordEnumOperator_e in_op)
+      : SyntaxNode_c(SyntaxNodeType_e::Operator), oper(in_op) {}
+
+  void debugPrint(const size_t tab = 1,
+                  std::function<size_t()> onOutPrefix = nullptr) const override {
+    if (WordEnumOperator_e::TNone != oper) {
+      _PRINT_WORD_PREFIX(children.empty());
+      std::cout << "operator -- " << WordItem_operator_c::toSign(oper) << std::endl;
+    }
+    SyntaxNode_c::debugPrint(tab, onOutPrefix);
+  }
+
+  WordEnumOperator_e oper;
 };
 
 class SyntaxNode_ctrl_return_c : public SyntaxNode_c {
@@ -318,7 +323,7 @@ public:
     _PRINT_NODE_PREFIX(true, data);
   }
 
-  _GEN_VALUE(SyntaxNode_expr_c, data);
+  _GEN_VALUE(SyntaxNode_operator_c, data);
 };
 
 class SyntaxNode_if_branch_c : public SyntaxNode_c {
@@ -331,7 +336,7 @@ public:
     _PRINT_NODE_PREFIX(true, if_body);
   }
   // if 条件，如果为 nullptr，则无条件，即为 else_body
-  _GEN_VALUE(SyntaxNode_expr_c, if_expr);
+  _GEN_VALUE(SyntaxNode_operator_c, if_expr);
   _GEN_VALUE(SyntaxNode_c, if_body);
 };
 
@@ -380,7 +385,7 @@ public:
     _PRINT_NODE_PREFIX(true, body);
   }
 
-  _GEN_VALUE(SyntaxNode_expr_c, loop_expr);
+  _GEN_VALUE(SyntaxNode_operator_c, loop_expr);
   _GEN_VALUE(SyntaxNode_c, body);
 };
 
@@ -398,9 +403,9 @@ public:
     _PRINT_NODE_PREFIX(true, body);
   }
 
-  _GEN_VALUE(SyntaxNode_expr_c, start_expr);
-  _GEN_VALUE(SyntaxNode_expr_c, loop_expr);
-  _GEN_VALUE(SyntaxNode_expr_c, loop_end_expr);
+  _GEN_VALUE(SyntaxNode_operator_c, start_expr);
+  _GEN_VALUE(SyntaxNode_operator_c, loop_expr);
+  _GEN_VALUE(SyntaxNode_operator_c, loop_end_expr);
   _GEN_VALUE(SyntaxNode_c, body);
 };
 
@@ -642,61 +647,192 @@ public:
     auto re_node = std::make_shared<SyntaxNode_value_define_init_c>();
     if (re_node->set_define_id(parse_value_define_id(word_ptr))) {
       if (assertToken_sign(nullptr, WordEnumOperator_e::TSet)) {
-        if (re_node->set_data(parse_expr(nullptr, WordEnumType_e::Tvoid))) {
+        if (re_node->set_data(parse_expr(nullptr))) {
           return re_node;
         }
       }
     }
     return nullptr;
+  }
+
+  bool parse_expr_calc(std::stack<std::shared_ptr<ListNode_c>>& dataStack,
+                       std::stack<std::shared_ptr<WordItem_operator_c>>& signStack) {
+    auto top = signStack.top();
+    signStack.pop();
+    switch (top->value) {
+    case WordEnumOperator_e::TMulti:
+    case WordEnumOperator_e::TBitAnd: {
+      auto opSizeLimit = dataStack.size() >= 1;
+      Assert_d(true == opSizeLimit, "{} 操作数不足1个（{}）",
+               WordItem_operator_c::toSign(top->value), dataStack.size());
+      if (false == opSizeLimit) {
+        return false;
+      }
+      auto result = std::make_shared<SyntaxNode_operator_c>(top->value);
+      result->add(dataStack.top()); // 添加操作数
+      dataStack.pop();
+      if (false == dataStack.empty()) {
+        // - 对于 &
+        //    - 若1个操作数，当作 取址 &a
+        //    - 若2个操作数，当作 按位与 a & b
+        // - 对于 *
+        //    - 若1个操作数，当作 读址 *a
+        //    - 若2个操作数，当作 乘法 a * b
+        result->add(dataStack.top()); // 添加操作数
+        dataStack.pop();
+      }
+      dataStack.push(result); // 添加结果
+    } break;
+    case WordEnumOperator_e::TEndAddAdd:
+    case WordEnumOperator_e::TEndSubSub:
+    case WordEnumOperator_e::TNot:
+    case WordEnumOperator_e::TShift:
+    case WordEnumOperator_e::TStartAddAdd:
+    case WordEnumOperator_e::TStartSubSub: {
+      auto opSizeLimit = dataStack.size() >= 1;
+      Assert_d(true == opSizeLimit, "{} 操作数不足1个（{}）",
+               WordItem_operator_c::toSign(top->value), dataStack.size());
+      if (false == opSizeLimit) {
+        return false;
+      }
+      auto result = std::make_shared<SyntaxNode_operator_c>(top->value);
+      result->add(dataStack.top()); // 添加操作数
+      dataStack.pop();
+      dataStack.push(result); // 添加结果
+    } break;
+    case WordEnumOperator_e::TRightSquareGroup: // ] 作为 []
+    case WordEnumOperator_e::TDot:
+    case WordEnumOperator_e::TNullDot:
+    case WordEnumOperator_e::TDivision:
+    case WordEnumOperator_e::TPercent:
+    case WordEnumOperator_e::TAdd:
+    case WordEnumOperator_e::TSub:
+    case WordEnumOperator_e::TBitLeftMove:
+    case WordEnumOperator_e::TBitRightMove:
+    case WordEnumOperator_e::TBitOr:
+    case WordEnumOperator_e::TGreaterOrEqual:
+    case WordEnumOperator_e::TGreater:
+    case WordEnumOperator_e::TLessOrEqual:
+    case WordEnumOperator_e::TLess:
+    case WordEnumOperator_e::TEqual:
+    case WordEnumOperator_e::TNotEqual:
+    case WordEnumOperator_e::TAnd:
+    case WordEnumOperator_e::TOr:
+    case WordEnumOperator_e::TNullMerge:
+    case WordEnumOperator_e::TIfElse:
+    case WordEnumOperator_e::TSet:
+    case WordEnumOperator_e::TSetBitOr:
+    case WordEnumOperator_e::TSetBitAnd:
+    case WordEnumOperator_e::TSetMulti:
+    case WordEnumOperator_e::TSetDivision:
+    case WordEnumOperator_e::TSetAdd:
+    case WordEnumOperator_e::TSetSub:
+    case WordEnumOperator_e::TSetNullMerge: {
+      auto opSizeLimit = dataStack.size() >= 2;
+      Assert_d(true == opSizeLimit, "{} 操作数不足2个（{}）",
+               WordItem_operator_c::toSign(top->value), dataStack.size());
+      if (false == opSizeLimit) {
+        return false;
+      }
+      auto result = std::make_shared<SyntaxNode_operator_c>(top->value);
+      result->add(dataStack.top()); // 添加操作数 1
+      dataStack.pop();
+      result->add(dataStack.top()); // 添加操作数 2
+      dataStack.pop();
+      dataStack.push(result); // 添加结果
+    } break;
+    }
+    return true;
   }
 
   /**
    * ## 表达式解析
    * - 优先级爬山
    */
-  std::shared_ptr<SyntaxNode_expr_c> parse_expr(std::shared_ptr<WordItem_c> word_ptr,
-                                                WordEnumType_e ret_type) {
-    std::stack<ListNode_c> dataStack, signStack;
-    auto re_node = std::make_shared<SyntaxNode_expr_c>();
-
-    std::shared_ptr<WordItem_c> last_ptr;
-    int group = 0;
-    // 如果不在 () 内，遇到 , 就需要退出
+  std::shared_ptr<SyntaxNode_operator_c> parse_expr(std::shared_ptr<WordItem_c> word_ptr) {
+    std::stack<std::shared_ptr<ListNode_c>> dataStack;
+    std::stack<std::shared_ptr<WordItem_operator_c>> signStack;
     while (true) {
       _GEN_WORD(word);
       if (word.token == WordEnumToken_e::Toperator) {
-        bool doRet = false;
         auto& sign = word.toOperator();
-        if (WordEnumOperator_e::TLeftCurvesGroup == sign.value) {
-          ++group;
-        } else if (WordEnumOperator_e::TSemicolon == sign.value) {
-          doRet = true;
-        } else if (WordEnumOperator_e::TRightCurvesGroup == sign.value) {
-          group--;
-          if (group < 0) {
-            // 遇到额外多出 ) 才退出
-            doRet = true;
-          }
-        } else if (WordEnumOperator_e::TComma == sign.value && group == 0) {
-          doRet = true;
+        if (WordEnumOperator_e::TLeftFlowerGroup == sign.value ||
+            WordEnumOperator_e::TRightFlowerGroup == sign.value) {
+          // 不允许 { }
+          return nullptr;
         }
-        if (doRet) {
+        if (WordEnumOperator_e::TComma == sign.value ||
+            WordEnumOperator_e::TSemicolon == sign.value ||
+            WordEnumOperator_e::TRightCurvesGroup == sign.value) {
+          // , ; ) 退出读取，结算节点
           lexicalAnalyse.tokenBack();
-          if (re_node->isEmpty()) {
+          break;
+        }
+        if (WordEnumOperator_e::TLeftCurvesGroup == sign.value ||
+            WordEnumOperator_e::TLeftSquareGroup == sign.value) {
+          // ( [
+          // 求子表达式
+          auto result = parse_expr(nullptr);
+          if (WordEnumOperator_e::TLeftCurvesGroup == sign.value &&
+              assertToken_sign(nullptr, WordEnumOperator_e::TRightCurvesGroup)) {
+            // () 闭合
+            dataStack.push(result);
+            word_ptr = nullptr;
+            continue;
+          } else if (WordEnumOperator_e::TLeftSquareGroup == sign.value &&
+                     assertToken_sign(nullptr, WordEnumOperator_e::TRightSquareGroup)) {
+            // [] 闭合
+            dataStack.push(result);
+            // 保留 ] 在 [word_ptr]，expr1[expr2] 需要两个操作数，由下面执行操作
+            word_ptr = lexicalAnalyse.currentToken();
+            continue;
+          } else {
             return nullptr;
           }
-          return re_node;
         }
+        // TODO: 三元运算符 ? :
+        while (false == signStack.empty() &&
+               WordItem_operator_c::compare(sign.value, signStack.top()->value) > 0) {
+          // 新符号优先级更低，将顶部先计算
+          auto rebool = parse_expr_calc(dataStack, signStack);
+          if (false == rebool) {
+            return nullptr;
+          }
+        }
+        signStack.push(*static_cast<std::shared_ptr<WordItem_operator_c>*>((void*)&word_ptr));
+      } else {
+        if (WordEnumToken_e::Tid == word.token) {
+          // 尝试解析函数调用
+          auto tempIndex = lexicalAnalyse.tokenIndex;
+          auto fun_call = parse_function_call(word_ptr);
+          if (fun_call) {
+            // 添加节点
+            dataStack.push(fun_call);
+            word_ptr = nullptr;
+            continue;
+          } else {
+            // 回溯
+            lexicalAnalyse.tokenIndex = tempIndex;
+          }
+        }
+        dataStack.push(word_ptr);
       }
-      re_node->add(word_ptr);
-      last_ptr = word_ptr;
       word_ptr = nullptr;
     }
+    // 结算节点内容
+    while (false == signStack.empty()) {
+      auto rebool = parse_expr_calc(dataStack, signStack);
+      if (false == rebool) {
+        return nullptr;
+      }
+    }
+    if (1 == dataStack.size()) {
+      // 套一层类型
+      auto re_node = std::make_shared<SyntaxNode_operator_c>(WordEnumOperator_e::TNone);
+      re_node->add(dataStack.top());
+      return re_node;
+    }
     return nullptr;
-  }
-
-  std::shared_ptr<SyntaxNode_expr_c> parse_expr_void(std::shared_ptr<WordItem_c> word_ptr) {
-    return parse_expr(word_ptr, WordEnumType_e::Tvoid);
   }
 
   std::shared_ptr<SyntaxNode_c> parse_code_ctrl_break(std::shared_ptr<WordItem_c> word_ptr) {
@@ -716,10 +852,10 @@ public:
   }
 
   std::shared_ptr<SyntaxNode_ctrl_return_c>
-  parse_code_ctrl_return(std::shared_ptr<WordItem_c> word_ptr, WordEnumType_e ret_type) {
+  parse_code_ctrl_return(std::shared_ptr<WordItem_c> word_ptr) {
     if (assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Treturn})) {
       auto re_node = std::make_shared<SyntaxNode_ctrl_return_c>();
-      if (re_node->set_data(parse_expr(nullptr, ret_type))) {
+      if (re_node->set_data(parse_expr(nullptr))) {
         return re_node;
       }
     }
@@ -728,7 +864,7 @@ public:
 
   std::shared_ptr<SyntaxNode_ctrl_return_c>
   parse_code_ctrl_return_void(std::shared_ptr<WordItem_c> word_ptr) {
-    return parse_code_ctrl_return(word_ptr, WordEnumType_e::Tvoid);
+    return parse_code_ctrl_return(word_ptr);
   }
 
   std::shared_ptr<SyntaxNode_if_c> parse_code_ctrl_if(std::shared_ptr<WordItem_c> word_ptr) {
@@ -737,7 +873,7 @@ public:
     re_node->addBranch(first_node);
     if (assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Tif}) &&
         assertToken_sign(nullptr, WordEnumOperator_e::TLeftCurvesGroup) &&
-        first_node->set_if_expr(parse_expr(nullptr, WordEnumType_e::Tbool)) &&
+        first_node->set_if_expr(parse_expr(nullptr)) &&
         assertToken_sign(nullptr, WordEnumOperator_e::TRightCurvesGroup) &&
         assertToken_sign(nullptr, WordEnumOperator_e::TLeftFlowerGroup)) {
       // if (expr) { code }
@@ -758,7 +894,7 @@ public:
     auto re_node = std::make_shared<SyntaxNode_while_c>();
     if (assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Twhile}) &&
         assertToken_sign(nullptr, WordEnumOperator_e::TLeftCurvesGroup) &&
-        re_node->set_loop_expr(parse_expr(nullptr, WordEnumType_e::Tbool)) &&
+        re_node->set_loop_expr(parse_expr(nullptr)) &&
         assertToken_sign(nullptr, WordEnumOperator_e::TRightCurvesGroup) &&
         assertToken_sign(nullptr, WordEnumOperator_e::TLeftFlowerGroup)) {
       // while (expr) { code }
@@ -779,9 +915,9 @@ public:
     auto re_node = std::make_shared<SyntaxNode_for_c>();
     if (assertToken(word_ptr, WordItem_ctrl_c{WordEnumCtrl_e::Tfor})) {
       if (assertToken_sign(nullptr, WordEnumOperator_e::TLeftCurvesGroup) &&
-          re_node->set_start_expr(parse_expr_void(nullptr)) &&
-          re_node->set_loop_expr(parse_expr(nullptr, WordEnumType_e ::Tbool)) &&
-          re_node->set_loop_end_expr(parse_expr_void(nullptr)) &&
+          re_node->set_start_expr(parse_expr(nullptr)) &&
+          re_node->set_loop_expr(parse_expr(nullptr)) &&
+          re_node->set_loop_end_expr(parse_expr(nullptr)) &&
           assertToken_sign(nullptr, WordEnumOperator_e::TRightCurvesGroup)) {
         // for (expr;expr;expr) { code }
         if (assertToken_sign(nullptr, WordEnumOperator_e::TLeftFlowerGroup)) {
@@ -825,7 +961,7 @@ public:
       int tempIndex = lexicalAnalyse.tokenIndex;
       result = _REBACK_d(word_ptr, tempIndex, parse_value_define_init, parse_function_call,
                          parse_code_ctrl_if, parse_code_ctrl_while, parse_code_ctrl_for,
-                         parse_code_ctrl_return_void, parse_expr_void);
+                         parse_code_ctrl_return_void, parse_expr);
       if (false == re_node->add(result)) {
         // 解析失败
         return nullptr;
@@ -854,7 +990,7 @@ public:
         std::shared_ptr<WordItem_c> sign_ptr;
         // 参数列表
         while (true) {
-          if (false == re_node->add(parse_expr(nullptr, WordEnumType_e::Tvoid))) {
+          if (false == re_node->add(parse_expr(nullptr))) {
             break;
           }
           _GEN_WORD(sign);
