@@ -1,5 +1,7 @@
 #pragma once
 
+// 词法分析
+
 #include <array>
 #include <iomanip>
 #include <iostream>
@@ -13,7 +15,7 @@
 #include "util.h"
 
 /**
- * - 注意此处也需要 `##__VA_ARGS__`，否则会多传 ，给 UtilLog导致展开异常
+ * - 注意此处也需要 `##__VA_ARGS__`，否则会多传 `,逗号` 给 UtilLog导致展开异常
  */
 #define WordLog(level, tip, ...) UtilLog(level, "", current_line, tip, ##__VA_ARGS__)
 
@@ -98,7 +100,7 @@ public:
 // id
 class WordItem_default_c : public WordItem_c {
 public:
-  WordItem_default_c(WordEnumToken_e in_type, const std::string& in_value)
+  WordItem_default_c(WordEnumToken_e in_type, const std::string_view& in_value)
       : WordItem_c(in_type), value(in_value) {}
 
   const std::string& name() const override { return value; }
@@ -364,70 +366,25 @@ public:
     return isReserveKeyWord(it_ptr, WordEnumNativeCall_c::namelist);
   }
 
-  std::map<const std::string, std::shared_ptr<WordItem_c>>& currentSymbolTable() {
-    Assert_d(symbolTable.empty() == false);
-    return symbolTable.back();
-  }
-
-  void symbolTablePush() {
-    symbolTable.emplace_back(std::map<const std::string, std::shared_ptr<WordItem_c>>{});
-  }
-
-  void symbolTablePop() { symbolTable.pop_back(); }
-  // 在 [symbolTable] 中查找符号，且是从最近/最小的作用域开始查找
-  std::shared_ptr<WordItem_c> symbolTableFind(const std::string& key) {
-    if (false == symbolTable.empty()) {
-      for (auto it = symbolTable.end() - 1;; --it) {
-        if (it->contains(key)) {
-          return (*it)[key];
-        }
-        if (it == symbolTable.begin()) {
-          break;
-        }
-      }
-    }
-    return nullptr;
-  }
-
-  std::shared_ptr<WordItem_c> currentSymbolTableFind(const std::string& key) {
-    auto& curr = currentSymbolTable();
-    if (curr.contains(key)) {
-      return curr[key];
-    }
-    return nullptr;
-  }
-
-  std::shared_ptr<WordItem_c> currentToken() {
-    Assert_d(false == tokenList.empty());
-    return tokenList.back();
-  }
-
-  std::shared_ptr<WordItem_c> getToken(int index) {
-    Assert_d(index >= 0 && index < tokenList.size());
-    return tokenList[index];
-  }
-
   void init(std::string_view in_code) {
     raw_code = in_code;
     code_it = raw_code.begin();
     current_line = 1;
-    symbolTable.clear();
-    symbolTablePush();
-    auto& currTable = currentSymbolTable();
+    reserveKeywords_.clear();
     // 添加关键字
     for (int i = 0; i < WordEnumCtrl_c::namelist.size(); ++i) {
       const auto& item = WordEnumCtrl_c::namelist[i];
-      currTable[item] = WordItem_c::make_shared<WordItem_ctrl_c>(WordEnumCtrl_c::toEnum(i));
+      reserveKeywords_[item] = WordItem_c::make_shared<WordItem_ctrl_c>(WordEnumCtrl_c::toEnum(i));
     }
     // 添加类型
     for (int i = 0; i < WordEnumType_c::namelist.size(); ++i) {
       const auto& item = WordEnumType_c::namelist[i];
-      currTable[item] = WordItem_c::make_shared<WordItem_type_c>(WordEnumType_c::toEnum(i));
+      reserveKeywords_[item] = WordItem_c::make_shared<WordItem_type_c>(WordEnumType_c::toEnum(i));
     }
     // 添加内置函数
     for (int i = 0; i < WordEnumNativeCall_c::namelist.size(); ++i) {
       const auto& item = WordEnumNativeCall_c::namelist[i];
-      currTable[item] =
+      reserveKeywords_[item] =
           WordItem_c::make_shared<WordItem_nativeCall_c>(WordEnumNativeCall_c::toEnum(i));
     }
   }
@@ -457,16 +414,13 @@ public:
           end = code_it;
           const auto name_view = std::string_view{start, end};
           WordEnumToken_e token = WordEnumToken_e::Tid;
-          auto name = std::string{name_view};
           // 查找是否已经存在该符号
-          auto result = symbolTableFind(name);
-          if (nullptr != result) {
-            return result;
+          auto keywords = reserveKeywords();
+          auto result = keywords.find(name_view);
+          if (keywords.end() != result) {
+            return result->second;
           } else {
-            // 添加符号
-            auto item = WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tid, name);
-            currentSymbolTable()[name] = item;
-            return item;
+            return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tid, name_view);
           }
         }
       }
@@ -623,10 +577,8 @@ public:
               WordEnumOperator_e::TRightCurvesGroup);
         }
         if ('{' == it) {
-          symbolTablePush();
           return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TLeftFlowerGroup);
         } else if ('}' == it) {
-          symbolTablePop();
           return WordItem_c::make_shared<WordItem_operator_c>(
               WordEnumOperator_e::TRightFlowerGroup);
         }
@@ -721,7 +673,10 @@ public:
     return nullptr;
   }
 
-  // <isSuccess, str>
+  /**
+   * ## 读取一个 [token]
+   * - 如果 词法分析失败 或 读取到结尾 则返回 [nullptr]
+   */
   std::shared_ptr<WordItem_c> analyse() {
     if (tokenIndex >= 0 && tokenIndex < tokenList.size()) {
       auto result = tokenList[tokenIndex];
@@ -735,41 +690,43 @@ public:
     tokenIndex = tokenList.size();
     return result;
   }
-
-  void tokenBack(size_t size = 1) { tokenIndex -= size; }
-
-  void debugPrintSymbolTable(bool printKeyword) {
-    int i = 0;
-    for (const auto& table : symbolTable) {
-      std::cout << i + 1 << std::endl;
-      for (const auto& it : table) {
-        if (false == printKeyword && (it.second->token == WordEnumToken_e::Tkeyword ||
-                                      it.second->token == WordEnumToken_e::Ttype ||
-                                      it.second->token == WordEnumToken_e::TnativeCall)) {
-          continue;
-        }
-        for (auto j = i; j-- > 0;) {
-          std::cout << "  ";
-        }
-        std::cout << "- ";
-        std::cout << it.first << ":    \t" << it.second->name() << "\t"
-                  << WordEnumToken_c::toName(it.second->token) << std::endl;
-      }
-    }
+  /**
+   * ## 返回当前 [token]
+   * - 调用时 [tokenList] 应当非空
+   */
+  std::shared_ptr<WordItem_c> currentToken() {
+    Assert_d(false == tokenList.empty());
+    return tokenList.back();
   }
 
-  void debugPrintSymbolList() {
+  /**
+   * ## 返回指定 [index] 的 [token]
+   */
+  std::shared_ptr<WordItem_c> getToken(int index) {
+    Assert_d(index >= 0 && index < tokenList.size());
+    return tokenList[index];
+  }
+
+  /**
+   * ## 回溯 [token] 读取进度
+   */
+  void tokenBack(size_t size = 1) { tokenIndex -= size; }
+
+  void debugPrintTokenList() {
     for (const auto& item : tokenList) {
       const auto& word = *item.get();
       word.printInfo();
     }
   }
 
+  const std::map<const std::string_view, std::shared_ptr<WordItem_c>>& reserveKeywords() {
+    return reserveKeywords_;
+  }
+
   int current_line = 1;
   std::string_view raw_code;
   const char* code_it = nullptr;
-  // 作用域符号表
-  std::vector<std::map<const std::string, std::shared_ptr<WordItem_c>>> symbolTable{};
   std::vector<std::shared_ptr<WordItem_c>> tokenList{};
   int tokenIndex = -1;
+  std::map<const std::string_view, std::shared_ptr<WordItem_c>> reserveKeywords_;
 };

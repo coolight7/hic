@@ -59,7 +59,7 @@ int main() {
   }
   wordAnalyse.debugPrintSymbolTable(false);
   std::cout << std::endl << "-----------------------" << std::endl << std::endl;
-  wordAnalyse.debugPrintSymbolList();
+  wordAnalyse.debugPrintTokenList();
 }
 
 void test_SyntacticAnalysis() {

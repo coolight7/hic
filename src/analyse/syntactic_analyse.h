@@ -1,5 +1,7 @@
 #pragma once
 
+// 语法分析
+
 #include <functional>
 #include <list>
 #include <memory>
@@ -10,7 +12,7 @@
 #include "util.h"
 
 /**
- * - 注意此处也需要 `##__VA_ARGS__`，否则会多传 ，给 UtilLog导致展开异常
+ * - 注意此处也需要 `##__VA_ARGS__`，否则会多传 `,逗号` 给 UtilLog导致展开异常
  */
 #define SynLog(level, tip, ...)                                                                    \
   UtilLog(level,                                                                                   \
@@ -1135,7 +1137,9 @@ public:
     return true;
   }
 
+  // 语法分析结果，抽象语法树根节点
   SyntaxNode_c root = SyntaxNode_c{};
+  // 词法分析器
   LexicalAnalyse_c lexicalAnalyse{};
 };
 
