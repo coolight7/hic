@@ -113,6 +113,7 @@ public:
 
   const std::string& name() const override { return toSign(value); }
 
+  // `R"()"` fix warning `trigraph ??= ignored, use -trigraphs to enable`
   inline static const std::array<const std::string, 44> signlist = {
       "[Undefine]", "expr++", "expr--", "(",  ")",      "[",  "]",  ".",  "?.", "!expr", "~expr",
       "++expr",     "--expr", "*",      "/",  "%",      "+",  "-",  "<<", ">>", "&",     "|",
@@ -235,7 +236,7 @@ public:
       return WordEnumOperator_e::TSetSub;
     }
     if (str == R"(??=)") {
-      // fix `trigraph ??= ignored, use -trigraphs to enable`
+      // `R"()"` fix warning `trigraph ??= ignored, use -trigraphs to enable`
       return WordEnumOperator_e::TSetNullMerge;
     }
     if ("{" == str) {
