@@ -26,6 +26,25 @@ public:
     syntacticAnalysis.init(in_code);
   }
 
+  bool checkIdDefine(std::shared_ptr<SymbolItem_c> result) {
+    auto& table = currentSymbolTable();
+    if (table.find(result->name) != table.end()) {
+      // 重定义
+      SemLog(Terror, "重定义符号: {}", result->name);
+      return false;
+    }
+    if (nullptr == result->type) {
+      // 缺少类型
+      SemLog(Terror, "变量声明缺少类型: {}", result->name);
+      return false;
+    }
+    return true;
+  }
+
+  std::shared_ptr<SymbolItem_c> checkIdExist(std::shared_ptr<SymbolItem_c> result) {
+    return symbolTableFind(result->name);
+  }
+
   bool readNode(std::shared_ptr<SyntaxNode_c> node) {
     if (nullptr == node) {
       return false;
@@ -34,7 +53,6 @@ public:
     bool doPushTable = false;
     switch (node->syntaxType) {
     case SyntaxNodeType_e::Group:
-    case SyntaxNodeType_e::Value:
     case SyntaxNodeType_e::ValueDefine: {
     } break;
     case SyntaxNodeType_e::ValueDefineId:
@@ -53,25 +71,24 @@ public:
         result->name = real_node->define_id->id->value;
       } break;
       }
+      if (false == checkIdDefine(result)) {
+        node->debugPrint();
+        return false;
+      }
+      // 添加符号定义
       auto& table = currentSymbolTable();
-      if (table.find(result->name) != table.end()) {
-        // 重定义
-        SemLog(Terror, "重定义符号: {}", result->name);
-        node->debugPrint();
-        return false;
-      }
-      if (nullptr == result->type) {
-        // 缺少类型
-        SemLog(Terror, "变量声明缺少类型: {}", result->name);
-        node->debugPrint();
-        return false;
-      }
       table.insert(std::make_pair(result->name, result));
     } break;
-    case SyntaxNodeType_e::FunctionCall:
-    case SyntaxNodeType_e::Operator:
-    case SyntaxNodeType_e::CtrlReturn: {
+    case SyntaxNodeType_e::FunctionCall: {
+      // 检查符号是否存在
+      auto result = std::make_shared<SymbolItem_c>();
+      auto real_node = HicUtil_c::toType<SyntaxNode_function_call_c>(node);
+      if (real_node->id) {
+
+      }
+      auto isExist = checkIdExist(result);
     } break;
+    case SyntaxNodeType_e::Operator:
     case SyntaxNodeType_e::CtrlIfBranch:
     case SyntaxNodeType_e::CtrlIf:
     case SyntaxNodeType_e::CtrlWhile:
@@ -83,6 +100,7 @@ public:
     case SyntaxNodeType_e::ClassDefine: {
       doPushTable = true;
     } break;
+    case SyntaxNodeType_e::CtrlReturn:
     }
     if (doPushTable) {
       symbolTablePush();

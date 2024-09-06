@@ -135,6 +135,8 @@ int main(String* args, int size) {
 }
 
 void test_SemanticAnalyse() {
+  SyntacticAnalysis_c::enableLog_assertToken = false;
+  SyntacticAnalysis_c::enableLog_parseCode = false;
   std::cout << std::endl
             << "----------- test_SemanticAnalyse -----------" << std::endl
             << std::endl;
@@ -145,7 +147,6 @@ int b = 0;
 int c = 0xf7A0;
 int d = 07650;
 int* f = &d;
-int f = "error";
 String str = "qiqi";
 
 int test(int a, int b) {
@@ -158,7 +159,7 @@ enum Hello_e {
   CC
 };
 
-int main(String* args, int size) {
+int main(char** args, int size) {
     d += b;
     c -= b;
     d /= b;

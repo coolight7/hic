@@ -97,7 +97,8 @@ GENERATE_ENUM(WordEnumOperator, Undefined, None, EndAddAdd, EndSubSub, LeftCurve
               StartAddAdd, StartSubSub, Level2, Multi, Division, Percent, Add, Sub, BitLeftMove,
               BitRightMove, BitAnd, BitOr, GreaterOrEqual, Greater, LessOrEqual, Less, Equal,
               NotEqual, And, Or, NullMerge, IfElse, Set, SetBitOr, SetBitAnd, SetMulti, SetDivision,
-              SetAdd, SetSub, SetNullMerge, LeftFlowerGroup, RightFlowerGroup, Semicolon, Comma)
+              SetAdd, SetSub, SetNullMerge, LeftFlowerGroup, RightFlowerGroup, Semicolon, Comma,
+              END)
 
 #include "magic/unset_macro.h"
 #include "util.h"

@@ -68,9 +68,11 @@
     inline static const std::array<const std::string, _MacroArgSize_d(__VA_ARGS__)> namelist = {   \
         _MoreExpand_d(GENERATE_STRING_ITEM_d(__VA_ARGS__))};                                       \
                                                                                                    \
-    inline static int toInt(name##_e index) { return static_cast<int>(index); }                    \
+    inline static constexpr int toInt(name##_e index) { return static_cast<int>(index); }          \
                                                                                                    \
-    inline static name##_e toEnum(int index) { return static_cast<name##_e>(index); }              \
+    inline static constexpr name##_e toEnum(int index) { return static_cast<name##_e>(index); }    \
                                                                                                    \
-    inline static const std::string& toName(name##_e index) { return namelist[toInt(index)]; }     \
+    inline static constexpr const std::string& toName(name##_e index) {                            \
+      return namelist[toInt(index)];                                                               \
+    }                                                                                              \
   };
