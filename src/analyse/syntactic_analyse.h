@@ -112,7 +112,6 @@ enum SyntaxNodeType_e {
   Normal, // 分组节点，自身无特殊意义
   Group,  // {}，隔离符号范围
 
-  Value,
   ValueDefine,
   ValueDefineId,
   ValueDefineInit,
@@ -134,28 +133,6 @@ enum SyntaxNodeValueClass_e {
   Crude,   // 值类型
   Pointer, // 指针
   Referer, // 引用
-};
-
-class SyntaxNodeValueClass_c {
-public:
-  inline static std::string toName(SyntaxNodeValueClass_e type) {
-    switch (type) {
-    case SyntaxNodeValueClass_e::Crude: {
-      return "Crude";
-    } break;
-    case SyntaxNodeValueClass_e::Pointer: {
-      return "Pointer/*";
-    } break;
-    case SyntaxNodeValueClass_e::Referer: {
-      return "Referer/&";
-    } break;
-    default:
-      break;
-    }
-    return "";
-  }
-
-  inline static void print(SyntaxNodeValueClass_e type) { std::cout << toName(type) << std::endl; }
 };
 
 // 语法树节点
@@ -224,11 +201,23 @@ public:
     _PRINT_WORD_PREFIX(false);
     value_type->printInfo();
     _PRINT_WORD_PREFIX(true);
-    SyntaxNodeValueClass_c::print(valueClass);
+    if (0 == pointer && false == isReferer) {
+      std::cout << "[值类型]";
+    } else {
+      for (int i = pointer; i > 0; --i) {
+        std::cout << "*";
+      }
+      std::cout << " ";
+      if (isReferer) {
+        std::cout << "&";
+      }
+    }
+    std::cout << std::endl;
   }
 
   _GEN_VALUE(WordItem_c, value_type);
-  SyntaxNodeValueClass_e valueClass = SyntaxNodeValueClass_e::Crude;
+  bool isReferer = false; // 是否是引用类型
+  size_t pointer = 0;     // 指针层数
 };
 
 class SyntaxNode_value_define_id_c : public SyntaxNode_c {
@@ -263,26 +252,6 @@ public:
   _GEN_VALUE(SyntaxNode_c, data);
 };
 
-/**
- * value
- * *value
- * &value
- */
-class SyntaxNode_value_c : public SyntaxNode_c {
-public:
-  SyntaxNode_value_c() : SyntaxNode_c(SyntaxNodeType_e::Value) {}
-
-  void debugPrint(const size_t tab = 1,
-                  std::function<size_t()> onOutPrefix = nullptr) const override {
-    _PRINT_WORD_PREFIX(false);
-    SyntaxNodeValueClass_c::print(valueClass);
-    _PRINT_NODE_PREFIX(true, value);
-  }
-
-  SyntaxNodeValueClass_e valueClass = SyntaxNodeValueClass_e::Crude;
-  _GEN_VALUE(SyntaxNode_c, value); // ID | constexpr
-};
-
 class SyntaxNode_function_call_c : public SyntaxNode_c {
 public:
   SyntaxNode_function_call_c() : SyntaxNode_c(SyntaxNodeType_e::FunctionCall) {}
@@ -290,11 +259,11 @@ public:
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
     _PRINT_WORD_PREFIX(children.empty());
-    name->printInfo();
+    id->printInfo();
     SyntaxNode_c::debugPrint(tab, onOutPrefix);
   }
 
-  _GEN_VALUE(WordItem_c, name);
+  _GEN_VALUE(WordItem_c, id);
 };
 
 class SyntaxNode_operator_c : public SyntaxNode_c {
@@ -421,7 +390,7 @@ public:
     std::cout << "Function" << std::endl;
     _PRINT_NODE_PREFIX(false, return_type);
     _PRINT_WORD_PREFIX(false);
-    name->printInfo();
+    id->printInfo();
     for (const auto& item : args) {
       _PRINT_NODE_PREFIX(false, item);
     }
@@ -437,7 +406,7 @@ public:
   }
 
   _GEN_VALUE(SyntaxNode_value_define_c, return_type);
-  _GEN_VALUE(WordItem_c, name);
+  _GEN_VALUE(WordItem_c, id);
   std::list<std::shared_ptr<SyntaxNode_value_define_id_c>> args;
   _GEN_VALUE(SyntaxNode_group_c, body);
 };
@@ -451,11 +420,11 @@ public:
     _PRINT_WORD_PREFIX(false);
     std::cout << "Enum" << std::endl;
     _PRINT_WORD_PREFIX(false);
-    name->printInfo();
+    id->printInfo();
     SyntaxNode_c::debugPrint(tab, onOutPrefix);
   }
 
-  _GEN_VALUE(WordItem_c, name);
+  _GEN_VALUE(WordItem_c, id);
 };
 
 class SyntacticAnalysis_c {
@@ -614,18 +583,22 @@ public:
     auto re_node = std::make_shared<SyntaxNode_value_define_c>();
     if (re_node->set_value_type(parse_value_type(word_ptr))) {
       // 指针或引用
-      _GEN_WORD_DEF(next);
-      auto sign_ptr = assertToken_type(WordEnumToken_e::Toperator, next_ptr);
-      if (nullptr != sign_ptr) {
-        auto& sign = sign_ptr->toOperator();
-        if (sign.value == WordEnumOperator_e::TMulti) {
-          re_node->valueClass = SyntaxNodeValueClass_e::Pointer;
-        } else if (sign.value == WordEnumOperator_e::TBitAnd) {
-          re_node->valueClass = SyntaxNodeValueClass_e::Referer;
+      while (true) {
+        _GEN_WORD_DEF(next);
+        auto sign_ptr = assertToken_type(WordEnumToken_e::Toperator, next_ptr);
+        if (nullptr != sign_ptr) {
+          auto& sign = sign_ptr->toOperator();
+          if (sign.value == WordEnumOperator_e::TMulti) {
+            (re_node->pointer)++;
+          } else if (sign.value == WordEnumOperator_e::TBitAnd) {
+            re_node->isReferer = true;
+            return re_node;
+          } else {
+            return nullptr;
+          }
         } else {
-          return nullptr;
+          break;
         }
-        return re_node;
       }
       // 下一个 [token] 不是符号，回退一个
       lexicalAnalyse.tokenBack();
@@ -992,7 +965,7 @@ public:
   std::shared_ptr<SyntaxNode_function_call_c>
   parse_function_call(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
     auto re_node = std::make_shared<SyntaxNode_function_call_c>();
-    if (re_node->set_name(assertToken_type(WordEnumToken_e::Tid, word_ptr))) {
+    if (re_node->set_id(assertToken_type(WordEnumToken_e::Tid, word_ptr))) {
       if (assertToken_sign("(")) {
         std::shared_ptr<WordItem_c> sign_ptr;
         // 参数列表
@@ -1021,7 +994,7 @@ public:
     // 返回值
     if (re_node->set_return_type(parse_value_define(word_ptr))) {
       // 函数名
-      if (re_node->set_name(assertToken_type(WordEnumToken_e::Tid))) {
+      if (re_node->set_id(assertToken_type(WordEnumToken_e::Tid))) {
         // 参数列表
         if (assertToken_sign("(")) {
           std::shared_ptr<WordItem_c> sign_ptr;
@@ -1074,7 +1047,7 @@ public:
   parse_enum_define(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
     auto re_node = std::make_shared<SyntaxNode_enum_define_c>();
     if (assertToken(WordItem_type_c{WordEnumType_e::Tenum}, word_ptr)) {
-      if (re_node->set_name(assertToken_type(WordEnumToken_e::Tid)) && assertToken_sign("{")) {
+      if (re_node->set_id(assertToken_type(WordEnumToken_e::Tid)) && assertToken_sign("{")) {
         // ID 列表
         std::shared_ptr<WordItem_c> sign_ptr;
         // TODO: 解析 id <= number>?
