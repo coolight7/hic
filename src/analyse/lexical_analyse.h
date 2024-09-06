@@ -449,6 +449,7 @@ public:
         }
         do {
           int item = 0;
+          // TODO: 0b 二进制
           if (step == 16) {
             // 十六进制
             if ('a' <= *code_it && 'f' >= *code_it) {
@@ -637,6 +638,7 @@ public:
               return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TSetDivision);
             }
           } else {
+            // TODO： ++ --
             switch (it) {
             case '=':
               return WordItem_c::make_shared<WordItem_operator_c>(WordEnumOperator_e::TSet);

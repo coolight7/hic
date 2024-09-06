@@ -180,8 +180,12 @@ public:
     }
     int symbolTableDeep = symbolTable.size();
     switch (node->syntaxType) {
-    case SyntaxNodeType_e::Group:
+    case SyntaxNodeType_e::Normal:
     case SyntaxNodeType_e::ValueDefine: {
+    } break;
+    case SyntaxNodeType_e::Group: {
+      // {} 隔离符号范围
+      symbolTablePush();
     } break;
     case SyntaxNodeType_e::ValueDefineId:
     case SyntaxNodeType_e::ValueDefineInit: {
@@ -198,6 +202,9 @@ public:
         result->type = real_node->define_id->value_define;
         result->name = real_node->define_id->id->value;
       } break;
+      default:
+        Assert_d(true == false, "非预期的变量定义节点：{}", node->syntaxType);
+        break;
       }
       if (false == checkIdDefine(result)) {
         node->debugPrint();
@@ -252,6 +259,8 @@ public:
     case SyntaxNodeType_e::CtrlWhile:
     case SyntaxNodeType_e::CtrlFor: {
       symbolTablePush();
+      // 检查
+
     } break;
     case SyntaxNodeType_e::EnumDefine:
     case SyntaxNodeType_e::ClassDefine: {

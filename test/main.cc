@@ -6,7 +6,7 @@
 
 void test_LexicalAnalyse() {
   std::cout << std::endl << "----------- test_LexicalAnalyse -----------" << std::endl << std::endl;
-  LexicalAnalyse_c wordAnalyse;
+  LexicalAnalyse_c wordAnalyse{};
   wordAnalyse.init(R"(
 int a = 10086;
 int b  = 0;
@@ -66,7 +66,7 @@ void test_SyntacticAnalysis() {
   std::cout << std::endl
             << "----------- test_SyntacticAnalysis -----------" << std::endl
             << std::endl;
-  SyntacticAnalysis_c analyse;
+  SyntacticAnalysis_c analyse{};
   analyse.init(R"(
 int a = 10086;
 int b = 0;
@@ -141,7 +141,7 @@ void test_SemanticAnalyse() {
   std::cout << std::endl
             << "----------- test_SemanticAnalyse -----------" << std::endl
             << std::endl;
-  SemanticAnalyse_c analyse;
+  SemanticAnalyse_c analyse{};
   analyse.init(R"(
 int a = 10086;
 int b = 0;
@@ -169,8 +169,10 @@ int main(char** args, int size) {
 
     int ret = test(1, 2);
     test(3, 4);
-    test(3,);
-    test();
+    test(ret, 4, );  // 允许尾部多余的 ,
+    // test(3,);     // 检查函数参数个数
+    // test();
+    // test_undef(); // 检查未定义符号
     if (a == b || (b == c && a == c)) {
         d = b;
     }
