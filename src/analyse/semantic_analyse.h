@@ -7,8 +7,7 @@
 /**
  * - 注意此处也需要 `##__VA_ARGS__`，否则会多传 `,逗号` 给 UtilLog导致展开异常
  */
-#define SemLog(level, tip, ...)                                                                    \
-  UtilLog(level, "", syntacticAnalysis.lexicalAnalyse.current_line, tip, ##__VA_ARGS__)
+#define SemLog(level, tip, ...) UtilLog(level, "", 0, tip, ##__VA_ARGS__)
 
 #include "magic/macro.h"
 
@@ -120,6 +119,16 @@ public:
     return true;
   }
 
+  // 检查传入参数是否匹配
+  bool checkFunArgs(std::list<std::shared_ptr<ListNode_c>>& args) {
+    if (args.size() != type->args.size()) {
+      SemLog(Terror, "函数参数个数不匹配: {} (预期 {} 个，但给定了 {} 个)", name, type->args.size(),
+             args.size());
+      return false;
+    }
+    return true;
+  }
+
   std::shared_ptr<SyntaxNode_function_define_c> type;
 };
 
@@ -203,14 +212,15 @@ public:
       auto real_node = HicUtil_c::toType<SyntaxNode_function_call_c>(node);
       result->name = real_node->id->toDefault().value;
       // 检查符号定义
-      auto exist_id = checkIdExist(result);
+      auto exist_id = SymbolItem_c::toFunction(checkIdExist(result));
       if (nullptr == exist_id) {
         return false;
       }
-      // 检查函数类型匹配
-      //   if (exist_id->checkFunType()) {
-
-      //   }
+      // 检查函数参数匹配
+      if (false == exist_id->checkFunArgs(real_node->children)) {
+        return false;
+      }
+      // TODO: 关联函数声明
     } break;
     case SyntaxNodeType_e::FunctionDefine: {
       auto result = std::make_shared<SymbolItem_function_c>();
