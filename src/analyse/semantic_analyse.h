@@ -10,15 +10,69 @@
 #define SemLog(level, tip, ...)                                                                    \
   UtilLog(level, "", syntacticAnalysis.lexicalAnalyse.current_line, tip, ##__VA_ARGS__)
 
+#include "magic/macro.h"
+
+GENERATE_ENUM(SymbolType, Value, Function);
+
+#include "magic/unset_macro.h"
+
+class SymbolItem_value_c;
+class SymbolItem_function_c;
+
 class SymbolItem_c : public ListNode_c {
 public:
-  SymbolItem_c() : ListNode_c(ListNodeType_e::Symbol) {}
+  SymbolItem_c(SymbolType_e in_symbolType)
+      : ListNode_c(ListNodeType_e::Symbol), symbolType(in_symbolType) {}
 
-  // 检查函数类型
-  template <typename... _ARGS>
-  bool checkFunType(const SyntaxNode_value_define_c&& return_type, const _ARGS&&... args) {
-    return true;
+  SymbolItem_c(const SymbolItem_c&) = delete;
+
+  virtual bool hasType() const { return true; }
+
+  inline static std::shared_ptr<SymbolItem_value_c> toValue(std::shared_ptr<SymbolItem_c> ptr) {
+    if (nullptr != ptr) {
+      switch (ptr->symbolType) {
+      case SymbolType_e::TValue: {
+        return HicUtil_c::toType<SymbolItem_value_c>(ptr);
+      } break;
+      case SymbolType_e::TFunction: {
+      } break;
+      }
+    }
+    return nullptr;
   }
+
+  inline static std::shared_ptr<SymbolItem_function_c>
+  toFunction(std::shared_ptr<SymbolItem_c> ptr) {
+    if (nullptr != ptr) {
+      switch (ptr->symbolType) {
+      case SymbolType_e::TValue: {
+      } break;
+      case SymbolType_e::TFunction: {
+        return HicUtil_c::toType<SymbolItem_function_c>(ptr);
+      } break;
+      }
+    }
+    return nullptr;
+  }
+
+  virtual void debugPrint() {
+    std::cout << SymbolType_c::toName(symbolType) << " : " << name << std::endl;
+  }
+
+  SymbolType_e symbolType;
+  std::string name;
+};
+
+// 变量符号定义
+class SymbolItem_value_c : public SymbolItem_c {
+public:
+  SymbolItem_value_c() : SymbolItem_c(SymbolType_e::TValue) {}
+
+  virtual void debugPrint() {
+    std::cout << SymbolType_c::toName(symbolType) << " : " << name << std::endl;
+  }
+
+  bool hasType() const override { return (nullptr != type); }
 
   // 检查变量类型
   // - 对象自身为已定义符号
@@ -51,11 +105,28 @@ public:
   }
 
   std::shared_ptr<SyntaxNode_value_define_c> type;
-  std::string name;
+};
+
+// 函数符号定义
+class SymbolItem_function_c : public SymbolItem_c {
+public:
+  SymbolItem_function_c() : SymbolItem_c(SymbolType_e::TFunction) {}
+
+  bool hasType() const override { return (nullptr != type); }
+
+  // 检查函数类型
+  template <typename... _ARGS>
+  bool checkFunType(const SyntaxNode_value_define_c&& return_type, const _ARGS&&... args) {
+    return true;
+  }
+
+  std::shared_ptr<SyntaxNode_function_define_c> type;
 };
 
 class SemanticAnalyse_c {
 public:
+  inline static bool enableLog_analyseNode = false;
+
   void init(std::string_view in_code) {
     // 添加 global 全局符号表
     symbolTablePush();
@@ -63,6 +134,7 @@ public:
   }
 
   bool checkIdDefine(std::shared_ptr<SymbolItem_c> symbol) {
+    Assert_d(nullptr != symbol, "符号不应为 nullptr");
     Assert_d(false == symbol->name.empty(), "符号名称不应为空");
     auto& table = currentSymbolTable();
     if (table.find(symbol->name) != table.end()) {
@@ -70,7 +142,7 @@ public:
       SemLog(Terror, "重定义符号: {}", symbol->name);
       return false;
     }
-    if (nullptr == symbol->type) {
+    if (false == symbol->hasType()) {
       // 缺少类型
       SemLog(Terror, "符号声明缺少类型: {}", symbol->name);
       return false;
@@ -79,9 +151,10 @@ public:
   }
 
   std::shared_ptr<SymbolItem_c> checkIdExist(std::shared_ptr<SymbolItem_c> symbol) {
+    Assert_d(nullptr != symbol, "符号不应为 nullptr");
     Assert_d(false == symbol->name.empty(), "符号名称不应为空");
     auto result = symbolTableFind(symbol->name);
-    if (nullptr == symbol) {
+    if (nullptr == result) {
       SemLog(Terror, "未定义符号: {}", symbol->name);
     }
     return result;
@@ -92,6 +165,10 @@ public:
       return false;
     }
     // ...
+    if (enableLog_analyseNode) {
+      std::cout << "## AnalyseNode: ------ " << std::endl;
+      node->debugPrint();
+    }
     int symbolTableDeep = symbolTable.size();
     switch (node->syntaxType) {
     case SyntaxNodeType_e::Group:
@@ -100,7 +177,7 @@ public:
     case SyntaxNodeType_e::ValueDefineId:
     case SyntaxNodeType_e::ValueDefineInit: {
       // 变量定义，添加符号表
-      auto result = std::make_shared<SymbolItem_c>();
+      auto result = std::make_shared<SymbolItem_value_c>();
       switch (node->syntaxType) {
       case SyntaxNodeType_e::ValueDefineId: {
         auto real_node = HicUtil_c::toType<SyntaxNode_value_define_id_c>(node);
@@ -118,12 +195,11 @@ public:
         return false;
       }
       // 添加符号定义
-      auto& table = currentSymbolTable();
-      table.insert(std::make_pair(result->name, result));
+      currentAddSymbol(result);
     } break;
     case SyntaxNodeType_e::FunctionCall: {
       // 检查符号是否存在
-      auto result = std::make_shared<SymbolItem_c>();
+      auto result = std::make_shared<SymbolItem_function_c>();
       auto real_node = HicUtil_c::toType<SyntaxNode_function_call_c>(node);
       result->name = real_node->id->toDefault().value;
       // 检查符号定义
@@ -137,15 +213,19 @@ public:
       //   }
     } break;
     case SyntaxNodeType_e::FunctionDefine: {
-      symbolTablePush();
-      // 检查定义
-      auto result = std::make_shared<SymbolItem_c>();
+      auto result = std::make_shared<SymbolItem_function_c>();
       auto real_node = HicUtil_c::toType<SyntaxNode_function_define_c>(node);
       result->name = real_node->id->toDefault().value;
-      result->type = real_node->id;
+      result->type = real_node;
+      // 检查定义
       if (false == checkIdDefine(result)) {
         return false;
       }
+      // 添加符号定义
+      // 当前函数符号所在的范围
+      currentAddSymbol(result);
+      // 压入新符号范围
+      symbolTablePush();
       // 读取 args
       for (auto item : real_node->args) {
         if (false == analyseNode(item)) {
@@ -156,9 +236,6 @@ public:
       if (false == analyseNode(real_node->body)) {
         return false;
       }
-      // 添加符号定义
-      auto& table = currentSymbolTable();
-      table.insert(std::make_pair(result->name, result));
     } break;
     case SyntaxNodeType_e::CtrlIfBranch:
     case SyntaxNodeType_e::CtrlIf:
@@ -206,6 +283,10 @@ public:
     return analyseNode(syntacticAnalysis.root);
   }
 
+  void currentAddSymbol(std::shared_ptr<SymbolItem_c> item) {
+    currentSymbolTable().insert(std::pair{item->name, item});
+  }
+
   std::map<std::string, std::shared_ptr<SymbolItem_c>>& globalSymbolTable() {
     Assert_d(symbolTable.empty() == false);
     return symbolTable.front();
@@ -213,6 +294,7 @@ public:
 
   std::map<std::string, std::shared_ptr<SymbolItem_c>>& currentSymbolTable() {
     Assert_d(symbolTable.empty() == false);
+    SemLog(Tdebug, "SymbolTable.size(): {}", symbolTable.size());
     return symbolTable.back();
   }
 
@@ -260,7 +342,7 @@ public:
           std::cout << "  ";
         }
         std::cout << "- " << it.second->name << " : " << std::endl;
-        it.second->type->debugPrint();
+        it.second->debugPrint();
       }
     }
   }

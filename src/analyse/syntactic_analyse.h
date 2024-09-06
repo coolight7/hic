@@ -1107,7 +1107,6 @@ public:
         return false;
       }
       root->add(result);
-      lexicalAnalyse.currentToken()->printInfo();
     }
     return true;
   }

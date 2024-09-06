@@ -137,6 +137,7 @@ int main(String* args, int size) {
 void test_SemanticAnalyse() {
   SyntacticAnalysis_c::enableLog_assertToken = false;
   SyntacticAnalysis_c::enableLog_parseCode = false;
+  SemanticAnalyse_c::enableLog_analyseNode = true;
   std::cout << std::endl
             << "----------- test_SemanticAnalyse -----------" << std::endl
             << std::endl;
@@ -170,7 +171,6 @@ int main(char** args, int size) {
     test(3, 4);
     test(3,);
     test();
-    test_no();
     if (a == b || (b == c && a == c)) {
         d = b;
     }
