@@ -149,7 +149,7 @@ int d = 07650;
 int* f = &d;
 String str = "qiqi";
 
-int test(int a, int b) {
+int test(int& a, int** &b) {
   return (a + b);
 }
 
@@ -170,6 +170,7 @@ int main(char** args, int size) {
     test(3, 4);
     test(3,);
     test();
+    test_no();
     if (a == b || (b == c && a == c)) {
         d = b;
     }

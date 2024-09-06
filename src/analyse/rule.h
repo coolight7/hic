@@ -8,13 +8,12 @@
 /**
  * 关键字（控制）
  */
-GENERATE_ENUM(WordEnumCtrl, const, static, if, else, switch, case, default, break, continue, while, do, for, return)
+GENERATE_ENUM(WordEnumCtrl, const, final, static, if, else, switch, case, default, break, continue, while, do, for, return)
 
 /**
  * 关键字（变量类型）
  */
-GENERATE_ENUM(WordEnumType, void, char, bool, int, int64, float, float64, pointer, enum, class,
-              function)
+GENERATE_ENUM(WordEnumType, void, char, bool, int, int64, float, float64, enum, class, function)
 
 /** token 分类
  * Tundefined,

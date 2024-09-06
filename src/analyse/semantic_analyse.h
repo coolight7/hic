@@ -14,6 +14,42 @@ class SymbolItem_c : public ListNode_c {
 public:
   SymbolItem_c() : ListNode_c(ListNodeType_e::Symbol) {}
 
+  // 检查函数类型
+  template <typename... _ARGS>
+  bool checkFunType(const SyntaxNode_value_define_c&& return_type, const _ARGS&&... args) {
+    return true;
+  }
+
+  // 检查变量类型
+  // - 对象自身为已定义符号
+  // - [in_type] 为引用符号类型需求
+  bool checkValueType(const SyntaxNode_value_define_c&& in_type) {
+    if (type->value_type->token != in_type.value_type->token) {
+      return false;
+    }
+    if (type->pointer != in_type.pointer) {
+      // 检查指针层级
+      // 不用检查引用 type->isReferer != in_type.isReferer
+      return false;
+    }
+    switch (type->value_type->token) {
+    case WordEnumToken_e::Tid: {
+      // 自定义类型
+      // 类型名称
+      return (type->value_type->toDefault().value == in_type.value_type->toDefault().value);
+    } break;
+    case WordEnumToken_e::Ttype: {
+      // 内置类型
+      return (type->value_type->toType().value == in_type.value_type->toType().value);
+    } break;
+    default:
+      Assert_d(true == false, "{} 非法的变量类型: {}", name,
+               WordEnumToken_c::toName(type->value_type->token));
+      return false;
+      break;
+    }
+  }
+
   std::shared_ptr<SyntaxNode_value_define_c> type;
   std::string name;
 };
@@ -26,31 +62,37 @@ public:
     syntacticAnalysis.init(in_code);
   }
 
-  bool checkIdDefine(std::shared_ptr<SymbolItem_c> result) {
+  bool checkIdDefine(std::shared_ptr<SymbolItem_c> symbol) {
+    Assert_d(false == symbol->name.empty(), "符号名称不应为空");
     auto& table = currentSymbolTable();
-    if (table.find(result->name) != table.end()) {
+    if (table.find(symbol->name) != table.end()) {
       // 重定义
-      SemLog(Terror, "重定义符号: {}", result->name);
+      SemLog(Terror, "重定义符号: {}", symbol->name);
       return false;
     }
-    if (nullptr == result->type) {
+    if (nullptr == symbol->type) {
       // 缺少类型
-      SemLog(Terror, "变量声明缺少类型: {}", result->name);
+      SemLog(Terror, "符号声明缺少类型: {}", symbol->name);
       return false;
     }
     return true;
   }
 
-  std::shared_ptr<SymbolItem_c> checkIdExist(std::shared_ptr<SymbolItem_c> result) {
-    return symbolTableFind(result->name);
+  std::shared_ptr<SymbolItem_c> checkIdExist(std::shared_ptr<SymbolItem_c> symbol) {
+    Assert_d(false == symbol->name.empty(), "符号名称不应为空");
+    auto result = symbolTableFind(symbol->name);
+    if (nullptr == symbol) {
+      SemLog(Terror, "未定义符号: {}", symbol->name);
+    }
+    return result;
   }
 
-  bool readNode(std::shared_ptr<SyntaxNode_c> node) {
+  bool analyseNode(std::shared_ptr<SyntaxNode_c> node) {
     if (nullptr == node) {
       return false;
     }
     // ...
-    bool doPushTable = false;
+    int symbolTableDeep = symbolTable.size();
     switch (node->syntaxType) {
     case SyntaxNodeType_e::Group:
     case SyntaxNodeType_e::ValueDefine: {
@@ -83,35 +125,62 @@ public:
       // 检查符号是否存在
       auto result = std::make_shared<SymbolItem_c>();
       auto real_node = HicUtil_c::toType<SyntaxNode_function_call_c>(node);
-      if (real_node->id) {
-
+      result->name = real_node->id->toDefault().value;
+      // 检查符号定义
+      auto exist_id = checkIdExist(result);
+      if (nullptr == exist_id) {
+        return false;
       }
-      auto isExist = checkIdExist(result);
+      // 检查函数类型匹配
+      //   if (exist_id->checkFunType()) {
+
+      //   }
     } break;
-    case SyntaxNodeType_e::Operator:
+    case SyntaxNodeType_e::FunctionDefine: {
+      symbolTablePush();
+      // 检查定义
+      auto result = std::make_shared<SymbolItem_c>();
+      auto real_node = HicUtil_c::toType<SyntaxNode_function_define_c>(node);
+      result->name = real_node->id->toDefault().value;
+      result->type = real_node->id;
+      if (false == checkIdDefine(result)) {
+        return false;
+      }
+      // 读取 args
+      for (auto item : real_node->args) {
+        if (false == analyseNode(item)) {
+          return false;
+        }
+      }
+      // 读取body
+      if (false == analyseNode(real_node->body)) {
+        return false;
+      }
+      // 添加符号定义
+      auto& table = currentSymbolTable();
+      table.insert(std::make_pair(result->name, result));
+    } break;
     case SyntaxNodeType_e::CtrlIfBranch:
     case SyntaxNodeType_e::CtrlIf:
     case SyntaxNodeType_e::CtrlWhile:
-    case SyntaxNodeType_e::CtrlFor:
-    case SyntaxNodeType_e::FunctionDefine: {
-      doPushTable = true;
+    case SyntaxNodeType_e::CtrlFor: {
+      symbolTablePush();
     } break;
     case SyntaxNodeType_e::EnumDefine:
     case SyntaxNodeType_e::ClassDefine: {
-      doPushTable = true;
-    } break;
-    case SyntaxNodeType_e::CtrlReturn:
-    }
-    if (doPushTable) {
       symbolTablePush();
+    } break;
+    case SyntaxNodeType_e::Operator:
+    case SyntaxNodeType_e::CtrlReturn:
+      break;
     }
+    // 递归读取子节点
     for (auto& item : node->children) {
       switch (item->nodeType) {
       case ListNodeType_e::Lexical: {
       } break;
       case ListNodeType_e::Syntactic: {
-        // 递归读取
-        auto result = readNode(HicUtil_c::toType<SyntaxNode_c>(item));
+        auto result = analyseNode(HicUtil_c::toType<SyntaxNode_c>(item));
         if (false == result) {
           return false;
         }
@@ -120,7 +189,8 @@ public:
         return false;
       }
     }
-    if (doPushTable) {
+    if (symbolTableDeep != symbolTable.size()) {
+      // 恢复符号表层级
       symbolTablePop();
     }
     return true;
@@ -133,7 +203,7 @@ public:
       return false;
     }
     // 语义分析
-    return readNode(syntacticAnalysis.root);
+    return analyseNode(syntacticAnalysis.root);
   }
 
   std::map<std::string, std::shared_ptr<SymbolItem_c>>& globalSymbolTable() {
