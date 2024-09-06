@@ -116,16 +116,22 @@ public:
   const std::string& name() const override { return toSign(value); }
 
   // `R"()"` fix warning `trigraph ??= ignored, use -trigraphs to enable`
-  inline static const std::array<const std::string, 47> signlist = {
-      "[Undefine]", "",       "expr++", "expr--", "(",      ")",      "[",      "]",   ".",
-      "?.",         "Level1", "!expr",  "~expr",  "++expr", "--expr", "Level2", "*",   "/",
-      "%",          "+",      "-",      "<<",     ">>",     "&",      "|",      ">=",  ">",
-      "<=",         "<",      "==",     "!=",     "&&",     "||",     "??",     "? :", "=",
-      "*=",         "/=",     "+=",     "-=",     R"(??=)", "{",      "}",      ";",   ",",
+  inline static constexpr std::array<const std::string, 48> signlist = {
+      "[Undefine]", "",      "expr++", "expr--", "(",      ")",      "[",  "]",   ".",  "?.",
+      "Level1",     "!expr", "~expr",  "++expr", "--expr", "Level2", "*",  "/",   "%",  "+",
+      "-",          "<<",    ">>",     "&",      "|",      ">=",     ">",  "<=",  "<",  "==",
+      "!=",         "&&",    "||",     "??",     "? :",    "=",      "|=", "&=",  "*=", "/=",
+      "+=",         "-=",    R"(??=)", "{",      "}",      ";",      ",",  "END",
   };
 
   inline static constexpr const std::string& toSign(WordEnumOperator_e value) {
     static_assert(WordEnumOperator_c::namelist.size() == signlist.size());
+    assert(WordEnumOperator_c::namelist[WordEnumOperator_c::toInt(WordEnumOperator_e::TLevel1)] ==
+           signlist[WordEnumOperator_c::toInt(WordEnumOperator_e::TLevel1)]);
+    assert(WordEnumOperator_c::namelist[WordEnumOperator_c::toInt(WordEnumOperator_e::TLevel2)] ==
+           signlist[WordEnumOperator_c::toInt(WordEnumOperator_e::TLevel2)]);
+    assert(WordEnumOperator_c::namelist[WordEnumOperator_c::toInt(WordEnumOperator_e::TEND)] ==
+           signlist[WordEnumOperator_c::toInt(WordEnumOperator_e::TEND)]);
     return signlist[WordEnumOperator_c::toInt(value)];
   }
 
