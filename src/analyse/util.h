@@ -48,10 +48,16 @@ public:
   }
 };
 
-#define UtilLog(level, path, line, tip, ...)                                                       \
+#define UtilLineLog(level, path, line, tip, ...)                                                   \
   {                                                                                                \
-    std::cout << std::format("[{}] {}, line({}):", HicLogLevel_c::toName(HicLogLevel_e::level),    \
+    std::cout << std::format("[{}] {} ~ line({}):", HicLogLevel_c::toName(HicLogLevel_e::level),   \
                              path, line)                                                           \
               << std::endl;                                                                        \
     std::cout << '\t' << std::format(tip, ##__VA_ARGS__) << std::endl;                             \
+  }
+
+#define UtilLog(level, tip, ...)                                                                   \
+  {                                                                                                \
+    std::cout << std::format("[{}] ", HicLogLevel_c::toName(HicLogLevel_e::level))                 \
+              << std::format(tip, ##__VA_ARGS__) << std::endl;                                     \
   }

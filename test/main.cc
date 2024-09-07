@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 
 #include "analyse/lexical_analyse.h"
@@ -123,13 +124,13 @@ int main(String* args, int size) {
     } else {
       index = 0;
     }
-    UtilLog(Tdebug, "", 0, "## End last Token:");
+    UtilLineLog(Tdebug, "", 0, "## End last Token:");
     for (; index < analyse.lexicalAnalyse.tokenList.size(); ++index) {
       auto& item = analyse.lexicalAnalyse.tokenList[index];
       item->printInfo();
     }
   }
-  UtilLog(Tdebug, "", 0, "## tree:");
+  UtilLineLog(Tdebug, "", 0, "## tree:");
   analyse.root->debugPrint();
   assert(rebool);
 }
@@ -200,13 +201,57 @@ int main(char** args, int size) {
     } else {
       index = 0;
     }
-    UtilLog(Tdebug, "", 0, "## End last Token:");
+    UtilLineLog(Tdebug, "", 0, "## End last Token:");
     for (; index < analyse.syntacticAnalysis.lexicalAnalyse.tokenList.size(); ++index) {
       auto& item = analyse.syntacticAnalysis.lexicalAnalyse.tokenList[index];
       item->printInfo();
     }
   } else {
-    UtilLog(Tdebug, "", 0, "## tree:");
+    UtilLineLog(Tdebug, "", 0, "## tree:");
+    analyse.syntacticAnalysis.root->debugPrint();
+  }
+  assert(rebool);
+}
+
+#ifndef PROGEAM_ROOT_DIR
+#define PROGEAM_ROOT_DIR
+#endif
+
+void test_read() {
+  std::cout << std::endl << "----------- test_read -----------" << std::endl << std::endl;
+  std::string code;
+  const char* file_path = PROGEAM_ROOT_DIR "/resource/test1.hic";
+  std::ifstream stream{file_path};
+  if (false == stream.is_open()) {
+    std::cout << "文件打开失败: " << file_path << std::endl;
+    return;
+  }
+  for (std::string line; getline(stream, line);) {
+    code += line;
+    code += "\n";
+  }
+  stream.close();
+
+  SyntacticAnalysis_c::enableLog_assertToken = false;
+  SyntacticAnalysis_c::enableLog_parseCode = false;
+  SemanticAnalyse_c::enableLog_analyseNode = true;
+  SemanticAnalyse_c analyse{};
+  analyse.init(code);
+  auto rebool = analyse.analyse();
+  if (false == rebool) {
+    int index = analyse.syntacticAnalysis.lexicalAnalyse.tokenList.size();
+    if (index > 10) {
+      index -= 10;
+    } else {
+      index = 0;
+    }
+    UtilLineLog(Tdebug, "", 0, "## End last Token:");
+    for (; index < analyse.syntacticAnalysis.lexicalAnalyse.tokenList.size(); ++index) {
+      auto& item = analyse.syntacticAnalysis.lexicalAnalyse.tokenList[index];
+      item->printInfo();
+    }
+  } else {
+    UtilLineLog(Tdebug, "", 0, "## tree:");
     analyse.syntacticAnalysis.root->debugPrint();
   }
   assert(rebool);
@@ -217,6 +262,7 @@ int main() {
   test_LexicalAnalyse();
   test_SyntacticAnalysis();
   test_SemanticAnalyse();
+  test_read();
   std::cout << "<========= test  end  ========>" << std::endl;
   return 0;
 }

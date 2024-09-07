@@ -7,7 +7,7 @@
 /**
  * - 注意此处也需要 `##__VA_ARGS__`，否则会多传 `,逗号` 给 UtilLog导致展开异常
  */
-#define SemLog(level, tip, ...) UtilLog(level, "", 0, tip, ##__VA_ARGS__)
+#define SemLog(level, tip, ...) UtilLineLog(level, "", 0, tip, ##__VA_ARGS__)
 
 #include "magic/macro.h"
 
@@ -299,6 +299,7 @@ public:
     if (false == syntactic_result) {
       return false;
     }
+    UtilLog(Tinfo, "语义分析：");
     // 语义分析
     return analyseNode(syntacticAnalysis.root);
   }

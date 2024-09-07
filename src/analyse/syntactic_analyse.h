@@ -20,11 +20,11 @@ GENERATE_ENUM(SyntaxNodeType,
 /**
  * - 注意此处也需要 `##__VA_ARGS__`，否则会多传 `,逗号` 给 UtilLog导致展开异常
  */
-#define SynLog(level, tip, ...)                                                                    \
-  UtilLog(level,                                                                                   \
-          "[" + WordEnumToken_c::toName(lexicalAnalyse.currentToken()->token) + "] " +             \
-              lexicalAnalyse.currentToken()->name(),                                               \
-          lexicalAnalyse.current_line, tip, ##__VA_ARGS__)
+#define SynLineLog(level, tip, ...)                                                                \
+  UtilLineLog(level,                                                                               \
+              "[" + WordEnumToken_c::toName(lexicalAnalyse.currentToken()->token) + "] " +         \
+                  lexicalAnalyse.currentToken()->name(),                                           \
+              lexicalAnalyse.current_line, tip, ##__VA_ARGS__)
 
 #define _GEN_WORD(name)                                                                            \
   if (nullptr == name##_ptr) {                                                                     \
@@ -483,8 +483,8 @@ public:
       }
     }
     if (enableLog_assertToken) {
-      SynLog(Twarning, "[assertToken] faild; word: {}, expect: {}", word.toString(),
-             limit.toString());
+      SynLineLog(Twarning, "[assertToken] faild; word: {}, expect: {}", word.toString(),
+                 limit.toString());
     }
     return nullptr;
   }
@@ -899,7 +899,7 @@ public:
     auto re_node = std::make_shared<SyntaxNode_group_c>();
     std::shared_ptr<SyntaxNode_c> result;
     if (enableLog_parseCode) {
-      SynLog(Tdebug, "parse_code -----vvv------ ");
+      SynLineLog(Tdebug, "parse_code -----vvv------ ");
     }
     do {
       _GEN_WORD(word);
@@ -934,14 +934,14 @@ public:
       if (enableLog_parseCode) {
         // 打印 code
         if (enableLog_parseCode) {
-          SynLog(Tdebug, "  - parse_code/line --vvv-- ");
+          SynLineLog(Tdebug, "  - parse_code/line --vvv-- ");
         }
         result->debugPrint(2);
       }
       word_ptr = nullptr;
     } while (nullptr != result);
     if (enableLog_parseCode) {
-      SynLog(Tdebug, "parse_code -----^^^----- ");
+      SynLineLog(Tdebug, "parse_code -----^^^----- ");
     }
     return re_node;
   }
@@ -1075,6 +1075,7 @@ public:
   }
 
   bool analyse() {
+    UtilLog(Tinfo, "语法分析：");
     while (true) {
       auto word_ptr = lexicalAnalyse.analyse();
       if (nullptr == word_ptr) {

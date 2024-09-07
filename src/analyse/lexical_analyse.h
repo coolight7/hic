@@ -17,7 +17,7 @@
 /**
  * - 注意此处也需要 `##__VA_ARGS__`，否则会多传 `,逗号` 给 UtilLog导致展开异常
  */
-#define WordLog(level, tip, ...) UtilLog(level, "", current_line, tip, ##__VA_ARGS__)
+#define WordLog(level, tip, ...) UtilLineLog(level, "", current_line, tip, ##__VA_ARGS__)
 
 class WordValue_c {
 public:
