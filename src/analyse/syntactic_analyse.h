@@ -341,6 +341,7 @@ public:
     _PRINT_NODE_PREFIX(true, body);
   }
 
+  // while (loop_expr) { body }
   _GEN_VALUE(SyntaxNode_operator_c, loop_expr);
   _GEN_VALUE(SyntaxNode_group_c, body);
 };
@@ -359,6 +360,7 @@ public:
     _PRINT_NODE_PREFIX(true, body);
   }
 
+  // for (start_expr; loop_expr; loop_end_expr) { body }
   _GEN_VALUE(SyntaxNode_operator_c, start_expr);
   _GEN_VALUE(SyntaxNode_operator_c, loop_expr);
   _GEN_VALUE(SyntaxNode_operator_c, loop_end_expr);
@@ -1103,6 +1105,7 @@ public:
   LexicalAnalyse_c lexicalAnalyse{};
 };
 
+#undef SynLineLog
 #undef _GEN_WORD
 #undef _GEN_WORD_DEF
 #undef _GENERATE_FUN_ITEM_d

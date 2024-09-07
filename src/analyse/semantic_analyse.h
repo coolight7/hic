@@ -7,7 +7,7 @@
 /**
  * - 注意此处也需要 `##__VA_ARGS__`，否则会多传 `,逗号` 给 UtilLog导致展开异常
  */
-#define SemLog(level, tip, ...) UtilLineLog(level, "", 0, tip, ##__VA_ARGS__)
+#define SemLog(level, tip, ...) UtilLog(level, tip, ##__VA_ARGS__)
 
 #include "magic/macro.h"
 
@@ -18,6 +18,9 @@ GENERATE_ENUM(SymbolType, Value, Function);
 class SymbolItem_value_c;
 class SymbolItem_function_c;
 
+/**
+ * 符号表项
+ */
 class SymbolItem_c : public ListNode_c {
 public:
   SymbolItem_c(SymbolType_e in_symbolType)
@@ -169,6 +172,10 @@ public:
     return result;
   }
 
+  template <typename... _ARGS> bool analyseNodeList(std::shared_ptr<_ARGS>... args) {
+    return (analyseNode(args) && ...);
+  }
+
   bool analyseNode(std::shared_ptr<SyntaxNode_c> node) {
     if (nullptr == node) {
       return false;
@@ -255,20 +262,51 @@ public:
         return false;
       }
     } break;
-    case SyntaxNodeType_e::TCtrlIfBranch:
-    case SyntaxNodeType_e::TCtrlIf:
-    case SyntaxNodeType_e::TCtrlWhile:
+    case SyntaxNodeType_e::TCtrlIfBranch: {
+      symbolTablePush();
+      auto real_node = HicUtil_c::toType<SyntaxNode_if_branch_c>(node);
+      // 读取 expr || body
+      if (false == analyseNodeList(real_node->if_expr, real_node->if_body)) {
+        return false;
+      }
+    } break;
+    case SyntaxNodeType_e::TCtrlIf: {
+      auto real_node = HicUtil_c::toType<SyntaxNode_if_c>(node);
+      // 检查 branch
+      for (auto item : real_node->branchs) {
+        if (false == analyseNode(item)) {
+          return false;
+        }
+      }
+    } break;
+    case SyntaxNodeType_e::TCtrlWhile: {
+      symbolTablePush();
+      auto real_node = HicUtil_c::toType<SyntaxNode_while_c>(node);
+      // 检查
+      if (false == analyseNode(real_node->loop_expr) || false == analyseNode(real_node->body)) {
+        return false;
+      }
+    } break;
     case SyntaxNodeType_e::TCtrlFor: {
       symbolTablePush();
+      auto real_node = HicUtil_c::toType<SyntaxNode_for_c>(node);
       // 检查
-
+      if (false == analyseNodeList(real_node->start_expr, real_node->loop_expr,
+                                   real_node->loop_end_expr, real_node->body)) {
+        return false;
+      }
+    } break;
+    case SyntaxNodeType_e::TCtrlReturn: {
+      auto real_node = HicUtil_c::toType<SyntaxNode_ctrl_return_c>(node);
+      if (false == analyseNode(real_node->data)) {
+        return false;
+      }
     } break;
     case SyntaxNodeType_e::TEnumDefine:
     case SyntaxNodeType_e::TClassDefine: {
       symbolTablePush();
     } break;
     case SyntaxNodeType_e::TOperator:
-    case SyntaxNodeType_e::TCtrlReturn:
       break;
     }
     // 递归读取子节点
@@ -372,3 +410,5 @@ public:
   std::vector<std::map<std::string, std::shared_ptr<SymbolItem_c>>> symbolTable{};
   SyntacticAnalysis_c syntacticAnalysis{};
 };
+
+#undef SemLog

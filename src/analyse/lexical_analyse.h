@@ -738,3 +738,5 @@ public:
   int tokenIndex = -1;
   std::map<const std::string_view, std::shared_ptr<WordItem_c>> reserveKeywords_;
 };
+
+#undef WordLog
