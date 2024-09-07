@@ -180,31 +180,32 @@ public:
     }
     int symbolTableDeep = symbolTable.size();
     switch (node->syntaxType) {
-    case SyntaxNodeType_e::Normal:
-    case SyntaxNodeType_e::ValueDefine: {
+    case SyntaxNodeType_e::TNormal:
+    case SyntaxNodeType_e::TValueDefine: {
     } break;
-    case SyntaxNodeType_e::Group: {
+    case SyntaxNodeType_e::TGroup: {
       // {} 隔离符号范围
       symbolTablePush();
     } break;
-    case SyntaxNodeType_e::ValueDefineId:
-    case SyntaxNodeType_e::ValueDefineInit: {
+    case SyntaxNodeType_e::TValueDefineId:
+    case SyntaxNodeType_e::TValueDefineInit: {
       // 变量定义，添加符号表
       auto result = std::make_shared<SymbolItem_value_c>();
       switch (node->syntaxType) {
-      case SyntaxNodeType_e::ValueDefineId: {
+      case SyntaxNodeType_e::TValueDefineId: {
         auto real_node = HicUtil_c::toType<SyntaxNode_value_define_id_c>(node);
         result->type = real_node->value_define;
         result->name = real_node->id->value;
       } break;
-      case SyntaxNodeType_e::ValueDefineInit: {
+      case SyntaxNodeType_e::TValueDefineInit: {
         auto real_node = HicUtil_c::toType<SyntaxNode_value_define_init_c>(node);
         result->type = real_node->define_id->value_define;
         result->name = real_node->define_id->id->value;
       } break;
-      default:
-        Assert_d(true == false, "非预期的变量定义节点：{}", node->syntaxType);
-        break;
+      default: {
+        Assert_d(true == false, "非预期的变量定义节点：{}",
+                 SyntaxNodeType_c::toName(node->syntaxType));
+      } break;
       }
       if (false == checkIdDefine(result)) {
         node->debugPrint();
@@ -213,7 +214,7 @@ public:
       // 添加符号定义
       currentAddSymbol(result);
     } break;
-    case SyntaxNodeType_e::FunctionCall: {
+    case SyntaxNodeType_e::TFunctionCall: {
       // 检查符号是否存在
       auto result = std::make_shared<SymbolItem_function_c>();
       auto real_node = HicUtil_c::toType<SyntaxNode_function_call_c>(node);
@@ -229,7 +230,7 @@ public:
       }
       // TODO: 关联函数声明
     } break;
-    case SyntaxNodeType_e::FunctionDefine: {
+    case SyntaxNodeType_e::TFunctionDefine: {
       auto result = std::make_shared<SymbolItem_function_c>();
       auto real_node = HicUtil_c::toType<SyntaxNode_function_define_c>(node);
       result->name = real_node->id->toDefault().value;
@@ -254,20 +255,20 @@ public:
         return false;
       }
     } break;
-    case SyntaxNodeType_e::CtrlIfBranch:
-    case SyntaxNodeType_e::CtrlIf:
-    case SyntaxNodeType_e::CtrlWhile:
-    case SyntaxNodeType_e::CtrlFor: {
+    case SyntaxNodeType_e::TCtrlIfBranch:
+    case SyntaxNodeType_e::TCtrlIf:
+    case SyntaxNodeType_e::TCtrlWhile:
+    case SyntaxNodeType_e::TCtrlFor: {
       symbolTablePush();
       // 检查
 
     } break;
-    case SyntaxNodeType_e::EnumDefine:
-    case SyntaxNodeType_e::ClassDefine: {
+    case SyntaxNodeType_e::TEnumDefine:
+    case SyntaxNodeType_e::TClassDefine: {
       symbolTablePush();
     } break;
-    case SyntaxNodeType_e::Operator:
-    case SyntaxNodeType_e::CtrlReturn:
+    case SyntaxNodeType_e::TOperator:
+    case SyntaxNodeType_e::TCtrlReturn:
       break;
     }
     // 递归读取子节点

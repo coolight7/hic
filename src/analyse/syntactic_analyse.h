@@ -11,6 +11,12 @@
 #include "magic/macro.h"
 #include "util.h"
 
+GENERATE_ENUM(SyntaxNodeType,
+              Normal, // 分组节点，自身无特殊意义
+              Group,  // {}，隔离符号范围
+              ValueDefine, ValueDefineId, ValueDefineInit, FunctionCall, Operator, CtrlReturn,
+              CtrlIfBranch, CtrlIf, CtrlWhile, CtrlFor, FunctionDefine, EnumDefine, ClassDefine, );
+
 /**
  * - 注意此处也需要 `##__VA_ARGS__`，否则会多传 `,逗号` 给 UtilLog导致展开异常
  */
@@ -108,27 +114,6 @@
     });                                                                                            \
   }
 
-enum SyntaxNodeType_e {
-  Normal, // 分组节点，自身无特殊意义
-  Group,  // {}，隔离符号范围
-
-  ValueDefine,
-  ValueDefineId,
-  ValueDefineInit,
-
-  FunctionCall,
-  Operator,
-  CtrlReturn,
-  CtrlIfBranch,
-  CtrlIf,
-  CtrlWhile,
-  CtrlFor,
-
-  FunctionDefine,
-  EnumDefine,
-  ClassDefine,
-};
-
 enum SyntaxNodeValueClass_e {
   Crude,   // 值类型
   Pointer, // 指针
@@ -145,7 +130,7 @@ public:
     return re_ptr;
   }
 
-  SyntaxNode_c() : ListNode_c(ListNodeType_e::Syntactic), syntaxType(SyntaxNodeType_e::Normal) {}
+  SyntaxNode_c() : ListNode_c(ListNodeType_e::Syntactic), syntaxType(SyntaxNodeType_e::TNormal) {}
   SyntaxNode_c(SyntaxNodeType_e type) : ListNode_c(ListNodeType_e::Syntactic), syntaxType(type) {}
 
   const std::string& name() const override { return HicUtil_c::emptyString; }
@@ -189,12 +174,12 @@ public:
 
 class SyntaxNode_group_c : public SyntaxNode_c {
 public:
-  SyntaxNode_group_c() : SyntaxNode_c(SyntaxNodeType_e::Group) {}
+  SyntaxNode_group_c() : SyntaxNode_c(SyntaxNodeType_e::TGroup) {}
 };
 
 class SyntaxNode_value_define_c : public SyntaxNode_c {
 public:
-  SyntaxNode_value_define_c() : SyntaxNode_c(SyntaxNodeType_e::ValueDefine) {}
+  SyntaxNode_value_define_c() : SyntaxNode_c(SyntaxNodeType_e::TValueDefine) {}
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -222,7 +207,7 @@ public:
 
 class SyntaxNode_value_define_id_c : public SyntaxNode_c {
 public:
-  SyntaxNode_value_define_id_c() : SyntaxNode_c(SyntaxNodeType_e::ValueDefineId) {}
+  SyntaxNode_value_define_id_c() : SyntaxNode_c(SyntaxNodeType_e::TValueDefineId) {}
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -237,7 +222,7 @@ public:
 
 class SyntaxNode_value_define_init_c : public SyntaxNode_c {
 public:
-  SyntaxNode_value_define_init_c() : SyntaxNode_c(SyntaxNodeType_e::ValueDefineInit) {}
+  SyntaxNode_value_define_init_c() : SyntaxNode_c(SyntaxNodeType_e::TValueDefineInit) {}
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -254,7 +239,7 @@ public:
 
 class SyntaxNode_function_call_c : public SyntaxNode_c {
 public:
-  SyntaxNode_function_call_c() : SyntaxNode_c(SyntaxNodeType_e::FunctionCall) {}
+  SyntaxNode_function_call_c() : SyntaxNode_c(SyntaxNodeType_e::TFunctionCall) {}
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -269,7 +254,7 @@ public:
 class SyntaxNode_operator_c : public SyntaxNode_c {
 public:
   SyntaxNode_operator_c(WordEnumOperator_e in_op)
-      : SyntaxNode_c(SyntaxNodeType_e::Operator), oper(in_op) {}
+      : SyntaxNode_c(SyntaxNodeType_e::TOperator), oper(in_op) {}
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -285,7 +270,7 @@ public:
 
 class SyntaxNode_ctrl_return_c : public SyntaxNode_c {
 public:
-  SyntaxNode_ctrl_return_c() : SyntaxNode_c(SyntaxNodeType_e::CtrlReturn) {}
+  SyntaxNode_ctrl_return_c() : SyntaxNode_c(SyntaxNodeType_e::TCtrlReturn) {}
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -299,7 +284,7 @@ public:
 
 class SyntaxNode_if_branch_c : public SyntaxNode_c {
 public:
-  SyntaxNode_if_branch_c() : SyntaxNode_c(SyntaxNodeType_e::CtrlIfBranch) {}
+  SyntaxNode_if_branch_c() : SyntaxNode_c(SyntaxNodeType_e::TCtrlIfBranch) {}
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -313,7 +298,7 @@ public:
 
 class SyntaxNode_if_c : public SyntaxNode_c {
 public:
-  SyntaxNode_if_c() : SyntaxNode_c(SyntaxNodeType_e::CtrlIf) {}
+  SyntaxNode_if_c() : SyntaxNode_c(SyntaxNodeType_e::TCtrlIf) {}
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -346,7 +331,7 @@ public:
 
 class SyntaxNode_while_c : public SyntaxNode_c {
 public:
-  SyntaxNode_while_c() : SyntaxNode_c(SyntaxNodeType_e::CtrlWhile) {}
+  SyntaxNode_while_c() : SyntaxNode_c(SyntaxNodeType_e::TCtrlWhile) {}
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -362,7 +347,7 @@ public:
 
 class SyntaxNode_for_c : public SyntaxNode_c {
 public:
-  SyntaxNode_for_c() : SyntaxNode_c(SyntaxNodeType_e::CtrlFor) {}
+  SyntaxNode_for_c() : SyntaxNode_c(SyntaxNodeType_e::TCtrlFor) {}
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -382,7 +367,7 @@ public:
 
 class SyntaxNode_function_define_c : public SyntaxNode_c {
 public:
-  SyntaxNode_function_define_c() : SyntaxNode_c(SyntaxNodeType_e::FunctionDefine) {}
+  SyntaxNode_function_define_c() : SyntaxNode_c(SyntaxNodeType_e::TFunctionDefine) {}
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -413,7 +398,7 @@ public:
 
 class SyntaxNode_enum_define_c : public SyntaxNode_c {
 public:
-  SyntaxNode_enum_define_c() : SyntaxNode_c(SyntaxNodeType_e::EnumDefine) {}
+  SyntaxNode_enum_define_c() : SyntaxNode_c(SyntaxNodeType_e::TEnumDefine) {}
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -1127,3 +1112,5 @@ public:
 #undef _GEN_VALUE
 #undef _PRINT_WORD_PREFIX
 #undef _PRINT_NODE_PREFIX
+
+#include "magic/unset_macro.h"
