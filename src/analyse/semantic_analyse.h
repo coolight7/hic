@@ -101,6 +101,7 @@ public:
   }
 
   std::shared_ptr<SyntaxNode_value_define_c> type;
+  std::list<std::shared_ptr<WordItem_c>> refs;
 };
 
 // 函数符号定义
@@ -127,6 +128,7 @@ public:
   }
 
   std::shared_ptr<SyntaxNode_function_define_c> type;
+  std::list<std::shared_ptr<SyntaxNode_function_call_c>> refs;
 };
 
 class SemanticAnalyse_c {
@@ -231,7 +233,8 @@ public:
       if (false == exist_id->checkFunArgs(real_node->children)) {
         return false;
       }
-      // TODO: 关联函数声明
+      // 关联函数声明
+      exist_id->refs.push_back(real_node);
     } break;
     case SyntaxNodeType_e::TFunctionDefine: {
       auto result = std::make_shared<SymbolItem_function_c>();
@@ -321,14 +324,18 @@ public:
       }
     } break;
     }
-    // 递归读取子节点
+    // 读取子节点
     for (auto& item : node->children) {
       switch (item->nodeType) {
       case ListNodeType_e::Lexical: {
+        auto word_node = HicUtil_c::toType<WordItem_c>(item);
+        switch (word_node->token) {
+          // TODO:
+        }
       } break;
       case ListNodeType_e::Syntactic: {
-        auto result = analyseNode(HicUtil_c::toType<SyntaxNode_c>(item));
-        if (false == result) {
+        auto real_node = analyseNode(HicUtil_c::toType<SyntaxNode_c>(item));
+        if (false == real_node) {
           return false;
         }
       } break;
