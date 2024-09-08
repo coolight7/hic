@@ -99,6 +99,11 @@ GENERATE_ENUM(WordEnumOperator, Undefined, None, EndAddAdd, EndSubSub, LeftCurve
               SetAdd, SetSub, SetNullMerge, LeftFlowerGroup, RightFlowerGroup, Semicolon, Comma,
               END)
 
+/**
+ * 符号类型
+ */
+GENERATE_ENUM(SymbolType, Value, Function);
+
 #include "magic/unset_macro.h"
 #include "util.h"
 
@@ -118,3 +123,9 @@ public:
 
   ListNodeType_e nodeType;
 };
+
+class WordItem_c;
+class SyntaxNode_c;
+class SymbolItem_c;
+
+using SymbolTable = std::map<std::string, std::shared_ptr<SymbolItem_c>>;

@@ -9,12 +9,6 @@
  */
 #define SemLog(level, tip, ...) UtilLog(level, tip, ##__VA_ARGS__)
 
-#include "magic/macro.h"
-
-GENERATE_ENUM(SymbolType, Value, Function);
-
-#include "magic/unset_macro.h"
-
 class SymbolItem_value_c;
 class SymbolItem_function_c;
 
@@ -150,7 +144,7 @@ public:
     Assert_d(nullptr != symbol, "符号不应为 nullptr");
     Assert_d(false == symbol->name.empty(), "符号名称不应为空");
     auto& table = currentSymbolTable();
-    if (table.find(symbol->name) != table.end()) {
+    if (table->find(symbol->name) != table->end()) {
       // 重定义
       SemLog(Terror, "重定义符号: {}", symbol->name);
       return false;
@@ -356,15 +350,15 @@ public:
   }
 
   void currentAddSymbol(std::shared_ptr<SymbolItem_c> item) {
-    currentSymbolTable().insert(std::pair{item->name, item});
+    currentSymbolTable()->insert(std::pair{item->name, item});
   }
 
-  std::map<std::string, std::shared_ptr<SymbolItem_c>>& globalSymbolTable() {
+  std::shared_ptr<SymbolTable>& globalSymbolTable() {
     Assert_d(symbolTable.empty() == false);
     return symbolTable.front();
   }
 
-  std::map<std::string, std::shared_ptr<SymbolItem_c>>& currentSymbolTable() {
+  std::shared_ptr<SymbolTable>& currentSymbolTable() {
     Assert_d(symbolTable.empty() == false);
     SemLog(Tdebug, "SymbolTable.size(): {}", symbolTable.size());
     return symbolTable.back();
@@ -378,8 +372,8 @@ public:
   std::shared_ptr<SymbolItem_c> symbolTableFind(const std::string& key) {
     if (false == symbolTable.empty()) {
       for (auto it = symbolTable.end() - 1;; --it) {
-        if (it->contains(key)) {
-          return (*it)[key];
+        if ((*it)->contains(key)) {
+          return (**it)[key];
         }
         if (it == symbolTable.begin()) {
           break;
@@ -391,16 +385,16 @@ public:
 
   std::shared_ptr<SymbolItem_c> globalSymbolTableFind(const std::string& key) {
     auto& curr = globalSymbolTable();
-    if (curr.contains(key)) {
-      return curr[key];
+    if (curr->contains(key)) {
+      return (*curr)[key];
     }
     return nullptr;
   }
 
   std::shared_ptr<SymbolItem_c> currentSymbolTableFind(const std::string& key) {
     auto& curr = currentSymbolTable();
-    if (curr.contains(key)) {
-      return curr[key];
+    if (curr->contains(key)) {
+      return (*curr)[key];
     }
     return nullptr;
   }
@@ -409,7 +403,7 @@ public:
     int i = 0;
     for (const auto& table : symbolTable) {
       std::cout << i + 1 << std::endl;
-      for (const auto& it : table) {
+      for (const auto& it : *table) {
         for (auto j = i; j-- > 0;) {
           std::cout << "  ";
         }
@@ -422,7 +416,7 @@ public:
   std::shared_ptr<SyntaxNode_c> tree() { return syntacticAnalysis.root; }
 
   // 作用域符号表
-  std::vector<std::map<std::string, std::shared_ptr<SymbolItem_c>>> symbolTable{};
+  std::vector<std::shared_ptr<SymbolTable>> symbolTable{};
   SyntacticAnalysis_c syntacticAnalysis{};
 };
 
