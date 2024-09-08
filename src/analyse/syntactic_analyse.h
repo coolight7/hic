@@ -120,7 +120,9 @@ enum SyntaxNodeValueClass_e {
   Referer, // 引用
 };
 
-// 语法树节点
+/**
+ * ## 语法树节点
+ */
 class SyntaxNode_c : public ListNode_c {
 public:
   template <typename... _Args>
@@ -172,9 +174,14 @@ public:
   std::list<std::shared_ptr<ListNode_c>> children{};
 };
 
+/**
+ * - 额外携带符号表，限定符号声明范围
+ */
 class SyntaxNode_group_c : public SyntaxNode_c {
 public:
-  SyntaxNode_group_c() : SyntaxNode_c(SyntaxNodeType_e::TGroup) {}
+  SyntaxNode_group_c(SyntaxNodeType_e type = SyntaxNodeType_e::TGroup) : SyntaxNode_c(type) {}
+
+  std::shared_ptr<SymbolTable> symbolTable;
 };
 
 class SyntaxNode_value_define_c : public SyntaxNode_c {
@@ -346,9 +353,9 @@ public:
   _GEN_VALUE(SyntaxNode_group_c, body);
 };
 
-class SyntaxNode_for_c : public SyntaxNode_c {
+class SyntaxNode_for_c : public SyntaxNode_group_c {
 public:
-  SyntaxNode_for_c() : SyntaxNode_c(SyntaxNodeType_e::TCtrlFor) {}
+  SyntaxNode_for_c() : SyntaxNode_group_c(SyntaxNodeType_e::TCtrlFor) {}
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -398,9 +405,9 @@ public:
   _GEN_VALUE(SyntaxNode_group_c, body);
 };
 
-class SyntaxNode_enum_define_c : public SyntaxNode_c {
+class SyntaxNode_enum_define_c : public SyntaxNode_group_c {
 public:
-  SyntaxNode_enum_define_c() : SyntaxNode_c(SyntaxNodeType_e::TEnumDefine) {}
+  SyntaxNode_enum_define_c() : SyntaxNode_group_c(SyntaxNodeType_e::TEnumDefine) {}
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -420,7 +427,7 @@ public:
   inline static bool enableLog_parseCode = true;
 
   bool init(std::string_view in_code) {
-    root = std::make_shared<SyntaxNode_c>();
+    root = std::make_shared<SyntaxNode_group_c>();
     return lexicalAnalyse.init(in_code);
   }
 
@@ -1080,6 +1087,7 @@ public:
   }
 
   bool analyse() {
+    Assert_d(nullptr != root, "根节点 root 不应为 nullptr");
     UtilLog(Tinfo, "语法分析：");
     while (true) {
       auto word_ptr = lexicalAnalyse.analyse();
@@ -1103,7 +1111,7 @@ public:
   }
 
   // 语法分析结果，抽象语法树根节点
-  std::shared_ptr<SyntaxNode_c> root = std::make_shared<SyntaxNode_c>();
+  std::shared_ptr<SyntaxNode_c> root;
   // 词法分析器
   LexicalAnalyse_c lexicalAnalyse{};
 };

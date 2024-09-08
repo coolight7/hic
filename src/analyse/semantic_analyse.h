@@ -187,7 +187,8 @@ public:
     } break;
     case SyntaxNodeType_e::TGroup: {
       // {} 隔离符号范围
-      symbolTablePush();
+      auto real_node = HicUtil_c::toType<SyntaxNode_group_c>(node);
+      symbolTablePush(real_node.get());
     } break;
     case SyntaxNodeType_e::TValueDefineId:
     case SyntaxNodeType_e::TValueDefineInit: {
@@ -275,16 +276,17 @@ public:
       }
     } break;
     case SyntaxNodeType_e::TCtrlWhile: {
-      symbolTablePush();
       auto real_node = HicUtil_c::toType<SyntaxNode_while_c>(node);
+      symbolTablePush(real_node->body.get());
       // 检查
       if (false == analyseNode(real_node->loop_expr) || false == analyseNode(real_node->body)) {
         return false;
       }
     } break;
     case SyntaxNodeType_e::TCtrlFor: {
-      symbolTablePush();
+      // TODO: 将 for 的 start_expr 和 body 划分为两个符号范围 ？
       auto real_node = HicUtil_c::toType<SyntaxNode_for_c>(node);
+      symbolTablePush(real_node.get());
       // 检查
       if (false == analyseNodeList(real_node->start_expr, real_node->loop_expr,
                                    real_node->loop_end_expr, real_node->body)) {
@@ -297,7 +299,10 @@ public:
         return false;
       }
     } break;
-    case SyntaxNodeType_e::TEnumDefine:
+    case SyntaxNodeType_e::TEnumDefine: {
+      auto real_node = HicUtil_c::toType<SyntaxNode_enum_define_c>(node);
+      symbolTablePush(real_node.get());
+    } break;
     case SyntaxNodeType_e::TClassDefine: {
       symbolTablePush();
     } break;
@@ -346,7 +351,12 @@ public:
     }
     UtilLog(Tinfo, "语义分析：");
     // 语义分析
-    return analyseNode(syntacticAnalysis.root);
+    auto result = analyseNode(syntacticAnalysis.root);
+    if (result) {
+      // success
+      Assert_d(symbolTable.size() == 1, "解析完成时符号表层级不是 1（{}）", symbolTable.size());
+    }
+    return result;
   }
 
   void currentAddSymbol(std::shared_ptr<SymbolItem_c> item) {
@@ -364,7 +374,16 @@ public:
     return symbolTable.back();
   }
 
-  void symbolTablePush() { symbolTable.emplace_back(); }
+  std::shared_ptr<SymbolTable>& symbolTablePush(SyntaxNode_group_c* group) {
+    auto& table = symbolTablePush();
+    if (nullptr != group) {
+      group->symbolTable = table;
+    }
+    return table;
+  }
+  std::shared_ptr<SymbolTable>& symbolTablePush() {
+    return symbolTable.emplace_back(std::make_shared<SymbolTable>());
+  }
 
   void symbolTablePop() { symbolTable.pop_back(); }
 
