@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "analyse/generate_asm.h"
 #include "analyse/lexical_analyse.h"
 #include "analyse/semantic_analyse.h"
 #include "analyse/syntactic_analyse.h"
@@ -217,7 +218,7 @@ int main(char** args, int size) {
 #define PROGEAM_ROOT_DIR
 #endif
 
-void test_read() {
+void test_readFile_SemanticAnalyse() {
   std::cout << std::endl << "----------- test_read -----------" << std::endl << std::endl;
   std::string code;
   const char* file_path = PROGEAM_ROOT_DIR "/resource/test1.hic";
@@ -257,12 +258,54 @@ void test_read() {
   assert(rebool);
 }
 
+void test_readFile_gen() {
+  std::cout << std::endl << "----------- test_read -----------" << std::endl << std::endl;
+  std::string code;
+  const char* file_path = PROGEAM_ROOT_DIR "/resource/test1.hic";
+  std::ifstream stream{file_path};
+  if (false == stream.is_open()) {
+    std::cout << "文件打开失败: " << file_path << std::endl;
+    return;
+  }
+  for (std::string line; getline(stream, line);) {
+    code += line;
+    code += "\n";
+  }
+  stream.close();
+
+  SyntacticAnalysis_c::enableLog_assertToken = false;
+  SyntacticAnalysis_c::enableLog_parseCode = false;
+  SemanticAnalyse_c::enableLog_analyseNode = true;
+  GenerateAsm_c analyse{};
+  analyse.init(code);
+  auto rebool = analyse.generate();
+  if (false == rebool) {
+    int index = analyse.semanticAnalyse.syntacticAnalysis.lexicalAnalyse.tokenList.size();
+    if (index > 10) {
+      index -= 10;
+    } else {
+      index = 0;
+    }
+    UtilLineLog(Tdebug, "", 0, "## End last Token:");
+    for (; index < analyse.semanticAnalyse.syntacticAnalysis.lexicalAnalyse.tokenList.size();
+         ++index) {
+      auto& item = analyse.semanticAnalyse.syntacticAnalysis.lexicalAnalyse.tokenList[index];
+      item->printInfo();
+    }
+  } else {
+    UtilLineLog(Tdebug, "", 0, "## tree:");
+    analyse.semanticAnalyse.syntacticAnalysis.root->debugPrint();
+  }
+  assert(rebool);
+}
+
 int main() {
   std::cout << "<========= test start ========>" << std::endl;
   test_LexicalAnalyse();
   test_SyntacticAnalysis();
   test_SemanticAnalyse();
-  test_read();
+  test_readFile_SemanticAnalyse();
+  test_readFile_gen();
   std::cout << "<========= test  end  ========>" << std::endl;
   return 0;
 }

@@ -372,10 +372,16 @@ public:
     return isReserveKeyWord(it_ptr, WordEnumNativeCall_c::namelist);
   }
 
-  void init(std::string_view in_code) {
+  bool init(std::string_view in_code) {
+    Assert_d(false == in_code.empty(), "代码不应为空");
+    if (in_code.empty()) {
+      return false;
+    }
     raw_code = in_code;
     code_it = raw_code.begin();
     current_line = 1;
+    tokenList.clear();
+    tokenIndex = -1;
     reserveKeywords_.clear();
     // 添加关键字
     for (int i = 0; i < WordEnumCtrl_c::namelist.size(); ++i) {
@@ -393,6 +399,7 @@ public:
       reserveKeywords_[item] =
           WordItem_c::make_shared<WordItem_nativeCall_c>(WordEnumNativeCall_c::toEnum(i));
     }
+    return true;
   }
 
   std::shared_ptr<WordItem_c> _innerAnalyse() {

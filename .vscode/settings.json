@@ -86,5 +86,6 @@
         "stdfloat": "cpp",
         "stream_ref": "cpp"
     },
+    "search.followSymlinks": false,
     "C_Cpp.default.cppStandard": "c++23"
 }

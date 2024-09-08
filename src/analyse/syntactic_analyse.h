@@ -419,7 +419,10 @@ public:
   inline static bool enableLog_assertToken = false;
   inline static bool enableLog_parseCode = true;
 
-  void init(std::string_view in_code) { lexicalAnalyse.init(in_code); }
+  bool init(std::string_view in_code) {
+    root = std::make_shared<SyntaxNode_c>();
+    return lexicalAnalyse.init(in_code);
+  }
 
   /**
    * ## 回溯分析

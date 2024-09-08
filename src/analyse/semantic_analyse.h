@@ -139,10 +139,11 @@ class SemanticAnalyse_c {
 public:
   inline static bool enableLog_analyseNode = false;
 
-  void init(std::string_view in_code) {
+  bool init(std::string_view in_code) {
+    symbolTable.clear();
     // 添加 global 全局符号表
     symbolTablePush();
-    syntacticAnalysis.init(in_code);
+    return syntacticAnalysis.init(in_code);
   }
 
   bool checkIdDefine(std::shared_ptr<SymbolItem_c> symbol) {
@@ -306,8 +307,20 @@ public:
     case SyntaxNodeType_e::TClassDefine: {
       symbolTablePush();
     } break;
-    case SyntaxNodeType_e::TOperator:
-      break;
+    case SyntaxNodeType_e::TOperator: {
+      auto real_node = HicUtil_c::toType<SyntaxNode_operator_c>(node);
+      switch (real_node->oper) {
+      case WordEnumOperator_e::TUndefined:
+      case WordEnumOperator_e::TNone:
+      case WordEnumOperator_e::TLevel1:
+      case WordEnumOperator_e::TLevel2:
+      case WordEnumOperator_e::TEND:
+        // 不需要操作
+        break;
+      default:
+        break;
+      }
+    } break;
     }
     // 递归读取子节点
     for (auto& item : node->children) {
@@ -405,6 +418,8 @@ public:
       }
     }
   }
+
+  std::shared_ptr<SyntaxNode_c> tree() { return syntacticAnalysis.root; }
 
   // 作用域符号表
   std::vector<std::map<std::string, std::shared_ptr<SymbolItem_c>>> symbolTable{};
