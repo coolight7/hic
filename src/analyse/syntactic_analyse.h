@@ -225,6 +225,8 @@ public:
 
   _GEN_VALUE(SyntaxNode_value_define_c, value_define);
   _GEN_VALUE(WordItem_default_c, id);
+
+  std::shared_ptr<SymbolItem_value_c> symbol;
 };
 
 class SyntaxNode_value_define_init_c : public SyntaxNode_c {
@@ -256,6 +258,7 @@ public:
   }
 
   _GEN_VALUE(WordItem_c, id);
+  std::shared_ptr<SymbolItem_function_c> symbol;
 };
 
 class SyntaxNode_operator_c : public SyntaxNode_c {
@@ -273,6 +276,8 @@ public:
   }
 
   WordEnumOperator_e oper;
+
+  _GEN_VALUE(SyntaxNode_value_define_c, return_type);
 };
 
 class SyntaxNode_ctrl_return_c : public SyntaxNode_c {
@@ -374,9 +379,9 @@ public:
   _GEN_VALUE(SyntaxNode_group_c, body);
 };
 
-class SyntaxNode_function_define_c : public SyntaxNode_c {
+class SyntaxNode_function_define_c : public SyntaxNode_group_c {
 public:
-  SyntaxNode_function_define_c() : SyntaxNode_c(SyntaxNodeType_e::TFunctionDefine) {}
+  SyntaxNode_function_define_c() : SyntaxNode_group_c(SyntaxNodeType_e::TFunctionDefine) {}
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -399,10 +404,13 @@ public:
     return true;
   }
 
+  // [args] 和 [body] 在同一符号范围
   _GEN_VALUE(SyntaxNode_value_define_c, return_type);
   _GEN_VALUE(WordItem_c, id);
   std::list<std::shared_ptr<SyntaxNode_value_define_id_c>> args;
-  _GEN_VALUE(SyntaxNode_group_c, body);
+  _GEN_VALUE(SyntaxNode_c, body);
+
+  std::shared_ptr<SymbolItem_function_c> symbol;
 };
 
 class SyntaxNode_enum_define_c : public SyntaxNode_group_c {

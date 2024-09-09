@@ -22,7 +22,7 @@ public:
       return false;
     }
     if (enableLog_genNode) {
-      std::cout << "## AnalyseNode: ------ " << std::endl;
+      std::cout << "## GenNode: ------ " << std::endl;
       node->debugPrint();
     }
     return true;

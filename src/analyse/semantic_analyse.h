@@ -201,11 +201,13 @@ public:
         auto real_node = HicUtil_c::toType<SyntaxNode_value_define_id_c>(node);
         result->type = real_node->value_define;
         result->name = real_node->id->value;
+        real_node->symbol = result;
       } break;
       case SyntaxNodeType_e::TValueDefineInit: {
         auto real_node = HicUtil_c::toType<SyntaxNode_value_define_init_c>(node);
         result->type = real_node->define_id->value_define;
         result->name = real_node->define_id->id->value;
+        real_node->define_id->symbol = result;
       } break;
       default: {
         Assert_d(true == false, "非预期的变量定义节点：{}",
@@ -235,6 +237,7 @@ public:
       }
       // 关联函数声明
       exist_id->refs.push_back(real_node);
+      real_node->symbol = exist_id;
     } break;
     case SyntaxNodeType_e::TFunctionDefine: {
       auto result = std::make_shared<SymbolItem_function_c>();
@@ -260,6 +263,8 @@ public:
       if (false == analyseNode(real_node->body)) {
         return false;
       }
+      // 关联符号
+      real_node->symbol = result;
     } break;
     case SyntaxNodeType_e::TCtrlIfBranch: {
       symbolTablePush();
@@ -319,6 +324,14 @@ public:
       case WordEnumOperator_e::TEND:
         // 不需要操作
         break;
+      case WordEnumOperator_e::TEndAddAdd:
+      case WordEnumOperator_e::TEndSubSub:
+      case WordEnumOperator_e::TNot:
+      case WordEnumOperator_e::TShift:
+      case WordEnumOperator_e::TStartAddAdd:
+      case WordEnumOperator_e::TStartSubSub: {
+
+      } break;
       default:
         break;
       }
@@ -388,6 +401,7 @@ public:
     }
     return table;
   }
+
   std::shared_ptr<SymbolTable>& symbolTablePush() {
     return symbolTable.emplace_back(std::make_shared<SymbolTable>());
   }
@@ -428,11 +442,9 @@ public:
   void debugPrintSymbolTable() {
     int i = 0;
     for (const auto& table : symbolTable) {
-      std::cout << i + 1 << std::endl;
+      i++;
+      std::cout << i << std::endl;
       for (const auto& it : *table) {
-        for (auto j = i; j-- > 0;) {
-          std::cout << "  ";
-        }
         std::cout << "- " << it.second->name << " : " << std::endl;
         it.second->debugPrint();
       }

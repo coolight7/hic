@@ -2,6 +2,8 @@
 
 #include "analyse/syntactic_analyse.h"
 
+void test(int a) { int b = a + 1; }
+
 int main() {
   std::cout << "hello world" << std::endl;
   SyntacticAnalysis_c analyse;

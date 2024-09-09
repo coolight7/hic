@@ -127,5 +127,7 @@ public:
 class WordItem_c;
 class SyntaxNode_c;
 class SymbolItem_c;
+class SymbolItem_function_c;
+class SymbolItem_value_c;
 
 using SymbolTable = std::map<std::string, std::shared_ptr<SymbolItem_c>>;
