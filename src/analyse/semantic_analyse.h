@@ -117,7 +117,7 @@ public:
     return true;
   }
 
-  // 检查传入参数是否匹配
+  // TODO: 检查传入参数是否匹配
   bool checkFunArgs(std::list<std::shared_ptr<ListNode_c>>& args) {
     if (args.size() != type->args.size()) {
       SemLog(Terror, "函数参数个数不匹配: {} (预期 {} 个，但给定了 {} 个)", name, type->args.size(),
@@ -173,6 +173,17 @@ public:
     return (analyseNode(args) && ...);
   }
 
+  template <typename... _ARGS> bool tryAnalyseNodeList(std::shared_ptr<_ARGS>... args) {
+    return (tryAnalyseNode(args) && ...);
+  }
+
+  bool tryAnalyseNode(std::shared_ptr<SyntaxNode_c> node) {
+    if (nullptr == node) {
+      return true;
+    }
+    return analyseNode(node);
+  }
+
   /**
    * ## 解析节点
    * -
@@ -187,6 +198,7 @@ public:
       node->debugPrint();
     }
     int symbolTableDeep = symbolTable.size();
+    // [1]
     switch (node->syntaxType) {
     case SyntaxNodeType_e::TNormal:
     case SyntaxNodeType_e::TValueDefine: {
@@ -235,13 +247,13 @@ public:
       if (nullptr == exist_id) {
         return false;
       }
-      // 检查函数参数匹配
-      if (false == exist_id->checkFunArgs(real_node->children)) {
-        return false;
-      }
       // 关联函数声明
       exist_id->refs.push_back(real_node);
       real_node->symbol = exist_id;
+      // 读取参数节点，检查函数参数匹配
+      if (false == analyseChildren(node) || false == exist_id->checkFunArgs(real_node->children)) {
+        return false;
+      }
     } break;
     case SyntaxNodeType_e::TFunctionDefine: {
       auto result = std::make_shared<SymbolItem_function_c>();
@@ -252,11 +264,11 @@ public:
       if (false == checkIdDefine(result)) {
         return false;
       }
-      // 添加符号定义
+      // 添加函数符号定义
       // 当前函数符号所在的范围
       currentAddSymbol(result);
       // 压入新符号范围
-      symbolTablePush();
+      symbolTablePush(real_node.get());
       // 读取 args
       for (auto item : real_node->args) {
         if (false == analyseNode(item)) {
@@ -267,14 +279,23 @@ public:
       if (false == analyseNode(real_node->body)) {
         return false;
       }
+      // 检查 body 和 返回值是否匹配
+      if (false == SyntaxNode_value_define_c::compare(real_node->returnType(),
+                                                      real_node->body->returnType())) {
+        return false;
+      }
       // 关联符号
       real_node->symbol = result;
     } break;
     case SyntaxNodeType_e::TCtrlIfBranch: {
-      symbolTablePush();
       auto real_node = HicUtil_c::toType<SyntaxNode_if_branch_c>(node);
+      symbolTablePush(real_node->if_body.get());
       // 读取 expr || body
       if (false == analyseNodeList(real_node->if_expr, real_node->if_body)) {
+        return false;
+      }
+      // 检查 if_expr 返回 bool 类型
+      if (false == real_node->if_expr->isReturnBool()) {
         return false;
       }
     } break;
@@ -294,22 +315,35 @@ public:
       if (false == analyseNode(real_node->loop_expr) || false == analyseNode(real_node->body)) {
         return false;
       }
+      // 检查循环条件需要为 bool 类型
+      if (false == real_node->loop_expr->isReturnBool()) {
+        return false;
+      }
     } break;
     case SyntaxNodeType_e::TCtrlFor: {
-      // TODO: 将 for 的 start_expr 和 body 划分为两个符号范围 ？
+      // TODO: 将 for 的 [start_expr] 和 [body] 划分为两个符号范围？
       auto real_node = HicUtil_c::toType<SyntaxNode_for_c>(node);
       symbolTablePush(real_node.get());
       // 检查
-      if (false == analyseNodeList(real_node->start_expr, real_node->loop_expr,
-                                   real_node->loop_end_expr, real_node->body)) {
+      if (false == tryAnalyseNodeList(real_node->start_expr, real_node->loop_expr,
+                                      real_node->loop_end_expr) ||
+          false == analyseNode(real_node->body)) {
+        return false;
+      }
+      // 检查循环条件需要为 bool 类型
+      if (false == real_node->loop_expr->isReturnBool()) {
         return false;
       }
     } break;
     case SyntaxNodeType_e::TCtrlReturn: {
       auto real_node = HicUtil_c::toType<SyntaxNode_ctrl_return_c>(node);
-      if (false == analyseNode(real_node->data)) {
+      // 允许:
+      // - nullptr; return;
+      // - data;    return data;
+      if (false == tryAnalyseNode(real_node->data)) {
         return false;
       }
+      real_node->set_return_type(real_node->data->returnType());
     } break;
     case SyntaxNodeType_e::TEnumDefine: {
       auto real_node = HicUtil_c::toType<SyntaxNode_enum_define_c>(node);
@@ -332,6 +366,7 @@ public:
                  WordEnumOperator_c::toName(real_node->oper), real_node->children.size());
       } break;
       case WordEnumOperator_e::TNone:
+        break;
       case WordEnumOperator_e::TNot:
       case WordEnumOperator_e::TShift:
       case WordEnumOperator_e::TEndAddAdd:
@@ -341,14 +376,35 @@ public:
         // 单一操作数 int 型
         Assert_d(real_node->children.size() == 1, "{} 操作符预期需要 1 个操作数，但包含了 {} 个",
                  WordEnumOperator_c::toName(real_node->oper), real_node->children.size());
+        if (false == analyseChildren(real_node, 1)) {
+          return false;
+        }
+        // TODO: 断言 int
+        real_node->set_return_type(real_node->children.front()->returnType());
       } break;
       default: {
         // 两个操作数
-        Assert_d(real_node->children.size() == 2, "{} 操作符预期需要 1 个操作数，但包含了 {} 个",
+        Assert_d(real_node->children.size() == 2, "{} 操作符预期需要 2 个操作数，但包含了 {} 个",
                  WordEnumOperator_c::toName(real_node->oper), real_node->children.size());
+        if (false == analyseChildren(real_node, 2)) {
+          return false;
+        }
       } break;
       }
     } break;
+    }
+
+    // 恢复符号表层级
+    if (symbolTableDeep != symbolTable.size()) {
+      symbolTablePop();
+    }
+    return true;
+  }
+
+  bool analyseChildren(std::shared_ptr<SyntaxNode_c> node, int size = -1) {
+    if (size >= 0 && node->children.size() != size) {
+      SemLog(Terror, "{} 预期需要 2 个操作数，但包含了 {} 个", node->name(), node->children.size());
+      return false;
     }
     // 读取子节点
     for (auto& item : node->children) {
@@ -368,10 +424,6 @@ public:
       case ListNodeType_e::Symbol:
         return false;
       }
-    }
-    if (symbolTableDeep != symbolTable.size()) {
-      // 恢复符号表层级
-      symbolTablePop();
     }
     return true;
   }

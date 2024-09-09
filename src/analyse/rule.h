@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <map>
 #include <string>
 
 #include "magic/macro.h"
@@ -107,6 +108,16 @@ GENERATE_ENUM(SymbolType, Value, Function);
 #include "magic/unset_macro.h"
 #include "util.h"
 
+class WordItem_c;
+class WordItem_id_c;
+class SyntaxNode_c;
+class SyntaxNode_value_define_c;
+class SymbolItem_c;
+class SymbolItem_function_c;
+class SymbolItem_value_c;
+
+using SymbolTable = std::map<std::string, std::shared_ptr<SymbolItem_c>>;
+
 enum ListNodeType_e {
   Lexical,
   Syntactic,
@@ -120,14 +131,7 @@ public:
 
   virtual void printInfo() const {}
   virtual const std::string& name() const { return HicUtil_c::emptyString; }
+  virtual std::shared_ptr<SyntaxNode_value_define_c> returnType() const { return nullptr; }
 
   ListNodeType_e nodeType;
 };
-
-class WordItem_c;
-class SyntaxNode_c;
-class SymbolItem_c;
-class SymbolItem_function_c;
-class SymbolItem_value_c;
-
-using SymbolTable = std::map<std::string, std::shared_ptr<SymbolItem_c>>;
