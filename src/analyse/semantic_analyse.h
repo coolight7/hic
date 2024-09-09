@@ -86,7 +86,7 @@ public:
     case WordEnumToken_e::Tid: {
       // 自定义类型
       // 类型名称
-      return (type->value_type->toDefault().value == in_type.value_type->toDefault().value);
+      return (type->value_type->toId().value == in_type.value_type->toId().value);
     } break;
     case WordEnumToken_e::Ttype: {
       // 内置类型
@@ -173,6 +173,10 @@ public:
     return (analyseNode(args) && ...);
   }
 
+  /**
+   * ## 解析节点
+   * -
+   */
   bool analyseNode(std::shared_ptr<SyntaxNode_c> node) {
     if (nullptr == node) {
       return false;
@@ -200,13 +204,13 @@ public:
       case SyntaxNodeType_e::TValueDefineId: {
         auto real_node = HicUtil_c::toType<SyntaxNode_value_define_id_c>(node);
         result->type = real_node->value_define;
-        result->name = real_node->id->value;
+        result->name = real_node->id->id;
         real_node->symbol = result;
       } break;
       case SyntaxNodeType_e::TValueDefineInit: {
         auto real_node = HicUtil_c::toType<SyntaxNode_value_define_init_c>(node);
         result->type = real_node->define_id->value_define;
-        result->name = real_node->define_id->id->value;
+        result->name = real_node->define_id->id->id;
         real_node->define_id->symbol = result;
       } break;
       default: {
@@ -225,7 +229,7 @@ public:
       // 检查符号是否存在
       auto result = std::make_shared<SymbolItem_function_c>();
       auto real_node = HicUtil_c::toType<SyntaxNode_function_call_c>(node);
-      result->name = real_node->id->toDefault().value;
+      result->name = real_node->id->toId().value;
       // 检查符号定义
       auto exist_id = SymbolItem_c::toFunction(checkIdExist(result));
       if (nullptr == exist_id) {
@@ -242,7 +246,7 @@ public:
     case SyntaxNodeType_e::TFunctionDefine: {
       auto result = std::make_shared<SymbolItem_function_c>();
       auto real_node = HicUtil_c::toType<SyntaxNode_function_define_c>(node);
-      result->name = real_node->id->toDefault().value;
+      result->name = real_node->id->toId().value;
       result->type = real_node;
       // 检查定义
       if (false == checkIdDefine(result)) {
@@ -310,30 +314,39 @@ public:
     case SyntaxNodeType_e::TEnumDefine: {
       auto real_node = HicUtil_c::toType<SyntaxNode_enum_define_c>(node);
       symbolTablePush(real_node.get());
+      // TODO: 检查重名
     } break;
     case SyntaxNodeType_e::TClassDefine: {
       symbolTablePush();
+      // TODO: class
     } break;
     case SyntaxNodeType_e::TOperator: {
       auto real_node = HicUtil_c::toType<SyntaxNode_operator_c>(node);
       switch (real_node->oper) {
       case WordEnumOperator_e::TUndefined:
-      case WordEnumOperator_e::TNone:
       case WordEnumOperator_e::TLevel1:
       case WordEnumOperator_e::TLevel2:
-      case WordEnumOperator_e::TEND:
+      case WordEnumOperator_e::TEND: {
         // 不需要操作
-        break;
-      case WordEnumOperator_e::TEndAddAdd:
-      case WordEnumOperator_e::TEndSubSub:
+        Assert_d(real_node->children.empty() == true, "标记类操作符不应包含操作数 {} ({})",
+                 WordEnumOperator_c::toName(real_node->oper), real_node->children.size());
+      } break;
+      case WordEnumOperator_e::TNone:
       case WordEnumOperator_e::TNot:
       case WordEnumOperator_e::TShift:
+      case WordEnumOperator_e::TEndAddAdd:
+      case WordEnumOperator_e::TEndSubSub:
       case WordEnumOperator_e::TStartAddAdd:
       case WordEnumOperator_e::TStartSubSub: {
-
+        // 单一操作数 int 型
+        Assert_d(real_node->children.size() == 1, "{} 操作符预期需要 1 个操作数，但包含了 {} 个",
+                 WordEnumOperator_c::toName(real_node->oper), real_node->children.size());
       } break;
-      default:
-        break;
+      default: {
+        // 两个操作数
+        Assert_d(real_node->children.size() == 2, "{} 操作符预期需要 1 个操作数，但包含了 {} 个",
+                 WordEnumOperator_c::toName(real_node->oper), real_node->children.size());
+      } break;
       }
     } break;
     }
@@ -343,7 +356,7 @@ public:
       case ListNodeType_e::Lexical: {
         auto word_node = HicUtil_c::toType<WordItem_c>(item);
         switch (word_node->token) {
-          // TODO:
+          // TODO: 关联符号，确定类型
         }
       } break;
       case ListNodeType_e::Syntactic: {

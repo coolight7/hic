@@ -120,6 +120,8 @@ enum SyntaxNodeValueClass_e {
   Referer, // 引用
 };
 
+class SyntaxNode_value_define_c;
+
 /**
  * ## 语法树节点
  */
@@ -136,16 +138,6 @@ public:
   SyntaxNode_c(SyntaxNodeType_e type) : ListNode_c(ListNodeType_e::Syntactic), syntaxType(type) {}
 
   const std::string& name() const override { return HicUtil_c::emptyString; }
-
-  bool add(std::shared_ptr<ListNode_c> ptr) {
-    if (nullptr != ptr) {
-      children.push_back(ptr);
-      return true;
-    }
-    return false;
-  }
-
-  bool isEmpty() { return children.empty(); }
 
   void printInfo() const override { debugPrint(); }
 
@@ -169,6 +161,18 @@ public:
       index++;
     }
   }
+
+  virtual std::shared_ptr<SyntaxNode_value_define_c> returnType() const { return nullptr; }
+
+  bool add(std::shared_ptr<ListNode_c> ptr) {
+    if (nullptr != ptr) {
+      children.push_back(ptr);
+      return true;
+    }
+    return false;
+  }
+
+  bool isEmpty() { return children.empty(); }
 
   SyntaxNodeType_e syntaxType;
   std::list<std::shared_ptr<ListNode_c>> children{};
@@ -224,7 +228,7 @@ public:
   }
 
   _GEN_VALUE(SyntaxNode_value_define_c, value_define);
-  _GEN_VALUE(WordItem_default_c, id);
+  _GEN_VALUE(WordItem_id_c, id);
 
   std::shared_ptr<SymbolItem_value_c> symbol;
 };
@@ -257,7 +261,11 @@ public:
     SyntaxNode_c::debugPrint(tab, onOutPrefix);
   }
 
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+
   _GEN_VALUE(WordItem_c, id);
+
+  _GEN_VALUE(SyntaxNode_value_define_c, return_type);
   std::shared_ptr<SymbolItem_function_c> symbol;
 };
 
@@ -275,7 +283,11 @@ public:
     SyntaxNode_c::debugPrint(tab, onOutPrefix);
   }
 
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+
+  // 操作符类型
   WordEnumOperator_e oper;
+  // 操作数在 [children] 中
 
   _GEN_VALUE(SyntaxNode_value_define_c, return_type);
 };
@@ -503,8 +515,8 @@ public:
       }
     }
     if (enableLog_assertToken) {
-      SynLineLog(Twarning, "[assertToken] faild; word: {}, expect: {}", word.toString(),
-                 limit.toString());
+      SynLineLog(Twarning, "[assertToken] faild; word: {}, expect: {}", word.toFormat(),
+                 limit.toFormat());
     }
     return nullptr;
   }
@@ -566,10 +578,10 @@ public:
     return nullptr;
   }
 
-  std::shared_ptr<WordItem_default_c> parse_constexpr_string(std::shared_ptr<WordItem_c> word_ptr) {
+  std::shared_ptr<WordItem_string_c> parse_constexpr_string(std::shared_ptr<WordItem_c> word_ptr) {
     auto result = assertToken_type(WordEnumToken_e::Tstring, word_ptr);
     if (nullptr != result) {
-      return *((std::shared_ptr<WordItem_default_c>*)&result);
+      return HicUtil_c::toType<WordItem_string_c>(result);
     }
     return nullptr;
   }
@@ -619,7 +631,7 @@ public:
     if (re_node->set_value_define(parse_value_define(word_ptr))) {
       // ID
       if (re_node->set_id(
-              HicUtil_c::toType<WordItem_default_c>(assertToken_type(WordEnumToken_e::Tid)))) {
+              HicUtil_c::toType<WordItem_id_c>(assertToken_type(WordEnumToken_e::Tid)))) {
         return re_node;
       }
     }
@@ -735,6 +747,7 @@ public:
    */
   std::shared_ptr<SyntaxNode_operator_c>
   parse_expr(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
+    // TODO: 解析函数调用
     std::stack<std::shared_ptr<ListNode_c>> dataStack;
     std::stack<std::shared_ptr<WordItem_operator_c>> signStack;
     while (true) {

@@ -27,7 +27,7 @@ public:
   WordEnumType_e valueType;
 };
 
-class WordItem_default_c;
+class WordItem_string_c;
 class WordItem_operator_c;
 class WordItem_number_c;
 class WordItem_ctrl_c;
@@ -61,9 +61,13 @@ public:
     return std::shared_ptr<WordItem_c>(ptr);
   }
 
-  WordItem_default_c& toDefault() const {
-    Assert_d(WordEnumToken_e::Tstring == token || WordEnumToken_e::Tid == token);
-    return *((WordItem_default_c*)this);
+  WordItem_string_c& toString() const {
+    Assert_d(WordEnumToken_e::Tstring == token);
+    return *((WordItem_string_c*)this);
+  }
+  WordItem_string_c& toId() const {
+    Assert_d(WordEnumToken_e::Tid == token);
+    return *((WordItem_string_c*)this);
   }
   WordItem_operator_c& toOperator() const {
     Assert_d(WordEnumToken_e::Toperator == token);
@@ -88,24 +92,30 @@ public:
 
   virtual ~WordItem_c() {}
 
-  std::string toString() const {
+  std::string toFormat() const {
     return std::format("[{}] {}", WordEnumToken_c::toName(token), name());
   }
 
   WordEnumToken_e token;
 };
 
-// string
-// sign
-// id
-class WordItem_default_c : public WordItem_c {
+class WordItem_string_c : public WordItem_c {
 public:
-  WordItem_default_c(WordEnumToken_e in_type, const std::string_view& in_value)
-      : WordItem_c(in_type), value(in_value) {}
+  WordItem_string_c(const std::string_view& in_value)
+      : WordItem_c(WordEnumToken_e::Tstring), value(in_value) {}
 
   const std::string& name() const override { return value; }
 
   std::string value;
+};
+
+class WordItem_id_c : public WordItem_c {
+public:
+  WordItem_id_c(const std::string_view& in_id) : WordItem_c(WordEnumToken_e::Tid), id(in_id) {}
+
+  const std::string& name() const override { return id; }
+
+  std::string id;
 };
 
 class WordItem_operator_c : public WordItem_c {
@@ -426,14 +436,13 @@ public:
           }
           end = code_it;
           const auto name_view = std::string_view{start, end};
-          WordEnumToken_e token = WordEnumToken_e::Tid;
           // 查找是否已经存在该符号
           auto keywords = reserveKeywords();
           auto result = keywords.find(name_view);
           if (keywords.end() != result) {
             return result->second;
           } else {
-            return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tid, name_view);
+            return WordItem_c::make_shared<WordItem_id_c>(name_view);
           }
         }
       }
@@ -541,7 +550,7 @@ public:
           WordLog(Terror, "字符串缺少右边界：{}", startSign);
           return nullptr;
         } else {
-          return WordItem_c::make_shared<WordItem_default_c>(WordEnumToken_e::Tstring, value);
+          return WordItem_c::make_shared<WordItem_string_c>(value);
         }
       }
       {
