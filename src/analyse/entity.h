@@ -36,6 +36,8 @@ public:
     std::cout << " " << name() << std::endl;
   }
 
+  virtual std::shared_ptr<WordItem_c> copy() const { return nullptr; }
+
   template <typename _T, typename... _Args>
   static std::shared_ptr<WordItem_c> make_shared(_Args... args) {
     _T* ptr = new _T{std::forward<_Args>(args)...};
@@ -46,9 +48,9 @@ public:
     Assert_d(WordEnumToken_e::Tstring == token);
     return *((WordItem_string_c*)this);
   }
-  WordItem_string_c& toId() const {
+  WordItem_id_c& toId() const {
     Assert_d(WordEnumToken_e::Tid == token);
-    return *((WordItem_string_c*)this);
+    return *((WordItem_id_c*)this);
   }
   WordItem_operator_c& toOperator() const {
     Assert_d(WordEnumToken_e::Toperator == token);
@@ -95,13 +97,10 @@ public:
 
   const std::string& name() const override { return value; }
 
-  // std::shared_ptr<SyntaxNode_value_define_c> returnType() const override {
-  //   auto node = std::make_shared<SyntaxNode_value_define_c>();
-  //   node->set_value_type(this);
-  //   return node;
-  // }
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
 
   std::string value;
+  std::shared_ptr<SyntaxNode_value_define_c> return_type;
 };
 
 class WordItem_id_c : public WordItem_c {
@@ -110,7 +109,10 @@ public:
 
   const std::string& name() const override { return id; }
 
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+
   std::string id;
+  std::shared_ptr<SyntaxNode_value_define_c> return_type;
 };
 
 class WordItem_operator_c : public WordItem_c {
@@ -303,9 +305,12 @@ public:
   }
 
   const std::string& name() const override { return name_; }
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
 
   std::string name_;
   long long value;
+
+  std::shared_ptr<SyntaxNode_value_define_c> return_type;
 };
 
 class WordItem_ctrl_c : public WordItem_c {
@@ -330,8 +335,10 @@ public:
     Assert_d(value >= 0 && value < WordEnumType_c::namelist.size());
     return WordEnumType_c::namelist[value];
   }
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
 
   WordEnumType_e value;
+  std::shared_ptr<SyntaxNode_value_define_c> return_type;
 };
 
 class WordItem_nativeCall_c : public WordItem_c {
@@ -344,8 +351,11 @@ public:
     return WordEnumNativeCall_c::namelist[value];
   }
 
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+
   // index
   WordEnumNativeCall_e value;
+  std::shared_ptr<SyntaxNode_value_define_c> return_type;
 };
 
 // syntax ---
@@ -499,6 +509,20 @@ public:
 class SyntaxNode_value_define_c : public SyntaxNode_c {
 public:
   SyntaxNode_value_define_c() : SyntaxNode_c(SyntaxNodeType_e::TValueDefine) {}
+  SyntaxNode_value_define_c(bool in_isConst) : SyntaxNode_c(SyntaxNodeType_e::TValueDefine) {
+    if (in_isConst) {
+      isFinal = true;
+      isConstexpr = true;
+    }
+  }
+  // 浅拷贝，拥有同样的 [value_type]
+  SyntaxNode_value_define_c(const SyntaxNode_value_define_c& crude)
+      : SyntaxNode_c(SyntaxNodeType_e::TValueDefine) {
+    value_type = crude.value_type;
+    isFinal = crude.isFinal;
+    isConstexpr = crude.isConstexpr;
+    pointer = crude.pointer;
+  }
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -537,8 +561,10 @@ public:
 
   // Type | ID
   _GEN_VALUE(WordItem_c, value_type);
-  bool isReferer = false; // 是否是引用类型
-  size_t pointer = 0;     // 指针层数
+  bool isFinal = false;     // 不允许修改
+  bool isConstexpr = false; // 常量
+  bool isReferer = false;   // 是否是引用类型
+  size_t pointer = 0;       // 指针层数
 };
 
 class SyntaxNode_operator_c : public SyntaxNode_c {
@@ -850,7 +876,7 @@ public:
     case WordEnumToken_e::Tid: {
       // 自定义类型
       // 类型名称
-      return (type->value_type->toId().value == in_type.value_type->toId().value);
+      return (type->value_type->toId().id == in_type.value_type->toId().id);
     } break;
     case WordEnumToken_e::Ttype: {
       // 内置类型

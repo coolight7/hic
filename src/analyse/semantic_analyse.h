@@ -30,12 +30,18 @@ public:
     return true;
   }
 
-  std::shared_ptr<SymbolItem_c> checkIdExist(std::shared_ptr<SymbolItem_c> symbol) {
-    Assert_d(nullptr != symbol, "符号不应为 nullptr");
-    Assert_d(false == symbol->name.empty(), "符号名称不应为空");
-    auto result = symbolTableFind(symbol->name);
+  std::shared_ptr<SymbolItem_c> checkIdExist(const std::shared_ptr<SymbolItem_c>& symbol) {
+    Assert_d(nullptr != symbol, "符号名称不应为空");
+    if (nullptr == symbol) {
+      return nullptr;
+    }
+    return checkIdExist(symbol->name);
+  }
+  std::shared_ptr<SymbolItem_c> checkIdExist(const std::string& name) {
+    Assert_d(false == name.empty(), "符号名称不应为空");
+    auto result = symbolTableFind(name);
     if (nullptr == result) {
-      UtilLog(Terror, "未定义符号: {}", symbol->name);
+      UtilLog(Terror, "未定义符号: {}", name);
     }
     return result;
   }
@@ -117,7 +123,7 @@ public:
       // 检查符号是否存在
       auto result = std::make_shared<SymbolItem_function_c>();
       auto real_node = HicUtil_c::toType<SyntaxNode_function_call_c>(node);
-      result->name = real_node->id->toId().value;
+      result->name = real_node->id->toId().id;
       // 检查符号定义
       auto exist_id = SymbolItem_c::toFunction(checkIdExist(result));
       if (nullptr == exist_id) {
@@ -134,7 +140,7 @@ public:
     case SyntaxNodeType_e::TFunctionDefine: {
       auto result = std::make_shared<SymbolItem_function_c>();
       auto real_node = HicUtil_c::toType<SyntaxNode_function_define_c>(node);
-      result->name = real_node->id->toId().value;
+      result->name = real_node->id->toId().id;
       result->type = real_node;
       // 添加函数符号定义
       // 当前函数符号所在的范围
@@ -254,27 +260,117 @@ public:
         Assert_d(real_node->children.empty() == true, "标记类操作符不应包含操作数 {} ({})",
                  WordEnumOperator_c::toName(real_node->oper), real_node->children.size());
       } break;
-      case WordEnumOperator_e::TNone:
-        break;
-      case WordEnumOperator_e::TNot:
+      case WordEnumOperator_e::TNone: {
+        if (false == analyseChildren(real_node)) {
+          return false;
+        }
+        if (real_node->children.size() == 1) {
+          real_node->set_return_type(real_node->children.front()->returnType());
+        }
+      } break;
+      case WordEnumOperator_e::TNot: {
+        // !
+        // 单一操作数 bool 型
+        if (false == analyseChildren(real_node, 1)) {
+          return false;
+        }
+        // 断言 bool
+        auto type = real_node->children.front()->returnType();
+        if (nullptr == type || false == type->isBoolValue()) {
+          return false;
+        }
+        real_node->set_return_type(type);
+      } break;
       case WordEnumOperator_e::TShift:
       case WordEnumOperator_e::TEndAddAdd:
       case WordEnumOperator_e::TEndSubSub:
       case WordEnumOperator_e::TStartAddAdd:
       case WordEnumOperator_e::TStartSubSub: {
         // 单一操作数 int 型
-        Assert_d(real_node->children.size() == 1, "{} 操作符预期需要 1 个操作数，但包含了 {} 个",
-                 WordEnumOperator_c::toName(real_node->oper), real_node->children.size());
         if (false == analyseChildren(real_node, 1)) {
           return false;
         }
-        // TODO: 断言 int
-        real_node->set_return_type(real_node->children.front()->returnType());
+        // 检查 int
+        auto type = real_node->children.front()->returnType();
+        if (nullptr == type || false == type->isIntValue()) {
+          return false;
+        }
+        real_node->set_return_type(type);
+      } break;
+      case WordEnumOperator_e::TBitAnd: { // & 取址/按位与
+        // 1 或 2 个操作数
+        if (false == analyseChildren(real_node, 1, 2)) {
+          return false;
+        }
+        if (real_node->children.size() == 1) {
+          // 取址
+          auto crude_type = real_node->children.front()->returnType();
+          if (nullptr == crude_type) {
+            UtilLog(Terror, "操作符 {} 的操作数类型不应为空", real_node->name());
+            return false;
+          }
+          auto type = std::make_shared<SyntaxNode_value_define_c>(*crude_type);
+          // TODO: 不允许对字面量取址
+          type->isReferer = false;
+          type->pointer++;
+          real_node->set_return_type(type);
+        } else if (real_node->children.size() == 2) {
+          // 按位与
+          if (false == analyseChildren(real_node, 1)) {
+            return false;
+          }
+          // 检查 int,int
+          auto first = real_node->children.front()->returnType();
+          auto second = real_node->children.back()->returnType();
+          if (nullptr == first || false == first->isIntValue() || nullptr == second ||
+              false == second->isIntValue()) {
+            return false;
+          }
+          real_node->set_return_type(first);
+        } else {
+          return false;
+        }
+      } break;
+      case WordEnumOperator_e::TMulti: { // * 读址 / 乘法
+        // 1 或 2 个操作数
+        if (false == analyseChildren(real_node, 1, 2)) {
+          return false;
+        }
+        if (real_node->children.size() == 1) {
+          // 读址
+          auto crude_type = real_node->children.front()->returnType();
+          if (nullptr == crude_type) {
+            UtilLog(Terror, "操作符 {} 的操作数类型不应为空", real_node->name());
+            return false;
+          }
+          auto type = std::make_shared<SyntaxNode_value_define_c>(*crude_type);
+          // TODO: 不允许对字面量读址
+          if (type->pointer <= 0) {
+            UtilLog(Terror, "操作符 {} 的操作数需要指针类型", real_node->name());
+            return false;
+          }
+          type->isReferer = false;
+          type->pointer--;
+          real_node->set_return_type(type);
+        } else if (real_node->children.size() == 2) {
+          // 乘法
+          if (false == analyseChildren(real_node, 1)) {
+            return false;
+          }
+          // 检查 int,int
+          auto first = real_node->children.front()->returnType();
+          auto second = real_node->children.back()->returnType();
+          if (nullptr == first || false == first->isIntValue() || nullptr == second ||
+              false == second->isIntValue()) {
+            return false;
+          }
+          real_node->set_return_type(first);
+        } else {
+          return false;
+        }
       } break;
       default: {
         // 两个操作数
-        Assert_d(real_node->children.size() == 2, "{} 操作符预期需要 2 个操作数，但包含了 {} 个",
-                 WordEnumOperator_c::toName(real_node->oper), real_node->children.size());
         if (false == analyseChildren(real_node, 2)) {
           return false;
         }
@@ -292,10 +388,13 @@ public:
     return true;
   }
 
-  bool analyseChildren(std::shared_ptr<SyntaxNode_c> node, int size = -1) {
-    if (size >= 0 && node->children.size() != size) {
-      UtilLog(Terror, "{} 预期需要 2 个操作数，但包含了 {} 个", node->name(),
-              node->children.size());
+  template <typename... _Args>
+  bool analyseChildren(std::shared_ptr<SyntaxNode_c> node, int size = -1, _Args... args) {
+    if (size >= 0 && node->children.size() != size && ((node->children.size() != args) && ...)) {
+      UtilLog(Terror, "{} 包含了 {} 个参数，但预期需要:", node->name(), node->children.size());
+      std::cout << size;
+      ((std::cout << " / ", std::cout << args), ...);
+      std::cout << std::endl;
       return false;
     }
     // 读取子节点
@@ -304,9 +403,60 @@ public:
       index++;
       switch (item->nodeType) {
       case ListNodeType_e::Lexical: {
+        // 仅 operator 需要
+        if (SyntaxNodeType_e::TOperator != node->syntaxType) {
+          continue;
+        }
         auto word_node = HicUtil_c::toType<WordItem_c>(item);
         switch (word_node->token) {
-          // TODO: 关联符号，确定类型
+        // TODO: 分配常量区
+        case WordEnumToken_e::Tid: {
+          auto& real_node = word_node->toId();
+          // 查找符号
+          auto exist_id = checkIdExist(real_node.id);
+          if (nullptr == exist_id) {
+            return false;
+          }
+          // 不会是 function
+          switch (exist_id->symbolType) {
+          case SymbolType_e::TValue: {
+            real_node.return_type = SymbolItem_c::toValue(exist_id)->type;
+          } break;
+          case SymbolType_e::TEnum:
+          case SymbolType_e::TClass: {
+            // TODO: 关联其他值类型符号
+          } break;
+          case SymbolType_e::TFunction:
+          default: {
+            UtilLog(Terror, "操作符 ID叶子节点 不能是函数名称：{}",
+                    SymbolItem_c::toFunction(exist_id)->name);
+            return false;
+          } break;
+          }
+        } break;
+        case WordEnumToken_e::Ttype: {
+          auto& real_node = word_node->toType();
+          real_node.return_type = std::make_shared<SyntaxNode_value_define_c>();
+          real_node.return_type->value_type = word_node;
+        } break;
+        case WordEnumToken_e::Tkeyword: {
+        } break;
+        case WordEnumToken_e::TnativeCall: {
+          auto& real_node = word_node->toNativeCall();
+          real_node.return_type = std::make_shared<SyntaxNode_value_define_c>(true);
+          // TODO: 返回对应函数返回值类型
+          real_node.return_type->value_type = word_node;
+        } break;
+        case WordEnumToken_e::Tnumber: {
+          auto& real_node = word_node->toNumber();
+          real_node.return_type = std::make_shared<SyntaxNode_value_define_c>(true);
+          real_node.return_type->value_type = word_node;
+        } break;
+        case WordEnumToken_e::Tstring: {
+          auto& real_node = word_node->toString();
+          real_node.return_type = std::make_shared<SyntaxNode_value_define_c>(true);
+          real_node.return_type->value_type = word_node;
+        } break;
         }
       } break;
       case ListNodeType_e::Syntactic: {
