@@ -137,26 +137,26 @@ public:
     return nullptr;
   }
 
-  std::shared_ptr<WordItem_c> assertToken_name(const std::string& name,
-                                               std::shared_ptr<WordItem_c> word_ptr = nullptr,
-                                               bool startWith = false) {
+  std::shared_ptr<WordItem_id_c> assertToken_id(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
     _GEN_WORD(word);
-    if ((startWith && word.name().starts_with(name)) || (name == word.name())) {
-      return word_ptr;
+    if (WordEnumToken_e::Tid == word.token) {
+      return HicUtil_c::toType<WordItem_id_c>(word_ptr);
     }
     return nullptr;
   }
 
-  std::shared_ptr<WordItem_c> assertToken_sign(WordEnumOperator_e sign,
-                                               std::shared_ptr<WordItem_c> word_ptr = nullptr,
-                                               bool startWith = false) {
-    return assertToken(WordItem_operator_c{sign}, word_ptr, startWith);
+  std::shared_ptr<WordItem_operator_c>
+  assertToken_sign(WordEnumOperator_e sign, std::shared_ptr<WordItem_c> word_ptr = nullptr,
+                   bool startWith = false) {
+    return HicUtil_c::toType<WordItem_operator_c>(
+        assertToken(WordItem_operator_c{sign}, word_ptr, startWith));
   }
 
-  std::shared_ptr<WordItem_c> assertToken_sign(const std::string_view sign,
-                                               std::shared_ptr<WordItem_c> word_ptr = nullptr,
-                                               bool startWith = false) {
-    return assertToken(WordItem_operator_c{WordItem_operator_c::toEnum(sign)}, word_ptr, startWith);
+  std::shared_ptr<WordItem_operator_c>
+  assertToken_sign(const std::string_view sign, std::shared_ptr<WordItem_c> word_ptr = nullptr,
+                   bool startWith = false) {
+    return HicUtil_c::toType<WordItem_operator_c>(
+        assertToken(WordItem_operator_c{WordItem_operator_c::toEnum(sign)}, word_ptr, startWith));
   }
 
   // 花括号
@@ -237,8 +237,7 @@ public:
     auto re_node = std::make_shared<SyntaxNode_value_define_id_c>();
     if (re_node->set_value_define(parse_value_define(word_ptr))) {
       // ID
-      if (re_node->set_id(
-              HicUtil_c::toType<WordItem_id_c>(assertToken_type(WordEnumToken_e::Tid)))) {
+      if (re_node->set_id(HicUtil_c::toType<WordItem_id_c>(assertToken_id()))) {
         return re_node;
       }
     }
@@ -354,7 +353,6 @@ public:
    */
   std::shared_ptr<SyntaxNode_operator_c>
   parse_expr(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
-    // TODO: 解析函数调用
     std::stack<std::shared_ptr<ListNode_c>> dataStack;
     std::stack<std::shared_ptr<WordItem_operator_c>> signStack;
     while (true) {
@@ -590,7 +588,7 @@ public:
   std::shared_ptr<SyntaxNode_function_call_c>
   parse_function_call(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
     auto re_node = std::make_shared<SyntaxNode_function_call_c>();
-    if (re_node->set_id(assertToken_type(WordEnumToken_e::Tid, word_ptr))) {
+    if (re_node->set_id(assertToken_id(word_ptr))) {
       if (assertToken_sign("(")) {
         std::shared_ptr<WordItem_c> sign_ptr;
         // 参数列表
@@ -619,7 +617,7 @@ public:
     // 返回值
     if (re_node->set_return_type(parse_value_define(word_ptr))) {
       // 函数名
-      if (re_node->set_id(assertToken_type(WordEnumToken_e::Tid))) {
+      if (re_node->set_id(HicUtil_c::toType<WordItem_id_c>(assertToken_id()))) {
         // 参数列表
         if (assertToken_sign("(")) {
           std::shared_ptr<WordItem_c> sign_ptr;
@@ -650,7 +648,7 @@ public:
   parse_function_noReturn_define(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
     // {函数名} ({参数列表}*) { {code} }
     auto re_node = std::make_shared<SyntaxNode_c>();
-    if (re_node->add(assertToken_type(WordEnumToken_e::Tid, word_ptr))) {
+    if (re_node->add(assertToken_id(word_ptr))) {
       if (assertToken_sign("(")) {
         std::shared_ptr<WordItem_c> sign_ptr;
         while (re_node->add(parse_value_define_id())) {
@@ -672,12 +670,12 @@ public:
   parse_enum_define(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
     auto re_node = std::make_shared<SyntaxNode_enum_define_c>();
     if (assertToken(WordItem_type_c{WordEnumType_e::Tenum}, word_ptr)) {
-      if (re_node->set_id(assertToken_type(WordEnumToken_e::Tid)) && assertToken_sign("{")) {
+      if (re_node->set_id(assertToken_id()) && assertToken_sign("{")) {
         // ID 列表
         std::shared_ptr<WordItem_c> sign_ptr;
         // TODO: 解析 id <= number>?
         _GEN_WORD(sign);
-        while (re_node->add(assertToken_type(WordEnumToken_e::Tid, sign_ptr))) {
+        while (re_node->add(assertToken_id(sign_ptr))) {
           sign_ptr = nullptr;
           _GEN_WORD(sign);
           if (nullptr == assertToken_sign(",", sign_ptr)) {

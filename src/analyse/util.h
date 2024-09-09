@@ -44,6 +44,9 @@ public:
 
   template <typename RET, typename ARG>
   inline static std::shared_ptr<RET> toType(std::shared_ptr<ARG> arg) {
+    if (nullptr == arg) {
+      return nullptr;
+    }
     return *(static_cast<std::shared_ptr<RET>*>((void*)&arg));
   }
 };

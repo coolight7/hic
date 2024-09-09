@@ -472,6 +472,7 @@ public:
       return false;
     }
     currentSymbolTable()->insert(std::pair{item->name, item});
+    return true;
   }
 
   std::shared_ptr<SymbolTable>& globalSymbolTable() {
