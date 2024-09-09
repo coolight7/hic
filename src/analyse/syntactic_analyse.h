@@ -674,9 +674,9 @@ public:
         // ID 列表
         std::shared_ptr<WordItem_c> sign_ptr;
         // TODO: 解析 id = int?
-        _GEN_WORD(sign);
         int index = 0;
         while (true) {
+          _GEN_WORD(sign);
           auto item = assertToken_id(sign_ptr);
           if (nullptr == item) {
             break;
@@ -693,9 +693,11 @@ public:
 
           re_node->add(result);
           sign_ptr = nullptr;
-          _GEN_WORD(sign);
-          if (nullptr == assertToken_sign(",", sign_ptr)) {
-            break;
+          {
+            _GEN_WORD(sign);
+            if (nullptr == assertToken_sign(",", sign_ptr)) {
+              break;
+            }
           }
           sign_ptr = nullptr;
           index++;

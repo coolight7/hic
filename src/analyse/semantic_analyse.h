@@ -10,8 +10,6 @@ public:
 
   bool init(std::string_view in_code) {
     symbolTableStack.clear();
-    // 添加 global 全局符号表
-    symbolTablePush();
     return syntacticAnalysis.init(in_code);
   }
 
@@ -75,11 +73,17 @@ public:
     switch (node->syntaxType) {
     case SyntaxNodeType_e::TNormal:
     case SyntaxNodeType_e::TValueDefine: {
+      if (false == analyseChildren(node)) {
+        return false;
+      }
     } break;
     case SyntaxNodeType_e::TGroup: {
       // {} 隔离符号范围
       auto real_node = HicUtil_c::toType<SyntaxNode_group_c>(node);
       symbolTablePush(real_node.get());
+      if (false == analyseChildren(node)) {
+        return false;
+      }
     } break;
     case SyntaxNodeType_e::TValueDefineId:
     case SyntaxNodeType_e::TValueDefineInit: {
@@ -230,7 +234,7 @@ public:
         return false;
       }
       symbolTablePush(real_node.get());
-      // TODO: 检查重命名，添加枚举变量符号
+      // 检查重命名，添加枚举变量符号
       if (false == analyseChildren(real_node)) {
         return false;
       }
@@ -274,6 +278,8 @@ public:
         if (false == analyseChildren(real_node, 2)) {
           return false;
         }
+        // 取第二个参数的类型
+        real_node->set_return_type(real_node->children.front()->returnType());
       } break;
       }
     } break;
@@ -288,11 +294,14 @@ public:
 
   bool analyseChildren(std::shared_ptr<SyntaxNode_c> node, int size = -1) {
     if (size >= 0 && node->children.size() != size) {
-      UtilLog(Terror, "{} 预期需要 2 个操作数，但包含了 {} 个", node->name(), node->children.size());
+      UtilLog(Terror, "{} 预期需要 2 个操作数，但包含了 {} 个", node->name(),
+              node->children.size());
       return false;
     }
     // 读取子节点
+    int index = 0;
     for (auto& item : node->children) {
+      index++;
       switch (item->nodeType) {
       case ListNodeType_e::Lexical: {
         auto word_node = HicUtil_c::toType<WordItem_c>(item);
@@ -306,8 +315,11 @@ public:
           return false;
         }
       } break;
-      case ListNodeType_e::Symbol:
+      case ListNodeType_e::Symbol: {
+        UtilLog(Terror, "{} 非预期的子节点类型为 符号表项 {}/{}", node->name(), index,
+                node->children.size());
         return false;
+      }
       }
     }
     return true;

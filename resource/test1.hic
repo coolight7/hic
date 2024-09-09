@@ -12,7 +12,8 @@ int test(int& a, int** &b) {
 enum Hello_e {
   A1,
   B2,
-  CC
+  CC,
+  // A1,
 };
 
 int main(char** args, int size) {
