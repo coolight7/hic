@@ -4,143 +4,6 @@
 
 #include "syntactic_analyse.h"
 
-/**
- * - 注意此处也需要 `##__VA_ARGS__`，否则会多传 `,逗号` 给 UtilLog导致展开异常
- */
-#define SemLog(level, tip, ...) UtilLog(level, tip, ##__VA_ARGS__)
-
-class SymbolItem_value_c;
-class SymbolItem_function_c;
-
-/**
- * 符号表项
- */
-class SymbolItem_c : public ListNode_c {
-public:
-  SymbolItem_c(SymbolType_e in_symbolType)
-      : ListNode_c(ListNodeType_e::Symbol), symbolType(in_symbolType) {}
-
-  SymbolItem_c(const SymbolItem_c&) = delete;
-
-  virtual bool hasType() const { return true; }
-
-  inline static std::shared_ptr<SymbolItem_value_c> toValue(std::shared_ptr<SymbolItem_c> ptr) {
-    if (nullptr != ptr) {
-      switch (ptr->symbolType) {
-      case SymbolType_e::TValue: {
-        return HicUtil_c::toType<SymbolItem_value_c>(ptr);
-      } break;
-      case SymbolType_e::TFunction: {
-      } break;
-      }
-    }
-    return nullptr;
-  }
-
-  inline static std::shared_ptr<SymbolItem_function_c>
-  toFunction(std::shared_ptr<SymbolItem_c> ptr) {
-    if (nullptr != ptr) {
-      switch (ptr->symbolType) {
-      case SymbolType_e::TValue: {
-      } break;
-      case SymbolType_e::TFunction: {
-        return HicUtil_c::toType<SymbolItem_function_c>(ptr);
-      } break;
-      }
-    }
-    return nullptr;
-  }
-
-  virtual void debugPrint() {
-    std::cout << SymbolType_c::toName(symbolType) << " : " << name << std::endl;
-  }
-
-  SymbolType_e symbolType;
-  std::string name;
-};
-
-// 变量符号定义
-class SymbolItem_value_c : public SymbolItem_c {
-public:
-  SymbolItem_value_c() : SymbolItem_c(SymbolType_e::TValue) {}
-
-  virtual void debugPrint() {
-    std::cout << SymbolType_c::toName(symbolType) << " : " << name << std::endl;
-  }
-
-  bool hasType() const override { return (nullptr != type); }
-
-  // 检查变量类型
-  // - 对象自身为已定义符号
-  // - [in_type] 为引用符号类型需求
-  bool checkValueType(const SyntaxNode_value_define_c&& in_type) {
-    if (type->value_type->token != in_type.value_type->token) {
-      return false;
-    }
-    if (type->pointer != in_type.pointer) {
-      // 检查指针层级
-      // 不用检查引用 type->isReferer != in_type.isReferer
-      return false;
-    }
-    switch (type->value_type->token) {
-    case WordEnumToken_e::Tid: {
-      // 自定义类型
-      // 类型名称
-      return (type->value_type->toId().value == in_type.value_type->toId().value);
-    } break;
-    case WordEnumToken_e::Ttype: {
-      // 内置类型
-      return (type->value_type->toType().value == in_type.value_type->toType().value);
-    } break;
-    default:
-      Assert_d(true == false, "{} 非法的变量类型: {}", name,
-               WordEnumToken_c::toName(type->value_type->token));
-      return false;
-      break;
-    }
-  }
-
-  std::shared_ptr<SyntaxNode_value_define_c> type;
-  std::list<std::shared_ptr<WordItem_c>> refs;
-};
-
-// 函数符号定义
-class SymbolItem_function_c : public SymbolItem_c {
-public:
-  SymbolItem_function_c() : SymbolItem_c(SymbolType_e::TFunction) {}
-
-  bool hasType() const override { return (nullptr != type); }
-
-  // 检查函数类型
-  template <typename... _ARGS>
-  bool checkFunType(const SyntaxNode_value_define_c&& return_type, const _ARGS&&... args) {
-    return true;
-  }
-
-  // TODO: 检查传入参数是否匹配
-  bool checkFunArgs(std::list<std::shared_ptr<ListNode_c>>& args) {
-    if (args.size() != type->args.size()) {
-      SemLog(Terror, "函数参数个数不匹配: {} (预期 {} 个，但给定了 {} 个)", name, type->args.size(),
-             args.size());
-      return false;
-    }
-    return true;
-  }
-
-  std::shared_ptr<SyntaxNode_function_define_c> type;
-  std::list<std::shared_ptr<SyntaxNode_function_call_c>> refs;
-};
-
-// 枚举符号定义
-class SymbolItem_enum_c : public SymbolItem_c {
-public:
-  SymbolItem_enum_c() : SymbolItem_c(SymbolType_e::TEnum) {}
-
-  bool hasType() const override { return (nullptr != type); }
-
-  std::shared_ptr<SyntaxNode_enum_define_c> type;
-};
-
 class SemanticAnalyse_c {
 public:
   inline static bool enableLog_analyseNode = false;
@@ -158,12 +21,12 @@ public:
     auto& table = currentSymbolTable();
     if (table->find(symbol->name) != table->end()) {
       // 重定义
-      SemLog(Terror, "重定义符号: {}", symbol->name);
+      UtilLog(Terror, "重定义符号: {}", symbol->name);
       return false;
     }
     if (false == symbol->hasType()) {
       // 缺少类型
-      SemLog(Terror, "符号声明缺少类型: {}", symbol->name);
+      UtilLog(Terror, "符号声明缺少类型: {}", symbol->name);
       return false;
     }
     return true;
@@ -174,7 +37,7 @@ public:
     Assert_d(false == symbol->name.empty(), "符号名称不应为空");
     auto result = symbolTableFind(symbol->name);
     if (nullptr == result) {
-      SemLog(Terror, "未定义符号: {}", symbol->name);
+      UtilLog(Terror, "未定义符号: {}", symbol->name);
     }
     return result;
   }
@@ -359,7 +222,7 @@ public:
       result->type = real_node;
       // 检查声明位置为全局区
       if (symbolTableStack.size() != 1) {
-        SemLog(Terror, "Enum 应当声明在全局区");
+        UtilLog(Terror, "Enum 应当声明在全局区");
         return false;
       }
       // 添加枚举名符号
@@ -425,7 +288,7 @@ public:
 
   bool analyseChildren(std::shared_ptr<SyntaxNode_c> node, int size = -1) {
     if (size >= 0 && node->children.size() != size) {
-      SemLog(Terror, "{} 预期需要 2 个操作数，但包含了 {} 个", node->name(), node->children.size());
+      UtilLog(Terror, "{} 预期需要 2 个操作数，但包含了 {} 个", node->name(), node->children.size());
       return false;
     }
     // 读取子节点
@@ -482,7 +345,7 @@ public:
 
   std::shared_ptr<SymbolTable>& currentSymbolTable() {
     Assert_d(symbolTableStack.empty() == false);
-    SemLog(Tdebug, "SymbolTable.size(): {}", symbolTableStack.size());
+    UtilLog(Tdebug, "SymbolTable.size(): {}", symbolTableStack.size());
     return symbolTableStack.back();
   }
 
@@ -549,5 +412,3 @@ public:
   std::vector<std::shared_ptr<SymbolTable>> symbolTableStack{};
   SyntacticAnalysis_c syntacticAnalysis{};
 };
-
-#undef SemLog

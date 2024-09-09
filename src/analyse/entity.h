@@ -763,3 +763,136 @@ public:
 
   _GEN_VALUE(WordItem_id_c, id);
 };
+
+// semantic ---
+class SymbolItem_value_c;
+class SymbolItem_function_c;
+
+/**
+ * 符号表项
+ */
+class SymbolItem_c : public ListNode_c {
+public:
+  SymbolItem_c(SymbolType_e in_symbolType)
+      : ListNode_c(ListNodeType_e::Symbol), symbolType(in_symbolType) {}
+
+  SymbolItem_c(const SymbolItem_c&) = delete;
+
+  virtual bool hasType() const { return true; }
+
+  inline static std::shared_ptr<SymbolItem_value_c> toValue(std::shared_ptr<SymbolItem_c> ptr) {
+    if (nullptr != ptr) {
+      switch (ptr->symbolType) {
+      case SymbolType_e::TValue: {
+        return HicUtil_c::toType<SymbolItem_value_c>(ptr);
+      } break;
+      case SymbolType_e::TFunction: {
+      } break;
+      }
+    }
+    return nullptr;
+  }
+
+  inline static std::shared_ptr<SymbolItem_function_c>
+  toFunction(std::shared_ptr<SymbolItem_c> ptr) {
+    if (nullptr != ptr) {
+      switch (ptr->symbolType) {
+      case SymbolType_e::TValue: {
+      } break;
+      case SymbolType_e::TFunction: {
+        return HicUtil_c::toType<SymbolItem_function_c>(ptr);
+      } break;
+      }
+    }
+    return nullptr;
+  }
+
+  virtual void debugPrint() {
+    std::cout << SymbolType_c::toName(symbolType) << " : " << name << std::endl;
+  }
+
+  SymbolType_e symbolType;
+  std::string name;
+};
+
+// 变量符号定义
+class SymbolItem_value_c : public SymbolItem_c {
+public:
+  SymbolItem_value_c() : SymbolItem_c(SymbolType_e::TValue) {}
+
+  virtual void debugPrint() {
+    std::cout << SymbolType_c::toName(symbolType) << " : " << name << std::endl;
+  }
+
+  bool hasType() const override { return (nullptr != type); }
+
+  // 检查变量类型
+  // - 对象自身为已定义符号
+  // - [in_type] 为引用符号类型需求
+  bool checkValueType(const SyntaxNode_value_define_c&& in_type) {
+    if (type->value_type->token != in_type.value_type->token) {
+      return false;
+    }
+    if (type->pointer != in_type.pointer) {
+      // 检查指针层级
+      // 不用检查引用 type->isReferer != in_type.isReferer
+      return false;
+    }
+    switch (type->value_type->token) {
+    case WordEnumToken_e::Tid: {
+      // 自定义类型
+      // 类型名称
+      return (type->value_type->toId().value == in_type.value_type->toId().value);
+    } break;
+    case WordEnumToken_e::Ttype: {
+      // 内置类型
+      return (type->value_type->toType().value == in_type.value_type->toType().value);
+    } break;
+    default:
+      Assert_d(true == false, "{} 非法的变量类型: {}", name,
+               WordEnumToken_c::toName(type->value_type->token));
+      return false;
+      break;
+    }
+  }
+
+  std::shared_ptr<SyntaxNode_value_define_c> type;
+  std::list<std::shared_ptr<WordItem_c>> refs;
+};
+
+// 函数符号定义
+class SymbolItem_function_c : public SymbolItem_c {
+public:
+  SymbolItem_function_c() : SymbolItem_c(SymbolType_e::TFunction) {}
+
+  bool hasType() const override { return (nullptr != type); }
+
+  // 检查函数类型
+  template <typename... _ARGS>
+  bool checkFunType(const SyntaxNode_value_define_c&& return_type, const _ARGS&&... args) {
+    return true;
+  }
+
+  // TODO: 检查传入参数是否匹配
+  bool checkFunArgs(std::list<std::shared_ptr<ListNode_c>>& args) {
+    if (args.size() != type->args.size()) {
+      UtilLog(Terror, "函数参数个数不匹配: {} (预期 {} 个，但给定了 {} 个)", name,
+              type->args.size(), args.size());
+      return false;
+    }
+    return true;
+  }
+
+  std::shared_ptr<SyntaxNode_function_define_c> type;
+  std::list<std::shared_ptr<SyntaxNode_function_call_c>> refs;
+};
+
+// 枚举符号定义
+class SymbolItem_enum_c : public SymbolItem_c {
+public:
+  SymbolItem_enum_c() : SymbolItem_c(SymbolType_e::TEnum) {}
+
+  bool hasType() const override { return (nullptr != type); }
+
+  std::shared_ptr<SyntaxNode_enum_define_c> type;
+};
