@@ -131,12 +131,22 @@ public:
   std::list<std::shared_ptr<SyntaxNode_function_call_c>> refs;
 };
 
+// 枚举符号定义
+class SymbolItem_enum_c : public SymbolItem_c {
+public:
+  SymbolItem_enum_c() : SymbolItem_c(SymbolType_e::TEnum) {}
+
+  bool hasType() const override { return (nullptr != type); }
+
+  std::shared_ptr<SyntaxNode_enum_define_c> type;
+};
+
 class SemanticAnalyse_c {
 public:
   inline static bool enableLog_analyseNode = false;
 
   bool init(std::string_view in_code) {
-    symbolTable.clear();
+    symbolTableStack.clear();
     // 添加 global 全局符号表
     symbolTablePush();
     return syntacticAnalysis.init(in_code);
@@ -197,7 +207,7 @@ public:
       std::cout << "## AnalyseNode: ------ " << std::endl;
       node->debugPrint();
     }
-    int symbolTableDeep = symbolTable.size();
+    int symbolTableDeep = symbolTableStack.size();
     // [1]
     switch (node->syntaxType) {
     case SyntaxNodeType_e::TNormal:
@@ -230,12 +240,11 @@ public:
                  SyntaxNodeType_c::toName(node->syntaxType));
       } break;
       }
-      if (false == checkIdDefine(result)) {
+      // 添加符号定义
+      if (false == currentAddSymbol(result)) {
         node->debugPrint();
         return false;
       }
-      // 添加符号定义
-      currentAddSymbol(result);
     } break;
     case SyntaxNodeType_e::TFunctionCall: {
       // 检查符号是否存在
@@ -260,13 +269,11 @@ public:
       auto real_node = HicUtil_c::toType<SyntaxNode_function_define_c>(node);
       result->name = real_node->id->toId().value;
       result->type = real_node;
-      // 检查定义
-      if (false == checkIdDefine(result)) {
-        return false;
-      }
       // 添加函数符号定义
       // 当前函数符号所在的范围
-      currentAddSymbol(result);
+      if (false == currentAddSymbol(result)) {
+        return false;
+      }
       // 压入新符号范围
       symbolTablePush(real_node.get());
       // 读取 args
@@ -346,9 +353,24 @@ public:
       real_node->set_return_type(real_node->data->returnType());
     } break;
     case SyntaxNodeType_e::TEnumDefine: {
+      auto result = std::make_shared<SymbolItem_enum_c>();
       auto real_node = HicUtil_c::toType<SyntaxNode_enum_define_c>(node);
+      result->name = real_node->id->id;
+      result->type = real_node;
+      // 检查声明位置为全局区
+      if (symbolTableStack.size() != 1) {
+        SemLog(Terror, "Enum 应当声明在全局区");
+        return false;
+      }
+      // 添加枚举名符号
+      if (false == currentAddSymbol(result)) {
+        return false;
+      }
       symbolTablePush(real_node.get());
-      // TODO: 检查重名
+      // TODO: 检查重命名，添加枚举变量符号
+      if (false == analyseChildren(real_node)) {
+        return false;
+      }
     } break;
     case SyntaxNodeType_e::TClassDefine: {
       symbolTablePush();
@@ -395,7 +417,7 @@ public:
     }
 
     // 恢复符号表层级
-    if (symbolTableDeep != symbolTable.size()) {
+    if (symbolTableDeep != symbolTableStack.size()) {
       symbolTablePop();
     }
     return true;
@@ -439,24 +461,28 @@ public:
     auto result = analyseNode(syntacticAnalysis.root);
     if (result) {
       // success
-      Assert_d(symbolTable.size() == 1, "解析完成时符号表层级不是 1（{}）", symbolTable.size());
+      Assert_d(symbolTableStack.size() == 1, "解析完成时符号表层级不是 1（{}）",
+               symbolTableStack.size());
     }
     return result;
   }
 
-  void currentAddSymbol(std::shared_ptr<SymbolItem_c> item) {
+  bool currentAddSymbol(std::shared_ptr<SymbolItem_c> item) {
+    if (false == checkIdDefine(item)) {
+      return false;
+    }
     currentSymbolTable()->insert(std::pair{item->name, item});
   }
 
   std::shared_ptr<SymbolTable>& globalSymbolTable() {
-    Assert_d(symbolTable.empty() == false);
-    return symbolTable.front();
+    Assert_d(symbolTableStack.empty() == false);
+    return symbolTableStack.front();
   }
 
   std::shared_ptr<SymbolTable>& currentSymbolTable() {
-    Assert_d(symbolTable.empty() == false);
-    SemLog(Tdebug, "SymbolTable.size(): {}", symbolTable.size());
-    return symbolTable.back();
+    Assert_d(symbolTableStack.empty() == false);
+    SemLog(Tdebug, "SymbolTable.size(): {}", symbolTableStack.size());
+    return symbolTableStack.back();
   }
 
   std::shared_ptr<SymbolTable>& symbolTablePush(SyntaxNode_group_c* group) {
@@ -468,19 +494,19 @@ public:
   }
 
   std::shared_ptr<SymbolTable>& symbolTablePush() {
-    return symbolTable.emplace_back(std::make_shared<SymbolTable>());
+    return symbolTableStack.emplace_back(std::make_shared<SymbolTable>());
   }
 
-  void symbolTablePop() { symbolTable.pop_back(); }
+  void symbolTablePop() { symbolTableStack.pop_back(); }
 
   // 在 [symbolTable] 中查找符号，且是从最近/最小的作用域开始查找
   std::shared_ptr<SymbolItem_c> symbolTableFind(const std::string& key) {
-    if (false == symbolTable.empty()) {
-      for (auto it = symbolTable.end() - 1;; --it) {
+    if (false == symbolTableStack.empty()) {
+      for (auto it = symbolTableStack.end() - 1;; --it) {
         if ((*it)->contains(key)) {
           return (**it)[key];
         }
-        if (it == symbolTable.begin()) {
+        if (it == symbolTableStack.begin()) {
           break;
         }
       }
@@ -506,7 +532,7 @@ public:
 
   void debugPrintSymbolTable() {
     int i = 0;
-    for (const auto& table : symbolTable) {
+    for (const auto& table : symbolTableStack) {
       i++;
       std::cout << i << std::endl;
       for (const auto& it : *table) {
@@ -519,7 +545,7 @@ public:
   std::shared_ptr<SyntaxNode_c> tree() { return syntacticAnalysis.root; }
 
   // 作用域符号表
-  std::vector<std::shared_ptr<SymbolTable>> symbolTable{};
+  std::vector<std::shared_ptr<SymbolTable>> symbolTableStack{};
   SyntacticAnalysis_c syntacticAnalysis{};
 };
 

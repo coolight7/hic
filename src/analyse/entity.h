@@ -580,7 +580,7 @@ public:
 
   std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
 
-  _GEN_VALUE(WordItem_c, id);
+  _GEN_VALUE(WordItem_id_c, id);
 
   _GEN_VALUE(SyntaxNode_value_define_c, return_type);
   std::shared_ptr<SymbolItem_function_c> symbol;
@@ -741,7 +741,7 @@ public:
 
   // [args] 和 [body] 在同一符号范围
   _GEN_VALUE(SyntaxNode_value_define_c, return_type);
-  _GEN_VALUE(WordItem_c, id);
+  _GEN_VALUE(WordItem_id_c, id);
   std::list<std::shared_ptr<SyntaxNode_value_define_id_c>> args;
   _GEN_VALUE(SyntaxNode_c, body);
 
@@ -761,5 +761,5 @@ public:
     SyntaxNode_c::debugPrint(tab, onOutPrefix);
   }
 
-  _GEN_VALUE(WordItem_c, id);
+  _GEN_VALUE(WordItem_id_c, id);
 };

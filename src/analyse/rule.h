@@ -103,7 +103,7 @@ GENERATE_ENUM(WordEnumOperator, Undefined, None, EndAddAdd, EndSubSub, LeftCurve
 /**
  * 符号类型
  */
-GENERATE_ENUM(SymbolType, Value, Function);
+GENERATE_ENUM(SymbolType, Value, Function, Enum, Class);
 
 #include "magic/unset_macro.h"
 #include "util.h"
