@@ -189,7 +189,7 @@ int main(char** args, int size) {
     /*ll
     disable=bbc*/
 
-    s = "sss";
+    String s = "sss";
     s = "adsf 123";
     return 0;
 }

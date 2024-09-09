@@ -369,6 +369,25 @@ public:
           return false;
         }
       } break;
+      case WordEnumOperator_e::TAnd:
+      case WordEnumOperator_e::TOr: {
+        // 两个操作数
+        if (false == analyseChildren(real_node, 2)) {
+          return false;
+        }
+        auto first = real_node->children.front()->returnType();
+        auto second = real_node->children.back()->returnType();
+        // TODO: 排除/允许部分自定义类型和不同类型
+        if (nullptr == first || nullptr == second ||
+            false == SyntaxNode_value_define_c::compare(first, second)) {
+          return false;
+        }
+        // 返回 bool
+        auto type = std::make_shared<SyntaxNode_value_define_c>();
+        auto value_type = std::make_shared<WordItem_type_c>(WordEnumType_e::Tbool);
+        type->value_type = value_type;
+        real_node->set_return_type(type);
+      } break;
       default: {
         // 两个操作数
         if (false == analyseChildren(real_node, 2)) {
@@ -435,6 +454,7 @@ public:
           }
         } break;
         case WordEnumToken_e::Ttype: {
+          // TODO: 循环引用，内存泄漏
           auto& real_node = word_node->toType();
           real_node.return_type = std::make_shared<SyntaxNode_value_define_c>();
           real_node.return_type->value_type = word_node;
@@ -486,7 +506,7 @@ public:
     auto result = analyseNode(syntacticAnalysis.root);
     if (result) {
       // success
-      Assert_d(symbolTableStack.size() == 1, "解析完成时符号表层级不是 1（{}）",
+      Assert_d(symbolTableStack.size() == 0, "解析完成时符号表层级不是 0（{}）",
                symbolTableStack.size());
     }
     return result;
