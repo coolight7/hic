@@ -352,10 +352,11 @@ public:
 #include "magic/macro.h"
 
 GENERATE_ENUM(SyntaxNodeType,
-              Normal, // 分组节点，自身无特殊意义
-              Group,  // {}，隔离符号范围
+              Normal,   // 分组节点，自身无特殊意义
+              Group,    // {}，隔离符号范围
+              Transfer, // 传递返回值
               ValueDefine, ValueDefineId, ValueDefineInit, FunctionCall, Operator, CtrlReturn,
-              CtrlIfBranch, CtrlIf, CtrlWhile, CtrlFor, FunctionDefine, EnumDefine, ClassDefine, );
+              CtrlIfBranch, CtrlIf, CtrlWhile, CtrlFor, FunctionDefine, EnumDefine, ClassDefine);
 
 #define _GEN_VALUE(type, name)                                                                     \
   bool set_##name(std::shared_ptr<type> in_ptr) {                                                  \
@@ -478,6 +479,13 @@ public:
   std::list<std::shared_ptr<ListNode_c>> children{};
 };
 
+class SyntaxNode_transfer_c : public SyntaxNode_c {
+public:
+  SyntaxNode_transfer_c(SyntaxNodeType_e type = SyntaxNodeType_e::TTransfer) : SyntaxNode_c(type) {}
+
+  _GEN_VALUE(SyntaxNode_value_define_c, return_type);
+};
+
 /**
  * - 额外携带符号表，限定符号声明范围
  */
@@ -533,6 +541,31 @@ public:
   size_t pointer = 0;     // 指针层数
 };
 
+class SyntaxNode_operator_c : public SyntaxNode_c {
+public:
+  SyntaxNode_operator_c(WordEnumOperator_e in_op)
+      : SyntaxNode_c(SyntaxNodeType_e::TOperator), oper(in_op) {}
+
+  void debugPrint(const size_t tab = 1,
+                  std::function<size_t()> onOutPrefix = nullptr) const override {
+    if (WordEnumOperator_e::TNone != oper) {
+      _PRINT_WORD_PREFIX(children.empty());
+      std::cout << "operator -- " << WordItem_operator_c::toSign(oper) << std::endl;
+    }
+    SyntaxNode_c::debugPrint(tab, onOutPrefix);
+  }
+
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+
+  bool isReturnBool() { return (nullptr != return_type && return_type->isBoolValue()); }
+
+  // 操作符类型
+  WordEnumOperator_e oper;
+  // 操作数在 [children] 中
+
+  _GEN_VALUE(SyntaxNode_value_define_c, return_type);
+};
+
 class SyntaxNode_value_define_id_c : public SyntaxNode_c {
 public:
   SyntaxNode_value_define_id_c() : SyntaxNode_c(SyntaxNodeType_e::TValueDefineId) {}
@@ -564,7 +597,7 @@ public:
 
   _GEN_VALUE(SyntaxNode_value_define_id_c, define_id);
   // =
-  _GEN_VALUE(SyntaxNode_c, data);
+  _GEN_VALUE(SyntaxNode_operator_c, data);
 };
 
 class SyntaxNode_function_call_c : public SyntaxNode_c {
@@ -584,31 +617,6 @@ public:
 
   _GEN_VALUE(SyntaxNode_value_define_c, return_type);
   std::shared_ptr<SymbolItem_function_c> symbol;
-};
-
-class SyntaxNode_operator_c : public SyntaxNode_c {
-public:
-  SyntaxNode_operator_c(WordEnumOperator_e in_op)
-      : SyntaxNode_c(SyntaxNodeType_e::TOperator), oper(in_op) {}
-
-  void debugPrint(const size_t tab = 1,
-                  std::function<size_t()> onOutPrefix = nullptr) const override {
-    if (WordEnumOperator_e::TNone != oper) {
-      _PRINT_WORD_PREFIX(children.empty());
-      std::cout << "operator -- " << WordItem_operator_c::toSign(oper) << std::endl;
-    }
-    SyntaxNode_c::debugPrint(tab, onOutPrefix);
-  }
-
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
-
-  bool isReturnBool() { return (nullptr != return_type && return_type->isBoolValue()); }
-
-  // 操作符类型
-  WordEnumOperator_e oper;
-  // 操作数在 [children] 中
-
-  _GEN_VALUE(SyntaxNode_value_define_c, return_type);
 };
 
 class SyntaxNode_ctrl_return_c : public SyntaxNode_c {

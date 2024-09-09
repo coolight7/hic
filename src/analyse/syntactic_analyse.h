@@ -673,15 +673,32 @@ public:
       if (re_node->set_id(assertToken_id()) && assertToken_sign("{")) {
         // ID 列表
         std::shared_ptr<WordItem_c> sign_ptr;
-        // TODO: 解析 id <= number>?
+        // TODO: 解析 id = int?
         _GEN_WORD(sign);
-        while (re_node->add(assertToken_id(sign_ptr))) {
+        int index = 0;
+        while (true) {
+          auto item = assertToken_id(sign_ptr);
+          if (nullptr == item) {
+            break;
+          }
+          auto result = std::make_shared<SyntaxNode_value_define_init_c>();
+          result->set_define_id(std::make_shared<SyntaxNode_value_define_id_c>());
+          result->define_id->id = item;
+          result->define_id->set_value_define(std::make_shared<SyntaxNode_value_define_c>());
+          result->define_id->value_define->value_type =
+              std::make_shared<WordItem_type_c>(WordEnumType_e::Tint);
+          result->set_data(std::make_shared<SyntaxNode_operator_c>(WordEnumOperator_e::TNone));
+          auto data = std::make_shared<WordItem_number_c>(index);
+          result->data->add(data);
+
+          re_node->add(result);
           sign_ptr = nullptr;
           _GEN_WORD(sign);
           if (nullptr == assertToken_sign(",", sign_ptr)) {
             break;
           }
           sign_ptr = nullptr;
+          index++;
         }
         if (assertToken_sign("}", sign_ptr)) {
           return re_node;
