@@ -39,7 +39,7 @@ public:
       case ListNodeType_e::Lexical: {
       } break;
       case ListNodeType_e::Syntactic: {
-        auto real_node = analyseNode(HicUtil_c::toType<SyntaxNode_c>(item));
+        auto real_node = genNode(HicUtil_c::toType<SyntaxNode_c>(item));
         if (false == real_node) {
           return false;
         }

@@ -70,7 +70,7 @@ public:
         return group->symbolTable;
       }
     }
-    auto table = push();
+    auto& table = push();
     if (nullptr != group) {
       // 传入 [group] 且它没有绑定符号表
       group->symbolTable = table;
@@ -136,6 +136,7 @@ public:
   inline static bool enableLog_analyseNode = false;
 
   bool init(std::string_view in_code) {
+    symbolManager = std::make_shared<SymbolManager_c>();
     symbolManager->init();
     return syntacticAnalysis.init(in_code);
   }
@@ -533,7 +534,7 @@ public:
         case WordEnumToken_e::Tid: {
           auto& real_node = word_node->toId();
           // 查找符号
-          auto exist_id = checkIdExist(real_node.id);
+          auto exist_id = symbolManager->checkIdExist(real_node.id);
           if (nullptr == exist_id) {
             return false;
           }
