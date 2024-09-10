@@ -54,6 +54,7 @@ public:
     return true;
   }
 
+  // 生成汇编
   bool genNode(std::shared_ptr<SyntaxNode_c> node) {
     if (nullptr == node) {
       return false;
@@ -62,10 +63,14 @@ public:
       std::cout << "## GenNode: ------ " << std::endl;
       node->debugPrint();
     }
+    // 记录当前符号表深度，后续恢复
     int symbolTableDeep = symbolManager->stack.size();
     switch (node->syntaxType) {
     case SyntaxNodeType_e::TNormal:
     case SyntaxNodeType_e::TValueDefine: {
+      if (false == genChildren(node)) {
+        return false;
+      }
     } break;
     case SyntaxNodeType_e::TGroup: {
       // {} 隔离符号范围
@@ -74,6 +79,10 @@ public:
       if (false == genChildren(node)) {
         return false;
       }
+    } break;
+    case SyntaxNodeType_e::TValueDefineId:
+    case SyntaxNodeType_e::TValueDefineInit: {
+
     } break;
     default:
       break;
