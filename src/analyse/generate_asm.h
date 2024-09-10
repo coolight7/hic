@@ -4,12 +4,41 @@
 
 #include "semantic_analyse.h"
 
+// 节
+class ProgramSection_c {
+public:
+  size_t start = 0;
+  size_t size = 0;
+};
+
+// 段
+class ProgramSegment_c {
+public:
+  std::list<ProgramSection_c> sections{};
+};
+
+// 程序头
+class ProgramHeader_c {
+  std::list<ProgramSegment_c> segments{};
+};
+
+// 程序包
+class ProgramPackage_c {
+public:
+  void init() { code = ""; }
+
+  // 二进制指令
+  std::string code{};
+  // 程序头
+  ProgramHeader_c header{};
+};
+
 class GenerateAsm_c {
 public:
   inline static bool enableLog_genNode = false;
 
   bool init(std::string_view in_code) {
-    code = "";
+    program.init();
     auto result = semanticAnalyse.init(in_code);
     symbolManager = semanticAnalyse.symbolManager;
     return result;
@@ -66,8 +95,10 @@ public:
     // 记录当前符号表深度，后续恢复
     int symbolTableDeep = symbolManager->stack.size();
     switch (node->syntaxType) {
-    case SyntaxNodeType_e::TNormal:
-    case SyntaxNodeType_e::TValueDefine: {
+    case SyntaxNodeType_e::TValueDefineId:
+    case SyntaxNodeType_e::TValueDefine:
+      break;
+    case SyntaxNodeType_e::TNormal: {
       if (false == genChildren(node)) {
         return false;
       }
@@ -80,9 +111,11 @@ public:
         return false;
       }
     } break;
-    case SyntaxNodeType_e::TValueDefineId:
     case SyntaxNodeType_e::TValueDefineInit: {
-
+      // 全局区的符号由程序启动初始化，这里只初始化局部变量
+      if (false == symbolManager->currentIsGlobal()) {
+        
+      }
     } break;
     default:
       break;
@@ -104,7 +137,7 @@ public:
     return genNode(semanticAnalyse.tree());
   }
 
-  std::string code;
+  ProgramPackage_c program{};
   SemanticAnalyse_c semanticAnalyse{};
   std::shared_ptr<SymbolManager_c> symbolManager;
 };

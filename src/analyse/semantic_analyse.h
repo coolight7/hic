@@ -44,6 +44,8 @@ public:
     return result;
   }
 
+  bool currentIsGlobal() { return (stack.size() == 1); }
+
   bool currentAddSymbol(std::shared_ptr<SymbolItem_c> item) {
     if (false == checkIdDefine(item)) {
       return false;
