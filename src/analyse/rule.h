@@ -4,7 +4,7 @@
 #include <map>
 #include <string>
 
-#include "magic/macro.h"
+#include "src/magic/macro.h"
 
 /**
  * 关键字（控制）
@@ -105,8 +105,8 @@ GENERATE_ENUM(WordEnumOperator, Undefined, None, EndAddAdd, EndSubSub, LeftCurve
  */
 GENERATE_ENUM(SymbolType, Value, Function, Enum, Class);
 
-#include "magic/unset_macro.h"
-#include "util.h"
+#include "src/magic/unset_macro.h"
+#include "src/util.h"
 
 class WordItem_c;
 class WordItem_id_c;

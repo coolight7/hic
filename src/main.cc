@@ -1,8 +1,6 @@
 #include <iostream>
 
-#include "analyse/syntactic_analyse.h"
-
-void test(int a) { int b = a + 1; }
+#include "src/analyse/syntactic_analyse.h"
 
 int main() {
   std::cout << "hello world" << std::endl;

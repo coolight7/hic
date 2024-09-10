@@ -8,11 +8,11 @@
 #include <string>
 #include <string_view>
 
-#include "magic/macro.h"
+#include "src/magic/macro.h"
 
 GENERATE_ENUM(HicLogLevel, error, warning, info, debug, close)
 
-#include "magic/unset_macro.h"
+#include "src/magic/unset_macro.h"
 
 namespace std {
 inline std::string format() { return ""; }

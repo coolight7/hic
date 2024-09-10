@@ -5,8 +5,8 @@
 #include <memory>
 #include <stack>
 
-#include "analyse/rule.h"
-#include "analyse/util.h"
+#include "rule.h"
+#include "src/util.h"
 
 class WordItem_string_c;
 class WordItem_operator_c;
@@ -359,7 +359,7 @@ public:
 };
 
 // syntax ---
-#include "magic/macro.h"
+#include "src/magic/macro.h"
 
 GENERATE_ENUM(SyntaxNodeType,
               Normal,   // 分组节点，自身无特殊意义

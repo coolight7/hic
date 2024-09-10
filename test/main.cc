@@ -1,10 +1,10 @@
 #include <fstream>
 #include <iostream>
 
-#include "analyse/generate_asm.h"
-#include "analyse/lexical_analyse.h"
-#include "analyse/semantic_analyse.h"
-#include "analyse/syntactic_analyse.h"
+#include "src/analyse/generate_asm.h"
+#include "src/analyse/lexical_analyse.h"
+#include "src/analyse/semantic_analyse.h"
+#include "src/analyse/syntactic_analyse.h"
 
 void test_LexicalAnalyse() {
   std::cout << std::endl << "----------- test_LexicalAnalyse -----------" << std::endl << std::endl;
