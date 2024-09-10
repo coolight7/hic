@@ -4,6 +4,8 @@
 
 #include <cstdint>
 
+#include "instructions.h"
+
 class HicVMCore_c {
 public:
   static constexpr int stackSize = 1024 * 8;

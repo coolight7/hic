@@ -113,8 +113,10 @@ public:
     } break;
     case SyntaxNodeType_e::TValueDefineInit: {
       // 全局区的符号由程序启动初始化，这里只初始化局部变量
+      auto real_node = HicUtil_c::toType<SyntaxNode_value_define_init_c>(node);
       if (false == symbolManager->currentIsGlobal()) {
-        
+        // 添加初始化指令
+        // auto data = real_node->data->;
       }
     } break;
     default:
