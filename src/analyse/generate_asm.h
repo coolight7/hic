@@ -25,6 +25,7 @@ public:
       std::cout << "## GenNode: ------ " << std::endl;
       node->debugPrint();
     }
+
     return true;
   }
 

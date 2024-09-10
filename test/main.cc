@@ -219,7 +219,9 @@ int main(char** args, int size) {
 #endif
 
 void test_readFile_SemanticAnalyse() {
-  std::cout << std::endl << "----------- test_read -----------" << std::endl << std::endl;
+  std::cout << std::endl
+            << "----------- test_readFile_SemanticAnalyse -----------" << std::endl
+            << std::endl;
   std::string code;
   const char* file_path = PROGEAM_ROOT_DIR "/resource/test1.hic";
   std::ifstream stream{file_path};
@@ -259,7 +261,7 @@ void test_readFile_SemanticAnalyse() {
 }
 
 void test_readFile_gen() {
-  std::cout << std::endl << "----------- test_read -----------" << std::endl << std::endl;
+  std::cout << std::endl << "----------- test_readFile_gen -----------" << std::endl << std::endl;
   std::string code;
   const char* file_path = PROGEAM_ROOT_DIR "/resource/test1.hic";
   std::ifstream stream{file_path};
