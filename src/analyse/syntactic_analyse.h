@@ -520,6 +520,7 @@ public:
             // 空代码块 {}
             return re_node;
           }
+          // TODO: 支持设置 parse_code 的返回值是否添加 符号范围限制
           if (re_node->set_body(parse_code()) &&
               assertToken_sign(WordEnumOperator_e::TRightFlowerGroup)) {
             return re_node;
@@ -636,6 +637,7 @@ public:
           // code
           if (assertToken_sign(")", sign_ptr) && assertToken_sign("{") &&
               re_node->set_body(parse_code()) && assertToken_sign("}")) {
+            // TODO: 支持设置 parse_code 的返回值是否添加 符号范围限制
             return re_node;
           }
         }

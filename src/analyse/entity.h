@@ -8,12 +8,18 @@
 #include "rule.h"
 #include "src/util.h"
 
+// word
 class WordItem_string_c;
 class WordItem_operator_c;
 class WordItem_number_c;
 class WordItem_ctrl_c;
 class WordItem_type_c;
 class WordItem_nativeCall_c;
+
+// semantic ---
+class SymbolItem_value_c;
+class SymbolItem_function_c;
+class SymbolItem_enum_c;
 
 class WordItem_c : public ListNode_c {
 public:
@@ -503,7 +509,11 @@ class SyntaxNode_group_c : public SyntaxNode_c {
 public:
   SyntaxNode_group_c(SyntaxNodeType_e type = SyntaxNodeType_e::TGroup) : SyntaxNode_c(type) {}
 
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+
   std::shared_ptr<SymbolTable> symbolTable;
+
+  _GEN_VALUE(SyntaxNode_value_define_c, return_type);
 };
 
 class SyntaxNode_value_define_c : public SyntaxNode_c {
@@ -547,7 +557,8 @@ public:
   inline static bool compare(std::shared_ptr<SyntaxNode_value_define_c> left,
                              std::shared_ptr<SyntaxNode_value_define_c> right) {
     if (nullptr == left || nullptr == right) {
-      UtilLog(Terror, "两个变量类型比较不应为空");
+      UtilLog(Terror, "两个变量类型比较不应为空, {}, {}", (long long)(left.get()),
+              (long long)(right.get()));
       return false;
     }
     return true;
@@ -565,6 +576,8 @@ public:
 
   size_t size() { return 8; }
 
+  const std::string& name() const override { return value_type->name(); }
+
   // Type | ID
   _GEN_VALUE(WordItem_c, value_type);
   bool isFinal = false;     // 不允许修改
@@ -577,6 +590,8 @@ class SyntaxNode_operator_c : public SyntaxNode_c {
 public:
   SyntaxNode_operator_c(WordEnumOperator_e in_op)
       : SyntaxNode_c(SyntaxNodeType_e::TOperator), oper(in_op) {}
+
+  const std::string& name() const override { return WordEnumOperator_c::toName(oper); }
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -601,6 +616,8 @@ public:
 class SyntaxNode_value_define_id_c : public SyntaxNode_c {
 public:
   SyntaxNode_value_define_id_c() : SyntaxNode_c(SyntaxNodeType_e::TValueDefineId) {}
+
+  const std::string& name() const override { return id->name(); }
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -638,6 +655,8 @@ public:
   _GEN_VALUE(SyntaxNode_operator_c, data);
 };
 
+class SyntaxNode_function_define_c;
+
 class SyntaxNode_function_call_c : public SyntaxNode_c {
 public:
   SyntaxNode_function_call_c() : SyntaxNode_c(SyntaxNodeType_e::TFunctionCall) {}
@@ -649,11 +668,10 @@ public:
     SyntaxNode_c::debugPrint(tab, onOutPrefix);
   }
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+  std::shared_ptr<SyntaxNode_value_define_c> returnType();
 
   _GEN_VALUE(WordItem_id_c, id);
 
-  _GEN_VALUE(SyntaxNode_value_define_c, return_type);
   std::shared_ptr<SymbolItem_function_c> symbol;
 };
 
@@ -667,6 +685,8 @@ public:
     std::cout << "return" << std::endl;
     _PRINT_NODE_PREFIX(true, data);
   }
+
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
 
   _GEN_VALUE(SyntaxNode_operator_c, data);
 
@@ -682,6 +702,11 @@ public:
     _PRINT_NODE_PREFIX(false, if_expr);
     _PRINT_NODE_PREFIX(true, if_body);
   }
+
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override {
+    return if_body->returnType();
+  }
+
   // if 条件，如果为 nullptr，则无条件，即为 else_body
   _GEN_VALUE(SyntaxNode_operator_c, if_expr);
   _GEN_VALUE(SyntaxNode_group_c, if_body);
@@ -709,6 +734,17 @@ public:
     }
   }
 
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override {
+    for (const auto& item : branchs) {
+      // TODO: 检查每一个都符合返回要求
+      auto result = item->returnType();
+      if (nullptr != result) {
+        return result;
+      }
+    }
+    return nullptr;
+  }
+
   bool addBranch(std::shared_ptr<SyntaxNode_if_branch_c> branch) {
     if (nullptr == branch) {
       return false;
@@ -732,6 +768,10 @@ public:
     _PRINT_NODE_PREFIX(true, body);
   }
 
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override {
+    return body->returnType();
+  }
+
   // while (loop_expr) { body }
   _GEN_VALUE(SyntaxNode_operator_c, loop_expr);
   _GEN_VALUE(SyntaxNode_group_c, body);
@@ -751,11 +791,15 @@ public:
     _PRINT_NODE_PREFIX(true, body);
   }
 
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override {
+    return body->returnType();
+  }
+
   // for (start_expr; loop_expr; loop_end_expr) { body }
   _GEN_VALUE(SyntaxNode_operator_c, start_expr);
   _GEN_VALUE(SyntaxNode_operator_c, loop_expr);
   _GEN_VALUE(SyntaxNode_operator_c, loop_end_expr);
-  _GEN_VALUE(SyntaxNode_group_c, body);
+  _GEN_VALUE(SyntaxNode_c, body);
 };
 
 class SyntaxNode_function_define_c : public SyntaxNode_group_c {
@@ -809,11 +853,6 @@ public:
 
   _GEN_VALUE(WordItem_id_c, id);
 };
-
-// semantic ---
-class SymbolItem_value_c;
-class SymbolItem_function_c;
-class SymbolItem_enum_c;
 
 /**
  * 符号表项

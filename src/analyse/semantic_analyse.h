@@ -168,6 +168,10 @@ public:
       }
       if (real_node->children.size() == 1) {
         real_node->set_return_type(real_node->children.front()->returnType());
+      } else {
+        Assert_d(real_node->children.size() == 1, "操作符包含过多节点 {} ",
+                 real_node->children.size());
+        return false;
       }
     } break;
     case WordEnumOperator_e::TNot: {
@@ -299,6 +303,11 @@ public:
       real_node->set_return_type(real_node->children.front()->returnType());
     } break;
     }
+    if (real_node->returnType() == nullptr) {
+      UtilLog(Terror, "操作符 {} 的返回值类型不应为空", real_node->name());
+      real_node->debugPrint();
+      return false;
+    }
     return true;
   }
 
@@ -330,6 +339,14 @@ public:
       symbolManager->push(real_node.get());
       if (false == analyseChildren(node)) {
         return false;
+      }
+      // 和子节点保持相同返回值类型
+      for (const auto& item : real_node->children) {
+        auto result = item->returnType();
+        if (nullptr != result) {
+          real_node->set_return_type(result);
+          break;
+        }
       }
     } break;
     case SyntaxNodeType_e::TValueDefineId: {
