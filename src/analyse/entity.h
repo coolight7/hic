@@ -16,7 +16,14 @@ class WordItem_ctrl_c;
 class WordItem_type_c;
 class WordItem_nativeCall_c;
 
+// syn ---
+class SyntaxNode_value_define_c;
+class SyntaxNode_function_define_c;
+class SyntaxNode_function_call_c;
+class SyntaxNode_enum_define_c;
+
 // semantic ---
+class SymbolItem_c;
 class SymbolItem_value_c;
 class SymbolItem_function_c;
 class SymbolItem_enum_c;
@@ -364,6 +371,118 @@ public:
   std::shared_ptr<SyntaxNode_value_define_c> return_type;
 };
 
+/**
+ * 符号表项
+ */
+class SymbolItem_c : public ListNode_c {
+public:
+  SymbolItem_c(SymbolType_e in_symbolType)
+      : ListNode_c(ListNodeType_e::Symbol), symbolType(in_symbolType) {}
+
+  SymbolItem_c(const SymbolItem_c&) = delete;
+
+  virtual bool hasType() const { return true; }
+
+  inline static std::shared_ptr<SymbolItem_value_c> toValue(std::shared_ptr<SymbolItem_c> ptr) {
+    if (nullptr != ptr) {
+      switch (ptr->symbolType) {
+      case SymbolType_e::TValue: {
+        return HicUtil_c::toType<SymbolItem_value_c>(ptr);
+      } break;
+      }
+    }
+    return nullptr;
+  }
+
+  inline static std::shared_ptr<SymbolItem_function_c>
+  toFunction(std::shared_ptr<SymbolItem_c> ptr) {
+    if (nullptr != ptr) {
+      switch (ptr->symbolType) {
+      case SymbolType_e::TFunction: {
+        return HicUtil_c::toType<SymbolItem_function_c>(ptr);
+      } break;
+      }
+    }
+    return nullptr;
+  }
+
+  inline static std::shared_ptr<SymbolItem_enum_c> toEnum(std::shared_ptr<SymbolItem_c> ptr) {
+    if (nullptr != ptr) {
+      switch (ptr->symbolType) {
+      case SymbolType_e::TEnum: {
+        return HicUtil_c::toType<SymbolItem_enum_c>(ptr);
+      } break;
+      }
+    }
+    return nullptr;
+  }
+
+  virtual void debugPrint() {
+    std::cout << SymbolType_c::toName(symbolType) << " : " << name << std::endl;
+  }
+
+  SymbolType_e symbolType;
+  std::string name;
+};
+
+// 变量符号定义
+class SymbolItem_value_c : public SymbolItem_c {
+public:
+  SymbolItem_value_c() : SymbolItem_c(SymbolType_e::TValue) {}
+
+  virtual void debugPrint() {
+    std::cout << SymbolType_c::toName(symbolType) << " : " << name << std::endl;
+  }
+
+  bool hasType() const override { return (nullptr != type); }
+
+  size_t size();
+
+  bool checkValueType(const std::shared_ptr<SyntaxNode_value_define_c>& in_type);
+
+  // 检查变量类型
+  // - 对象自身为已定义符号
+  // - [in_type] 为引用符号类型需求
+  bool checkValueType(const SyntaxNode_value_define_c& in_type);
+
+  std::shared_ptr<SyntaxNode_value_define_c> type;
+  // address / value
+  long long value = 0;
+  long long address = 0;
+  std::list<std::shared_ptr<WordItem_c>> refs;
+};
+
+// 函数符号定义
+class SymbolItem_function_c : public SymbolItem_c {
+public:
+  SymbolItem_function_c() : SymbolItem_c(SymbolType_e::TFunction) {}
+
+  bool hasType() const override { return (nullptr != type); }
+
+  // 检查函数类型
+  template <typename... _ARGS>
+  bool checkFunType(const SyntaxNode_value_define_c&& return_type, const _ARGS&&... args) {
+    return true;
+  }
+
+  // TODO: 检查传入参数是否匹配
+  bool checkFunArgs(std::list<std::shared_ptr<ListNode_c>>& args);
+
+  std::shared_ptr<SyntaxNode_function_define_c> type;
+  long long address = 0;
+  std::list<std::shared_ptr<SyntaxNode_function_call_c>> refs;
+};
+
+// 枚举符号定义
+class SymbolItem_enum_c : public SymbolItem_c {
+public:
+  SymbolItem_enum_c() : SymbolItem_c(SymbolType_e::TEnum) {}
+
+  bool hasType() const override { return (nullptr != type); }
+
+  std::shared_ptr<SyntaxNode_enum_define_c> type;
+};
+
 // syntax ---
 #include "src/magic/macro.h"
 
@@ -655,26 +774,6 @@ public:
   _GEN_VALUE(SyntaxNode_operator_c, data);
 };
 
-class SyntaxNode_function_define_c;
-
-class SyntaxNode_function_call_c : public SyntaxNode_c {
-public:
-  SyntaxNode_function_call_c() : SyntaxNode_c(SyntaxNodeType_e::TFunctionCall) {}
-
-  void debugPrint(const size_t tab = 1,
-                  std::function<size_t()> onOutPrefix = nullptr) const override {
-    _PRINT_WORD_PREFIX(children.empty());
-    id->printInfo();
-    SyntaxNode_c::debugPrint(tab, onOutPrefix);
-  }
-
-  std::shared_ptr<SyntaxNode_value_define_c> returnType();
-
-  _GEN_VALUE(WordItem_id_c, id);
-
-  std::shared_ptr<SymbolItem_function_c> symbol;
-};
-
 class SyntaxNode_ctrl_return_c : public SyntaxNode_c {
 public:
   SyntaxNode_ctrl_return_c() : SyntaxNode_c(SyntaxNodeType_e::TCtrlReturn) {}
@@ -838,6 +937,26 @@ public:
   std::shared_ptr<SymbolItem_function_c> symbol;
 };
 
+class SyntaxNode_function_call_c : public SyntaxNode_c {
+public:
+  SyntaxNode_function_call_c() : SyntaxNode_c(SyntaxNodeType_e::TFunctionCall) {}
+
+  void debugPrint(const size_t tab = 1,
+                  std::function<size_t()> onOutPrefix = nullptr) const override {
+    _PRINT_WORD_PREFIX(children.empty());
+    id->printInfo();
+    SyntaxNode_c::debugPrint(tab, onOutPrefix);
+  }
+
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override {
+    return symbol->type->returnType();
+  }
+
+  _GEN_VALUE(WordItem_id_c, id);
+
+  std::shared_ptr<SymbolItem_function_c> symbol;
+};
+
 class SyntaxNode_enum_define_c : public SyntaxNode_group_c {
 public:
   SyntaxNode_enum_define_c() : SyntaxNode_group_c(SyntaxNodeType_e::TEnumDefine) {}
@@ -852,173 +971,4 @@ public:
   }
 
   _GEN_VALUE(WordItem_id_c, id);
-};
-
-/**
- * 符号表项
- */
-class SymbolItem_c : public ListNode_c {
-public:
-  SymbolItem_c(SymbolType_e in_symbolType)
-      : ListNode_c(ListNodeType_e::Symbol), symbolType(in_symbolType) {}
-
-  SymbolItem_c(const SymbolItem_c&) = delete;
-
-  virtual bool hasType() const { return true; }
-
-  inline static std::shared_ptr<SymbolItem_value_c> toValue(std::shared_ptr<SymbolItem_c> ptr) {
-    if (nullptr != ptr) {
-      switch (ptr->symbolType) {
-      case SymbolType_e::TValue: {
-        return HicUtil_c::toType<SymbolItem_value_c>(ptr);
-      } break;
-      }
-    }
-    return nullptr;
-  }
-
-  inline static std::shared_ptr<SymbolItem_function_c>
-  toFunction(std::shared_ptr<SymbolItem_c> ptr) {
-    if (nullptr != ptr) {
-      switch (ptr->symbolType) {
-      case SymbolType_e::TFunction: {
-        return HicUtil_c::toType<SymbolItem_function_c>(ptr);
-      } break;
-      }
-    }
-    return nullptr;
-  }
-
-  inline static std::shared_ptr<SymbolItem_enum_c> toEnum(std::shared_ptr<SymbolItem_c> ptr) {
-    if (nullptr != ptr) {
-      switch (ptr->symbolType) {
-      case SymbolType_e::TEnum: {
-        return HicUtil_c::toType<SymbolItem_enum_c>(ptr);
-      } break;
-      }
-    }
-    return nullptr;
-  }
-
-  virtual void debugPrint() {
-    std::cout << SymbolType_c::toName(symbolType) << " : " << name << std::endl;
-  }
-
-  SymbolType_e symbolType;
-  std::string name;
-};
-
-// 变量符号定义
-class SymbolItem_value_c : public SymbolItem_c {
-public:
-  SymbolItem_value_c() : SymbolItem_c(SymbolType_e::TValue) {}
-
-  virtual void debugPrint() {
-    std::cout << SymbolType_c::toName(symbolType) << " : " << name << std::endl;
-  }
-
-  bool hasType() const override { return (nullptr != type); }
-
-  size_t size() {
-    Assert_d(hasType() == true, "变量类型不能为空");
-    return type->size();
-  }
-
-  bool checkValueType(const std::shared_ptr<SyntaxNode_value_define_c>& in_type) {
-    if (nullptr == in_type) {
-      UtilLog(Terror, "{} 变量待检查类型不应为空", name);
-      return false;
-    }
-    return SyntaxNode_value_define_c::compare(type, in_type);
-    return checkValueType(*in_type);
-  }
-
-  // 检查变量类型
-  // - 对象自身为已定义符号
-  // - [in_type] 为引用符号类型需求
-  bool checkValueType(const SyntaxNode_value_define_c& in_type) {
-    if (type->value_type->token != in_type.value_type->token) {
-      UtilLog(Terror, "{} 变量类型不同: token, 预期：{}, 但得到：{}", name,
-              WordEnumToken_c::toName(type->value_type->token),
-              WordEnumToken_c::toName(in_type.value_type->token));
-      return false;
-    }
-    if (type->pointer != in_type.pointer) {
-      // 检查指针层级
-      // 不用检查引用 type->isReferer != in_type.isReferer
-      UtilLog(Terror, "{} 变量类型不同: 指针层级, 预期：{} 层, 但得到：{} 层", name, type->pointer,
-              in_type.pointer);
-      return false;
-    }
-    switch (type->value_type->token) {
-    case WordEnumToken_e::Tid: {
-      // 自定义类型
-      // 类型名称
-      if (type->value_type->toId().id != in_type.value_type->toId().id) {
-        UtilLog(Terror, "{} 变量类型不同: ID, 预期：{}, 但得到：{}", name,
-                type->value_type->toId().id, in_type.value_type->toId().id);
-        return false;
-      }
-    } break;
-    case WordEnumToken_e::Ttype: {
-      // 内置类型
-      if (type->value_type->toType().value != in_type.value_type->toType().value) {
-        UtilLog(Terror, "{} 变量类型不同: type, 预期：{}, 但得到：{}", name,
-                WordEnumType_c::toName(type->value_type->toType().value),
-                WordEnumType_c::toName(in_type.value_type->toType().value));
-        return false;
-      }
-    } break;
-    default: {
-      Assert_d(true == false, "{} 非法的变量类型: {}", name,
-               WordEnumToken_c::toName(type->value_type->token));
-      return false;
-    }
-    }
-    return true;
-  }
-
-  std::shared_ptr<SyntaxNode_value_define_c> type;
-  // address / value
-  long long value = 0;
-  long long address = 0;
-  std::list<std::shared_ptr<WordItem_c>> refs;
-};
-
-// 函数符号定义
-class SymbolItem_function_c : public SymbolItem_c {
-public:
-  SymbolItem_function_c() : SymbolItem_c(SymbolType_e::TFunction) {}
-
-  bool hasType() const override { return (nullptr != type); }
-
-  // 检查函数类型
-  template <typename... _ARGS>
-  bool checkFunType(const SyntaxNode_value_define_c&& return_type, const _ARGS&&... args) {
-    return true;
-  }
-
-  // TODO: 检查传入参数是否匹配
-  bool checkFunArgs(std::list<std::shared_ptr<ListNode_c>>& args) {
-    if (args.size() != type->args.size()) {
-      UtilLog(Terror, "函数参数个数不匹配: {} (预期 {} 个，但给定了 {} 个)", name,
-              type->args.size(), args.size());
-      return false;
-    }
-    return true;
-  }
-
-  std::shared_ptr<SyntaxNode_function_define_c> type;
-  long long address = 0;
-  std::list<std::shared_ptr<SyntaxNode_function_call_c>> refs;
-};
-
-// 枚举符号定义
-class SymbolItem_enum_c : public SymbolItem_c {
-public:
-  SymbolItem_enum_c() : SymbolItem_c(SymbolType_e::TEnum) {}
-
-  bool hasType() const override { return (nullptr != type); }
-
-  std::shared_ptr<SyntaxNode_enum_define_c> type;
 };

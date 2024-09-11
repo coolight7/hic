@@ -3,4 +3,8 @@ project(test VERSION 1.0.0)
 
 aux_source_directory(. DIR_test)
 
-add_executable(test ${DIR_test})
+add_executable(${PROJECT_NAME} ${DIR_test})
+
+target_link_libraries(${PROJECT_NAME}
+	hic
+)

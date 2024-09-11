@@ -6,4 +6,4 @@ aux_source_directory(./magic DIR_magic)
 aux_source_directory(./analyse DIR_analyse)
 aux_source_directory(./vm DIR_vm)
 
-add_executable(hic ${DIR_hic} ${DIR_magic} ${DIR_analyse} ${DIR_vm})
+add_library(${PROJECT_NAME} STATIC ${DIR_hic} ${DIR_magic} ${DIR_analyse} ${DIR_vm})
