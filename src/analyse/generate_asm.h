@@ -25,8 +25,18 @@ class ProgramHeader_c {
 // 程序包
 class ProgramPackage_c {
 public:
-  void init() { code = ""; }
+  void init() {
+    data = "";
+    code = "";
+  }
 
+  template <typename T> T* hitData(int addr) {
+    Assert_d(addr >= 0 && addr < data.size(), addr);
+    return (T*)(data.c_str() + addr);
+  }
+
+  // 数据指令
+  std::string data{};
   // 二进制指令
   std::string code{};
   // 程序头
@@ -116,7 +126,7 @@ public:
       auto real_node = HicUtil_c::toType<SyntaxNode_value_define_init_c>(node);
       if (false == symbolManager->currentIsGlobal()) {
         // 添加初始化指令
-        // auto data = real_node->data->;
+        auto data = real_node->data;
       }
     } break;
     default:
@@ -135,8 +145,28 @@ public:
     if (false == semanticAnalyse.analyse()) {
       return "";
     }
+    auto root = semanticAnalyse.tree();
+    // 分配全局变量内存
+    for (const auto& item : (*root->symbolTable)) {
+      switch (item.second->symbolType) {
+      case SymbolType_e::TValue: {
+        // 分配地址
+        auto symbol = SymbolItem_c::toValue(item.second);
+        symbol->address = program.data.size();
+        program.data.resize(program.data.size() + symbol->size());
+        // 简单赋值
+        *(program.hitData<int>(symbol->address)) = int(symbol->value);
+        // 函数调用
+      } break;
+      case SymbolType_e::TEnum: {
+        // 不用操作
+      } break;
+      default:
+        break;
+      }
+    }
     // 遍历生成
-    return genNode(semanticAnalyse.tree());
+    return genNode(root);
   }
 
   ProgramPackage_c program{};

@@ -332,33 +332,30 @@ public:
         return false;
       }
     } break;
-    case SyntaxNodeType_e::TValueDefineId:
-    case SyntaxNodeType_e::TValueDefineInit: {
+    case SyntaxNodeType_e::TValueDefineId: {
       // 变量定义，添加符号表
       auto result = std::make_shared<SymbolItem_value_c>();
-      switch (node->syntaxType) {
-      case SyntaxNodeType_e::TValueDefineId: {
-        auto real_node = HicUtil_c::toType<SyntaxNode_value_define_id_c>(node);
-        result->type = real_node->value_define;
-        result->name = real_node->id->id;
-        real_node->symbol = result;
-      } break;
-      case SyntaxNodeType_e::TValueDefineInit: {
-        auto real_node = HicUtil_c::toType<SyntaxNode_value_define_init_c>(node);
-        result->type = real_node->define_id->value_define;
-        result->name = real_node->define_id->id->id;
-        real_node->define_id->symbol = result;
-      } break;
-      default: {
-        Assert_d(true == false, "非预期的变量定义节点：{}",
-                 SyntaxNodeType_c::toName(node->syntaxType));
-      } break;
-      }
+      auto real_node = HicUtil_c::toType<SyntaxNode_value_define_id_c>(node);
+      result->type = real_node->value_define;
+      result->name = real_node->id->id;
+      real_node->symbol = result;
       // 添加符号定义
       if (false == symbolManager->currentAddSymbol(result)) {
         node->debugPrint();
         return false;
       }
+    } break;
+    case SyntaxNodeType_e::TValueDefineInit: {
+      auto real_node = HicUtil_c::toType<SyntaxNode_value_define_init_c>(node);
+      if (false == analyseNodeList(real_node->define_id, real_node->data)) {
+        return false;
+      }
+      // 检查类型
+      if (false == real_node->define_id->symbol->checkValueType(real_node->data->returnType())) {
+        return false;
+      }
+      // TODO: 如果初始化值是已知的简单值，直接写入，否则运行时执行
+      // result->value = real_node->data->returnType()->value_type;
     } break;
     case SyntaxNodeType_e::TFunctionCall: {
       // 检查符号是否存在
@@ -513,6 +510,10 @@ public:
 
   template <typename... _Args>
   bool analyseChildren(std::shared_ptr<SyntaxNode_c> node, int size = -1, _Args... args) {
+    Assert_d(nullptr != node, "node 不应为空");
+    if (nullptr == node) {
+      return true;
+    }
     if (size >= 0 && node->children.size() != size && ((node->children.size() != args) && ...)) {
       UtilLog(Terror, "{} 包含了 {} 个参数，但预期需要:", node->name(), node->children.size());
       std::cout << size;
@@ -616,7 +617,7 @@ public:
     return result;
   }
 
-  std::shared_ptr<SyntaxNode_c> tree() { return syntacticAnalysis.root; }
+  std::shared_ptr<SyntaxNode_group_c> tree() { return syntacticAnalysis.root; }
 
   SyntacticAnalysis_c syntacticAnalysis{};
   std::shared_ptr<SymbolManager_c> symbolManager{};

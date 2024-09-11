@@ -108,6 +108,16 @@ GENERATE_ENUM(SymbolType, Value, Function, Enum, Class);
 #include "src/magic/unset_macro.h"
 #include "src/util.h"
 
+enum ValueTypeSize_e {
+  Schar = 1,
+  Sbool = 1,
+  Sint = 4,
+  Sint64 = 8,
+  Sfloat = 4,
+  Sfloat64 = 8,
+  Spointer = 8,
+};
+
 class WordItem_c;
 class WordItem_id_c;
 class SyntaxNode_c;

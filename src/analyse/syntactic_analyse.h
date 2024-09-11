@@ -756,7 +756,7 @@ public:
   }
 
   // 语法分析结果，抽象语法树根节点
-  std::shared_ptr<SyntaxNode_c> root;
+  std::shared_ptr<SyntaxNode_group_c> root;
   // 词法分析器
   LexicalAnalyse_c lexicalAnalyse{};
 };
