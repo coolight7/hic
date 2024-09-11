@@ -19,6 +19,9 @@ public:
 
 // 程序头
 class ProgramHeader_c {
+public:
+  void debugPrint() {}
+
   std::list<ProgramSegment_c> segments{};
 };
 
@@ -35,12 +38,20 @@ public:
     return (T*)(data.c_str() + addr);
   }
 
+  void debugPrint() {
+    std::cout << std::endl << "vvv ----------- <header> ----------- vvv" << std::endl;
+    header.debugPrint();
+    std::cout << std::endl << "^^^ ----------- <header> ----------- ^^^" << std::endl;
+    std::cout << "<data> size: " << data.size() << std::endl;
+    std::cout << "<code> size: " << code.size() << std::endl;
+  }
+
+  // 程序头
+  ProgramHeader_c header{};
   // 数据指令
   std::string data{};
   // 二进制指令
   std::string code{};
-  // 程序头
-  ProgramHeader_c header{};
 };
 
 class GenerateAsm_c {

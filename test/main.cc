@@ -298,6 +298,8 @@ void test_readFile_gen() {
   } else {
     UtilLineLog(Tdebug, "", 0, "## tree:");
     analyse.semanticAnalyse.syntacticAnalysis.root->debugPrint();
+    UtilLineLog(Tdebug, "", 0, "## program:");
+    analyse.program.debugPrint();
   }
   assert(rebool);
 }
