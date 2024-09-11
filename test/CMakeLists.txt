@@ -7,4 +7,5 @@ add_executable(${PROJECT_NAME} ${DIR_test})
 
 target_link_libraries(${PROJECT_NAME}
 	hic
+	hic-cli-source
 )

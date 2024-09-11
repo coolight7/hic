@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "client/source/test.h"
 #include "src/analyse/generate_asm.h"
 #include "src/analyse/lexical_analyse.h"
 #include "src/analyse/semantic_analyse.h"
@@ -300,6 +301,8 @@ void test_readFile_gen() {
   }
   assert(rebool);
 }
+
+void test_client() { std::cout << test_add(1, 2) << std::endl; }
 
 int main() {
   std::cout << "<========= test start ========>" << std::endl;
