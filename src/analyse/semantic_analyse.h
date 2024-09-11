@@ -581,6 +581,29 @@ public:
           real_node.return_type = std::make_shared<SyntaxNode_value_define_c>();
           real_node.return_type->value_type = word_node;
         } break;
+        case WordEnumToken_e::Tvalue: {
+          auto& real_node = word_node->toValue();
+          // TODO: 循环引用，内存泄漏
+          switch (real_node.value) {
+          case WordEnumValue_e::Tnullptr: {
+            real_node.return_type = std::make_shared<SyntaxNode_value_define_c>();
+            real_node.return_type->isFinal = true;
+            real_node.return_type->isConstexpr = true;
+            real_node.return_type->pointer = SyntaxNode_value_define_c::anyPointer;
+            real_node.return_type->value_type = word_node;
+          } break;
+          case WordEnumValue_e::Ttrue:
+          case WordEnumValue_e::Tfalse: {
+            real_node.return_type = std::make_shared<SyntaxNode_value_define_c>();
+            real_node.return_type->isFinal = true;
+            real_node.return_type->isConstexpr = true;
+            real_node.return_type->value_type =
+                std::make_shared<WordItem_type_c>(WordEnumType_e::Tbool);
+          } break;
+          default:
+            break;
+          }
+        } break;
         case WordEnumToken_e::Tkeyword: {
         } break;
         case WordEnumToken_e::TnativeCall: {

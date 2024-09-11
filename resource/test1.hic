@@ -33,7 +33,7 @@ int main(char** args, int size) {
         d = b;
     }
 
-    int ok = *c;
+    // int ok = *c; // 检查 读址 操作数类型为指针
     char ch = 'b';
         // disable=124
     bool k = false;

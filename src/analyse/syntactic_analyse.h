@@ -404,7 +404,8 @@ public:
         }
         signStack.push(*static_cast<std::shared_ptr<WordItem_operator_c>*>((void*)&word_ptr));
       } else {
-        if (WordEnumToken_e::Tid == word.token) {
+        switch (word.token) {
+        case WordEnumToken_e::Tid: {
           // 尝试解析函数调用
           auto tempIndex = lexicalAnalyse.tokenIndex;
           auto fun_call = parse_function_call(word_ptr);
@@ -417,6 +418,19 @@ public:
             // 回溯
             lexicalAnalyse.tokenIndex = tempIndex;
           }
+        } break;
+        case WordEnumToken_e::Toperator:
+        case WordEnumToken_e::Tnumber:
+        case WordEnumToken_e::Tstring:
+        case WordEnumToken_e::Tvalue:
+        case WordEnumToken_e::TnativeCall: {
+          // none
+        } break;
+        case WordEnumToken_e::Tundefined:
+        case WordEnumToken_e::Tkeyword:
+        case WordEnumToken_e::Ttype:
+        default:
+          return nullptr;
         }
         dataStack.push(word_ptr);
       }

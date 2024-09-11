@@ -60,7 +60,7 @@ public:
     tokenList.clear();
     tokenIndex = -1;
     reserveKeywords_.clear();
-    // 添加关键字
+    // 添加控制关键字
     for (int i = 0; i < WordEnumCtrl_c::namelist.size(); ++i) {
       const auto& item = WordEnumCtrl_c::namelist[i];
       reserveKeywords_[item] = WordItem_c::make_shared<WordItem_ctrl_c>(WordEnumCtrl_c::toEnum(i));
@@ -69,6 +69,12 @@ public:
     for (int i = 0; i < WordEnumType_c::namelist.size(); ++i) {
       const auto& item = WordEnumType_c::namelist[i];
       reserveKeywords_[item] = WordItem_c::make_shared<WordItem_type_c>(WordEnumType_c::toEnum(i));
+    }
+    // 添加内置值
+    for (int i = 0; i < WordEnumValue_c::namelist.size(); ++i) {
+      const auto& item = WordEnumValue_c::namelist[i];
+      reserveKeywords_[item] =
+          WordItem_c::make_shared<WordItem_value_c>(WordEnumValue_c::toEnum(i));
     }
     // 添加内置函数
     for (int i = 0; i < WordEnumNativeCall_c::namelist.size(); ++i) {

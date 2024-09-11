@@ -10,10 +10,12 @@
 
 // word
 class WordItem_string_c;
-class WordItem_operator_c;
+class WordItem_id_c;
 class WordItem_number_c;
+class WordItem_operator_c;
 class WordItem_ctrl_c;
 class WordItem_type_c;
+class WordItem_value_c;
 class WordItem_nativeCall_c;
 
 // syn ---
@@ -80,6 +82,10 @@ public:
   WordItem_type_c& toType() const {
     Assert_d(WordEnumToken_e::Ttype == token);
     return *((WordItem_type_c*)this);
+  }
+  WordItem_value_c& toValue() const {
+    Assert_d(WordEnumToken_e::Tvalue == token);
+    return *((WordItem_value_c*)this);
   }
   WordItem_nativeCall_c& toNativeCall() const {
     Assert_d(WordEnumToken_e::TnativeCall == token);
@@ -351,6 +357,22 @@ public:
   std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
 
   WordEnumType_e value;
+  std::shared_ptr<SyntaxNode_value_define_c> return_type;
+};
+
+class WordItem_value_c : public WordItem_c {
+public:
+  WordItem_value_c(WordEnumValue_e in_value)
+      : WordItem_c(WordEnumToken_e::Tvalue), value(in_value) {}
+
+  const std::string& name() const override {
+    Assert_d(value >= 0 && value < WordEnumType_c::namelist.size());
+    return WordEnumValue_c::namelist[value];
+  }
+
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+
+  WordEnumValue_e value;
   std::shared_ptr<SyntaxNode_value_define_c> return_type;
 };
 
@@ -637,6 +659,9 @@ public:
 
 class SyntaxNode_value_define_c : public SyntaxNode_c {
 public:
+  // 可转为任意类型的指针
+  inline static const size_t anyPointer = 777;
+
   SyntaxNode_value_define_c() : SyntaxNode_c(SyntaxNodeType_e::TValueDefine) {}
   SyntaxNode_value_define_c(bool in_isConst) : SyntaxNode_c(SyntaxNodeType_e::TValueDefine) {
     if (in_isConst) {
@@ -682,6 +707,8 @@ public:
     }
     return true;
   }
+
+  bool isAnyPointer() { return (anyPointer == pointer); }
 
   bool isBoolValue() const {
     return (0 == pointer && value_type->isType() &&

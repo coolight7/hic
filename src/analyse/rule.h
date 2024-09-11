@@ -16,6 +16,11 @@ GENERATE_ENUM(WordEnumCtrl, const, final, static, if, else, switch, case, defaul
  */
 GENERATE_ENUM(WordEnumType, void, char, bool, int, int64, float, float64, enum, class, function)
 
+/**
+ * 关键字（内置值）
+ */
+GENERATE_ENUM(WordEnumValue, nullptr, true, false)
+
 /** token 分类
  * Tundefined,
  * Tnumber,     // 数值
@@ -23,10 +28,12 @@ GENERATE_ENUM(WordEnumType, void, char, bool, int, int64, float, float64, enum, 
  * Toperator    // 操作符
  * Tkeyword,    // 关键字
  * Ttype,       // 类型
+ * Tvalue,      // 内置值
  * TnativeCall, // 内置函数
  * Tid,         // 名称
  */
-GENERATE_ENUM(WordEnumToken, undefined, number, string, operator, keyword, type, nativeCall, id)
+GENERATE_ENUM(WordEnumToken, undefined, number, string, operator, keyword, type, value, nativeCall,
+              id)
 
 /** 内置函数
  *
