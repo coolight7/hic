@@ -312,10 +312,21 @@ public:
       type->value_type = value_type;
       real_node->set_return_type(type);
     } break;
-    case WordEnumOperator_e::TSetBitAnd:
-    case WordEnumOperator_e::TSetBitOr:
     case WordEnumOperator_e::TBitLeftMove:
     case WordEnumOperator_e::TBitRightMove: {
+      // 两个操作数都需要是 int
+      if (false == analyseChildren(real_node, 2)) {
+        return false;
+      }
+      // 检查 int, int
+      if (false == checkChildrenType_int(real_node)) {
+        return false;
+      }
+      auto left = real_node->children.back()->returnType();
+      real_node->set_return_type(left);
+    } break;
+    case WordEnumOperator_e::TSetBitAnd:
+    case WordEnumOperator_e::TSetBitOr: {
       // 两个操作数都需要是 int，且 左操作数 应可修改
       if (false == analyseChildren(real_node, 2)) {
         return false;
@@ -340,7 +351,13 @@ public:
         return false;
       }
       // 取第二个参数的类型
-      real_node->set_return_type(real_node->children.front()->returnType());
+      auto left = real_node->children.back()->returnType();
+      if (false == left->canModify()) {
+        UtilLog(Terror, "操作符 {} 的操作数[{}]({}) 不可修改", node->name(),
+                real_node->children.back()->name(), 0);
+        return false;
+      }
+      real_node->set_return_type(left);
     } break;
     }
     if (real_node->returnType() == nullptr) {
@@ -412,6 +429,7 @@ public:
         return false;
       }
       // TODO: 如果初始化值是已知的简单值，直接写入，否则运行时执行
+      // const 必须初始化编译器已知值
       // result->value = real_node->data->returnType()->value_type;
     } break;
     case SyntaxNodeType_e::TFunctionCall: {

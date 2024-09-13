@@ -23,7 +23,8 @@ int main(char** args, int size) {
     c *= b;
     a ??= b ?? c;
 
-    int ret = test(1, 2);
+    const int ret = test(1, 2);
+    // ret = 123;    // 限制 const 不可变
     test(3, 4);
     test(ret, 4, );  // 允许尾部多余的 ,
     // test(3,);     // 检查函数参数个数
