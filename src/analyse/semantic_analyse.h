@@ -167,12 +167,6 @@ public:
       --index;
     }
     return true;
-    auto first = node->children.front()->returnType();
-    auto second = node->children.back()->returnType();
-    if (nullptr == first || false == first->isIntValue() || nullptr == second ||
-        false == second->isIntValue()) {
-      return false;
-    }
   }
 
   bool analyseNode_operator(std::shared_ptr<SyntaxNode_c> node) {
@@ -345,18 +339,28 @@ public:
     } break;
     case WordEnumOperator_e::TSet:
     case WordEnumOperator_e::TSetAdd:
-    default: {
+    case WordEnumOperator_e::TSetSub:
+    case WordEnumOperator_e::TSetMulti:
+    case WordEnumOperator_e::TSetDivision:
+    case WordEnumOperator_e::TSetNullMerge: {
       // 两个操作数
       if (false == analyseChildren(real_node, 2)) {
         return false;
       }
-      // 取第二个参数的类型
       auto left = real_node->children.back()->returnType();
       if (false == left->canModify()) {
         UtilLog(Terror, "操作符 {} 的操作数[{}]({}) 不可修改", node->name(),
                 real_node->children.back()->name(), 0);
         return false;
       }
+      real_node->set_return_type(left);
+    } break;
+    default: {
+      // 两个操作数
+      if (false == analyseChildren(real_node, 2)) {
+        return false;
+      }
+      auto left = real_node->children.back()->returnType();
       real_node->set_return_type(left);
     } break;
     }

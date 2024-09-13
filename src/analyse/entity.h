@@ -716,8 +716,19 @@ public:
   }
 
   bool isIntValue() const {
-    return (0 == pointer && value_type->isType() &&
-            WordEnumType_e::Tint == value_type->toType().value);
+    if (0 == pointer && value_type->isType()) {
+      auto type = value_type->toType().value;
+      switch (type) {
+      case WordEnumType_e::Tint:
+      case WordEnumType_e::Tint64:
+      case WordEnumType_e::Tfloat:
+      case WordEnumType_e::Tfloat64:
+        return true;
+      default:
+        return false;
+      }
+    }
+    return false;
   }
 
   bool canModify() const { return (false == isFinal && false == isConstexpr); }
