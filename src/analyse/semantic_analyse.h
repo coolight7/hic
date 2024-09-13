@@ -61,7 +61,6 @@ public:
 
   std::shared_ptr<SymbolTable>& currentTable() {
     Assert_d(stack.empty() == false);
-    UtilLog(Tdebug, "SymbolTable.size(): {}", stack.size());
     return stack.back();
   }
 
@@ -151,6 +150,31 @@ public:
     return (tryAnalyseNode(args) && ...);
   }
 
+  bool checkChildrenType_int(std::shared_ptr<SyntaxNode_c> node) {
+    int index = node->children.size();
+    for (const auto& item : node->children) {
+      auto returnType = item->returnType();
+      if (nullptr == returnType) {
+        UtilLog(Terror, "操作符 {} 的操作数 [{}]({}) 类型不应为空", node->name(), index,
+                item->name());
+        return false;
+      } else if (false == returnType->isIntValue()) {
+        UtilLog(Terror, "操作符 {} 的操作数 [{}]({}) 类型不是 int:", node->name(), index,
+                item->name());
+        returnType->value_type->printInfo();
+        return false;
+      }
+      --index;
+    }
+    return true;
+    auto first = node->children.front()->returnType();
+    auto second = node->children.back()->returnType();
+    if (nullptr == first || false == first->isIntValue() || nullptr == second ||
+        false == second->isIntValue()) {
+      return false;
+    }
+  }
+
   bool analyseNode_operator(std::shared_ptr<SyntaxNode_c> node) {
     auto real_node = HicUtil_c::toType<SyntaxNode_operator_c>(node);
     switch (real_node->oper) {
@@ -222,9 +246,6 @@ public:
         real_node->set_return_type(type);
       } else if (real_node->children.size() == 2) {
         // 按位与
-        if (false == analyseChildren(real_node, 1)) {
-          return false;
-        }
         // 检查 int,int
         auto first = real_node->children.front()->returnType();
         auto second = real_node->children.back()->returnType();
@@ -260,9 +281,6 @@ public:
         real_node->set_return_type(type);
       } else if (real_node->children.size() == 2) {
         // 乘法
-        if (false == analyseChildren(real_node, 1)) {
-          return false;
-        }
         // 检查 int,int
         auto first = real_node->children.front()->returnType();
         auto second = real_node->children.back()->returnType();
@@ -294,6 +312,28 @@ public:
       type->value_type = value_type;
       real_node->set_return_type(type);
     } break;
+    case WordEnumOperator_e::TSetBitAnd:
+    case WordEnumOperator_e::TSetBitOr:
+    case WordEnumOperator_e::TBitLeftMove:
+    case WordEnumOperator_e::TBitRightMove: {
+      // 两个操作数都需要是 int，且 左操作数 应可修改
+      if (false == analyseChildren(real_node, 2)) {
+        return false;
+      }
+      // 检查 int, int
+      if (false == checkChildrenType_int(real_node)) {
+        return false;
+      }
+      auto left = real_node->children.back()->returnType();
+      if (false == left->canModify()) {
+        UtilLog(Terror, "操作符 {} 的操作数[{}]({}) 不可修改", node->name(),
+                real_node->children.back()->name(), 0);
+        return false;
+      }
+      real_node->set_return_type(left);
+    } break;
+    case WordEnumOperator_e::TSet:
+    case WordEnumOperator_e::TSetAdd:
     default: {
       // 两个操作数
       if (false == analyseChildren(real_node, 2)) {

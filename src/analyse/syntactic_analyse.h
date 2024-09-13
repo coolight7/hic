@@ -205,7 +205,27 @@ public:
   parse_value_define(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
     // value_type
     auto re_node = std::make_shared<SyntaxNode_value_define_c>();
+    _GEN_WORD(word);
+    auto preType = assertToken_type(WordEnumToken_e::Tkeyword, word_ptr);
+    bool isConst = false;
+    bool isFinal = false;
+    if (nullptr != preType) {
+      auto& key = preType->toKeyword();
+      switch (key.value) {
+      case WordEnumCtrl_e::Tconst: {
+        isConst = true;
+      } break;
+      case WordEnumCtrl_e::Tfinal: {
+        isFinal = true;
+      } break;
+      default:
+        return nullptr;
+      }
+      word_ptr = nullptr;
+    }
     if (re_node->set_value_type(parse_value_type(word_ptr))) {
+      re_node->isConstexpr = isConst;
+      re_node->isFinal = isFinal;
       // 指针或引用
       while (true) {
         _GEN_WORD_DEF(next);

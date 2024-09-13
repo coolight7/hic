@@ -720,6 +720,8 @@ public:
             WordEnumType_e::Tint == value_type->toType().value);
   }
 
+  bool canModify() const { return (false == isFinal && false == isConstexpr); }
+
   size_t size() { return 8; }
 
   const std::string& name() const override { return value_type->name(); }
