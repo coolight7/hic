@@ -38,7 +38,7 @@ GENERATE_ENUM(WordEnumToken, undefined, number, string, operator, keyword, type,
 /** 内置函数
  *
  */
-GENERATE_ENUM(WordEnumNativeCall, print, sizeof, malloc, free, exit)
+GENERATE_ENUM(WordEnumNativeCall, print)
 
 /**
  * ## 符号优先级

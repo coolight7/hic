@@ -77,6 +77,8 @@
                                                                                                    \
   class name##_c {                                                                                 \
   public:                                                                                          \
+    name##_c() = delete;                                                                           \
+                                                                                                   \
     inline static const std::array<const std::string, _MacroArgSize_d(__VA_ARGS__)> namelist = {   \
         _MoreExpand_d(GENERATE_STRING_ITEM_d(__VA_ARGS__))};                                       \
                                                                                                    \
@@ -86,5 +88,21 @@
                                                                                                    \
     inline static constexpr const std::string& toName(name##_e index) {                            \
       return namelist[toInt(index)];                                                               \
+    }                                                                                              \
+                                                                                                   \
+    inline static constexpr bool existInt(int index) {                                             \
+      if (index >= 0 && index < namelist.size()) {                                                 \
+        return true;                                                                               \
+      }                                                                                            \
+      return false;                                                                                \
+    }                                                                                              \
+                                                                                                   \
+    inline static constexpr bool existName(std::string_view in_name) {                             \
+      for (const auto& item : namelist) {                                                          \
+        if (item == in_name) {                                                                     \
+          return true;                                                                             \
+        }                                                                                          \
+      }                                                                                            \
+      return false;                                                                                \
     }                                                                                              \
   };

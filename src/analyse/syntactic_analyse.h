@@ -645,6 +645,7 @@ public:
     return nullptr;
   }
 
+  // TODO: native_call
   std::shared_ptr<SyntaxNode_function_define_c>
   parse_function_define(std::shared_ptr<WordItem_c> word_ptr) {
     // {返回值} {函数名} ({参数列表}*) { {code} }
@@ -668,9 +669,9 @@ public:
             }
             sign_ptr = nullptr;
           }
-          // code
           if (assertToken_sign(")", sign_ptr) && assertToken_sign("{") &&
               re_node->set_body(parse_code()) && assertToken_sign("}")) {
+            // code
             // TODO: 支持设置 parse_code 的返回值是否添加 符号范围限制
             return re_node;
           }

@@ -387,6 +387,7 @@ public:
     tokenIndex = tokenList.size();
     return result;
   }
+
   /**
    * ## 返回当前 [token]
    * - 调用时 [tokenList] 应当非空
