@@ -436,28 +436,25 @@ public:
       // const 必须初始化编译器已知值
       // result->value = real_node->data->returnType()->value_type;
     } break;
+    case SyntaxNodeType_e::TNativeFunctionCall:
     case SyntaxNodeType_e::TUserFunctionCall: {
       // 检查符号是否存在
       auto result = std::make_shared<SymbolItem_function_c>();
-      auto real_node = HicUtil_c::toType<SyntaxNode_function_call_c>(node);
-      result->name = real_node->id->name();
-      // 检查符号定义
-      auto exist_id = SymbolItem_c::toFunction(symbolManager->checkIdExist(result));
-      if (nullptr == exist_id) {
-        return false;
+      auto real_node = std::shared_ptr<SyntaxNode_function_call_base_c>{};
+      switch (node->syntaxType) {
+      case SyntaxNodeType_e::TNativeFunctionCall: {
+        auto native_node = HicUtil_c::toType<SyntaxNode_native_call_c>(node);
+        result->name = native_node->id->name();
+        real_node = native_node;
+      } break;
+      case SyntaxNodeType_e::TUserFunctionCall: {
+        auto fun_node = HicUtil_c::toType<SyntaxNode_function_call_c>(node);
+        result->name = fun_node->id->name();
+        real_node = fun_node;
+      } break;
+      default:
+        break;
       }
-      // 关联函数声明
-      exist_id->refs.push_back(real_node);
-      real_node->symbol = exist_id;
-      // 读取参数节点，检查函数参数匹配
-      if (false == analyseChildren(node) || false == exist_id->checkFunArgs(real_node->children)) {
-        return false;
-      }
-    } break;
-    case SyntaxNodeType_e::TNativeFunctionCall: {
-      auto result = std::make_shared<SymbolItem_function_c>();
-      auto real_node = HicUtil_c::toType<SyntaxNode_native_call_c>(node);
-      result->name = real_node->id->name();
       // 检查符号定义
       auto exist_id = SymbolItem_c::toFunction(symbolManager->checkIdExist(result));
       if (nullptr == exist_id) {
