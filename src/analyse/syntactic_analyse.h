@@ -145,6 +145,15 @@ public:
     return nullptr;
   }
 
+  std::shared_ptr<WordItem_nativeCall_c>
+  assertToken_nativeCall(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
+    _GEN_WORD(word);
+    if (WordEnumToken_e::TnativeCall == word.token) {
+      return HicUtil_c::toType<WordItem_nativeCall_c>(word_ptr);
+    }
+    return nullptr;
+  }
+
   std::shared_ptr<WordItem_operator_c>
   assertToken_sign(WordEnumOperator_e sign, std::shared_ptr<WordItem_c> word_ptr = nullptr,
                    bool startWith = false) {
@@ -619,41 +628,56 @@ public:
     return re_node;
   }
 
-  // {ID_funName} ()
-  std::shared_ptr<SyntaxNode_function_call_c>
+  std::shared_ptr<SyntaxNode_c>
   parse_function_call(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
-    auto re_node = std::make_shared<SyntaxNode_function_call_c>();
-    if (re_node->set_id(assertToken_id(word_ptr))) {
-      if (assertToken_sign("(")) {
-        std::shared_ptr<WordItem_c> sign_ptr;
-        // 参数列表
-        while (true) {
-          if (false == re_node->add(parse_expr())) {
-            break;
-          }
-          _GEN_WORD(sign);
-          if (nullptr == assertToken_sign(",", sign_ptr)) {
-            break;
-          }
-          sign_ptr = nullptr;
+    auto re_node = std::shared_ptr<SyntaxNode_c>{};
+    const auto name_id = assertToken_id(word_ptr);
+    if (nullptr != name_id) {
+      // {ID_userFun} ()
+      auto node = std::make_shared<SyntaxNode_function_call_c>();
+      node->set_id(name_id);
+      re_node = node;
+    } else {
+      // {ID_nativeFun} ()
+      const auto name_native = assertToken_nativeCall();
+      if (nullptr != name_native) {
+        auto node = std::make_shared<SyntaxNode_native_call_c>();
+        node->set_id(name_native);
+        re_node = node;
+      }
+    }
+    if (assertToken_sign("(")) {
+      std::shared_ptr<WordItem_c> sign_ptr;
+      // 参数列表
+      while (true) {
+        if (false == re_node->add(parse_expr())) {
+          break;
         }
-        if (assertToken_sign(")", sign_ptr)) {
-          return re_node;
+        _GEN_WORD(sign);
+        if (nullptr == assertToken_sign(",", sign_ptr)) {
+          break;
         }
+        sign_ptr = nullptr;
+      }
+      if (assertToken_sign(")", sign_ptr)) {
+        return re_node;
       }
     }
     return nullptr;
   }
 
-  // TODO: native_call
-  std::shared_ptr<SyntaxNode_function_define_c>
+  std::shared_ptr<SyntaxNode_function_define_base_c>
   parse_function_define(std::shared_ptr<WordItem_c> word_ptr) {
-    // {返回值} {函数名} ({参数列表}*) { {code} }
-    auto re_node = std::make_shared<SyntaxNode_function_define_c>();
+    const auto return_type = parse_value_define(word_ptr);
     // 返回值
-    if (re_node->set_return_type(parse_value_define(word_ptr))) {
+    if (nullptr != return_type) {
       // 函数名
-      if (re_node->set_id(HicUtil_c::toType<WordItem_id_c>(assertToken_id()))) {
+      const auto name_id = assertToken_id();
+      if (nullptr != name_id) {
+        // {返回值} {函数名} ({参数列表}*) { {code} }
+        auto re_node = std::make_shared<SyntaxNode_function_define_user_c>();
+        re_node->set_return_type(return_type);
+        re_node->set_id(name_id);
         // 参数列表
         if (assertToken_sign("(")) {
           std::shared_ptr<WordItem_c> sign_ptr;
@@ -674,6 +698,33 @@ public:
             // code
             // TODO: 支持设置 parse_code 的返回值是否添加 符号范围限制
             return re_node;
+          }
+        }
+      } else {
+        // {返回值} {Native函数名} ({参数列表}*);
+        const auto name_nativeCall = assertToken_nativeCall();
+        if (nullptr != name_nativeCall) {
+          auto re_node = std::make_shared<SyntaxNode_function_define_native_c>();
+          re_node->set_return_type(return_type);
+          re_node->set_id(name_nativeCall);
+          // 参数列表
+          if (assertToken_sign("(")) {
+            std::shared_ptr<WordItem_c> sign_ptr;
+            _GEN_WORD(sign);
+            while (true) {
+              if (false == re_node->addArg(parse_value_define_id(sign_ptr))) {
+                break;
+              }
+              sign_ptr = nullptr;
+              _GEN_WORD(sign);
+              if (nullptr == assertToken_sign(",", sign_ptr)) {
+                break;
+              }
+              sign_ptr = nullptr;
+            }
+            if (assertToken_sign(")", sign_ptr) && assertToken_sign(";")) {
+              return re_node;
+            }
           }
         }
       }

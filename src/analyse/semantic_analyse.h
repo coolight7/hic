@@ -436,11 +436,11 @@ public:
       // const 必须初始化编译器已知值
       // result->value = real_node->data->returnType()->value_type;
     } break;
-    case SyntaxNodeType_e::TFunctionCall: {
+    case SyntaxNodeType_e::TUserFunctionCall: {
       // 检查符号是否存在
       auto result = std::make_shared<SymbolItem_function_c>();
       auto real_node = HicUtil_c::toType<SyntaxNode_function_call_c>(node);
-      result->name = real_node->id->toId().id;
+      result->name = real_node->id->name();
       // 检查符号定义
       auto exist_id = SymbolItem_c::toFunction(symbolManager->checkIdExist(result));
       if (nullptr == exist_id) {
@@ -454,10 +454,27 @@ public:
         return false;
       }
     } break;
-    case SyntaxNodeType_e::TFunctionDefine: {
+    case SyntaxNodeType_e::TNativeFunctionCall: {
       auto result = std::make_shared<SymbolItem_function_c>();
-      auto real_node = HicUtil_c::toType<SyntaxNode_function_define_c>(node);
-      result->name = real_node->id->toId().id;
+      auto real_node = HicUtil_c::toType<SyntaxNode_native_call_c>(node);
+      result->name = real_node->id->name();
+      // 检查符号定义
+      auto exist_id = SymbolItem_c::toFunction(symbolManager->checkIdExist(result));
+      if (nullptr == exist_id) {
+        return false;
+      }
+      // 关联函数声明
+      exist_id->refs.push_back(real_node);
+      real_node->symbol = exist_id;
+      // 读取参数节点，检查函数参数匹配
+      if (false == analyseChildren(node) || false == exist_id->checkFunArgs(real_node->children)) {
+        return false;
+      }
+    } break;
+    case SyntaxNodeType_e::TNativeFunctionDefine: {
+      auto result = std::make_shared<SymbolItem_function_c>();
+      auto real_node = HicUtil_c::toType<SyntaxNode_function_define_native_c>(node);
+      result->name = real_node->id->name();
       result->type = real_node;
       // 添加函数符号定义
       // 当前函数符号所在的范围
@@ -467,7 +484,28 @@ public:
       // 压入新符号范围
       symbolManager->push(real_node.get());
       // 读取 args
-      for (auto item : real_node->args) {
+      for (const auto& item : real_node->args) {
+        if (false == analyseNode(item)) {
+          return false;
+        }
+      }
+      // 关联符号
+      real_node->symbol = result;
+    } break;
+    case SyntaxNodeType_e::TUserFunctionDefine: {
+      auto result = std::make_shared<SymbolItem_function_c>();
+      auto real_node = HicUtil_c::toType<SyntaxNode_function_define_user_c>(node);
+      result->name = real_node->id->name();
+      result->type = real_node;
+      // 添加函数符号定义
+      // 当前函数符号所在的范围
+      if (false == symbolManager->currentAddSymbol(result)) {
+        return false;
+      }
+      // 压入新符号范围
+      symbolManager->push(real_node.get());
+      // 读取 args
+      for (const auto& item : real_node->args) {
         if (false == analyseNode(item)) {
           return false;
         }
@@ -499,7 +537,7 @@ public:
     case SyntaxNodeType_e::TCtrlIf: {
       auto real_node = HicUtil_c::toType<SyntaxNode_if_c>(node);
       // 检查 branch
-      for (auto item : real_node->branchs) {
+      for (const auto& item : real_node->branchs) {
         if (false == analyseNode(item)) {
           return false;
         }
@@ -602,7 +640,7 @@ public:
     }
     // 读取子节点
     int index = 0;
-    for (auto& item : node->children) {
+    for (const auto& item : node->children) {
       index++;
       switch (item->nodeType) {
       case ListNodeType_e::Lexical: {

@@ -20,8 +20,8 @@ class WordItem_nativeCall_c;
 
 // syn ---
 class SyntaxNode_value_define_c;
-class SyntaxNode_function_define_c;
-class SyntaxNode_function_call_c;
+class SyntaxNode_function_define_base_c;
+class SyntaxNode_function_call_base_c;
 class SyntaxNode_enum_define_c;
 
 // semantic ---
@@ -490,9 +490,9 @@ public:
   // TODO: 检查传入参数是否匹配
   bool checkFunArgs(std::list<std::shared_ptr<ListNode_c>>& args);
 
-  std::shared_ptr<SyntaxNode_function_define_c> type;
+  std::shared_ptr<SyntaxNode_function_define_base_c> type;
   long long address = 0;
-  std::list<std::shared_ptr<SyntaxNode_function_call_c>> refs;
+  std::list<std::shared_ptr<SyntaxNode_function_call_base_c>> refs;
 };
 
 // 枚举符号定义
@@ -512,8 +512,9 @@ GENERATE_ENUM(SyntaxNodeType,
               Normal,   // 分组节点，自身无特殊意义
               Group,    // {}，隔离符号范围
               Transfer, // 传递返回值
-              ValueDefine, ValueDefineId, ValueDefineInit, FunctionCall, Operator, CtrlReturn,
-              CtrlIfBranch, CtrlIf, CtrlWhile, CtrlFor, FunctionDefine, EnumDefine, ClassDefine);
+              ValueDefine, ValueDefineId, ValueDefineInit, NativeFunctionCall, UserFunctionCall,
+              Operator, CtrlReturn, CtrlIfBranch, CtrlIf, CtrlWhile, CtrlFor, NativeFunctionDefine,
+              UserFunctionDefine, EnumDefine, ClassDefine);
 
 #define _GEN_VALUE(type, name)                                                                     \
   bool set_##name(std::shared_ptr<type> in_ptr) {                                                  \
@@ -941,23 +942,17 @@ public:
   _GEN_VALUE(SyntaxNode_c, body);
 };
 
-class SyntaxNode_function_define_c : public SyntaxNode_group_c {
+class SyntaxNode_function_define_native_c;
+class SyntaxNode_function_define_user_c;
+
+class SyntaxNode_function_define_base_c : public SyntaxNode_group_c {
+protected:
+  friend SyntaxNode_function_define_native_c;
+  friend SyntaxNode_function_define_user_c;
+
+  SyntaxNode_function_define_base_c(SyntaxNodeType_e type) : SyntaxNode_group_c(type) {}
+
 public:
-  SyntaxNode_function_define_c() : SyntaxNode_group_c(SyntaxNodeType_e::TFunctionDefine) {}
-
-  void debugPrint(const size_t tab = 1,
-                  std::function<size_t()> onOutPrefix = nullptr) const override {
-    _PRINT_WORD_PREFIX(false);
-    std::cout << "Function" << std::endl;
-    _PRINT_NODE_PREFIX(false, return_type);
-    _PRINT_WORD_PREFIX(false);
-    id->printInfo();
-    for (const auto& item : args) {
-      _PRINT_NODE_PREFIX(false, item);
-    }
-    _PRINT_NODE_PREFIX(true, body);
-  }
-
   std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
 
   bool addArg(std::shared_ptr<SyntaxNode_value_define_id_c> arg) {
@@ -970,16 +965,68 @@ public:
 
   // [args] 和 [body] 在同一符号范围
   _GEN_VALUE(SyntaxNode_value_define_c, return_type);
-  _GEN_VALUE(WordItem_id_c, id);
   std::list<std::shared_ptr<SyntaxNode_value_define_id_c>> args;
-  _GEN_VALUE(SyntaxNode_c, body);
 
   std::shared_ptr<SymbolItem_function_c> symbol;
 };
 
-class SyntaxNode_function_call_c : public SyntaxNode_c {
+class SyntaxNode_function_define_native_c : public SyntaxNode_function_define_base_c {
 public:
-  SyntaxNode_function_call_c() : SyntaxNode_c(SyntaxNodeType_e::TFunctionCall) {}
+  SyntaxNode_function_define_native_c()
+      : SyntaxNode_function_define_base_c(SyntaxNodeType_e::TNativeFunctionDefine) {}
+
+  void debugPrint(const size_t tab = 1,
+                  std::function<size_t()> onOutPrefix = nullptr) const override {
+    _PRINT_WORD_PREFIX(false);
+    std::cout << "Native-Function" << std::endl;
+    _PRINT_NODE_PREFIX(false, return_type);
+    _PRINT_WORD_PREFIX(false);
+    id->printInfo();
+    for (const auto& item : args) {
+      _PRINT_NODE_PREFIX(false, item);
+    }
+  }
+
+  _GEN_VALUE(WordItem_nativeCall_c, id);
+};
+
+class SyntaxNode_function_define_user_c : public SyntaxNode_function_define_base_c {
+public:
+  SyntaxNode_function_define_user_c()
+      : SyntaxNode_function_define_base_c(SyntaxNodeType_e::TUserFunctionDefine) {}
+
+  void debugPrint(const size_t tab = 1,
+                  std::function<size_t()> onOutPrefix = nullptr) const override {
+    _PRINT_WORD_PREFIX(false);
+    std::cout << "User-Function" << std::endl;
+    _PRINT_NODE_PREFIX(false, return_type);
+    _PRINT_WORD_PREFIX(false);
+    id->printInfo();
+    for (const auto& item : args) {
+      _PRINT_NODE_PREFIX(false, item);
+    }
+    _PRINT_NODE_PREFIX(true, body);
+  }
+
+  _GEN_VALUE(WordItem_id_c, id);
+  _GEN_VALUE(SyntaxNode_c, body);
+};
+
+class SyntaxNode_function_call_base_c : public SyntaxNode_c {
+public:
+  SyntaxNode_function_call_base_c(SyntaxNodeType_e type) : SyntaxNode_c(type) {}
+
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override {
+    return symbol->type->returnType();
+  }
+
+  std::shared_ptr<SymbolItem_function_c> symbol;
+};
+
+class SyntaxNode_function_call_c : public SyntaxNode_function_call_base_c {
+public:
+  SyntaxNode_function_call_c()
+      : SyntaxNode_function_call_base_c(SyntaxNodeType_e::TUserFunctionCall) {}
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
@@ -988,13 +1035,22 @@ public:
     SyntaxNode_c::debugPrint(tab, onOutPrefix);
   }
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override {
-    return symbol->type->returnType();
+  _GEN_VALUE(WordItem_id_c, id);
+};
+
+class SyntaxNode_native_call_c : public SyntaxNode_function_call_base_c {
+public:
+  SyntaxNode_native_call_c()
+      : SyntaxNode_function_call_base_c(SyntaxNodeType_e::TNativeFunctionCall) {}
+
+  void debugPrint(const size_t tab = 1,
+                  std::function<size_t()> onOutPrefix = nullptr) const override {
+    _PRINT_WORD_PREFIX(children.empty());
+    id->printInfo();
+    SyntaxNode_c::debugPrint(tab, onOutPrefix);
   }
 
-  _GEN_VALUE(WordItem_id_c, id);
-
-  std::shared_ptr<SymbolItem_function_c> symbol;
+  _GEN_VALUE(WordItem_nativeCall_c, id);
 };
 
 class SyntaxNode_enum_define_c : public SyntaxNode_group_c {
