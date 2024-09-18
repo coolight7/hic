@@ -51,3 +51,13 @@ GENERATE_ENUM(Instruction,
 );
 
 #include "src/magic/unset_macro.h"
+
+class VMConfig_c {
+public:
+  // 指令长度（bit）
+  static constexpr int instructionSize = 8;
+  // 单个寄存器的大小（bit）
+  static constexpr int registerSize = 64;
+  // 地址长度（bit）
+  static constexpr int addressSize = 64;
+};

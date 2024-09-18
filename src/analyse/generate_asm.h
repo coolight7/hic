@@ -3,6 +3,7 @@
 // 汇编生成
 
 #include "semantic_analyse.h"
+#include "src/vm/instructions.h"
 
 // 节
 class ProgramSection_c {
@@ -45,6 +46,9 @@ public:
     std::cout << "<data> size: " << data.size() << std::endl;
     std::cout << "<code> size: " << code.size() << std::endl;
   }
+
+  template <typename... _T> void appendCode(_T... args) { (0, code += args)...; }
+  template <typename... _T> void appendData(_T... args) { (0, data += args)...; }
 
   // 程序头
   ProgramHeader_c header{};
@@ -139,6 +143,19 @@ public:
         // 添加初始化指令
         auto data = real_node->data;
       }
+    } break;
+    case SyntaxNodeType_e::TCtrlReturn: {
+      // 压入返回值
+      auto real_node = HicUtil_c::toType<SyntaxNode_ctrl_return_c>(node);
+      if (nullptr != real_node->data) {
+        if (real_node->data->returnType()->size() <= VMConfig_c::registerSize) {
+          // 默认使用 ax 寄存器存储返回值
+        } else {
+          // 使用内存传递
+        }
+      }
+      // 返回
+      program.appendCode(Instruction_e::TRET);
     } break;
     default:
       break;

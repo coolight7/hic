@@ -826,11 +826,14 @@ public:
     _PRINT_NODE_PREFIX(true, data);
   }
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override {
+    if (nullptr == data) {
+      return nullptr;
+    }
+    return data->returnType();
+  }
 
   _GEN_VALUE(SyntaxNode_operator_c, data);
-
-  _GEN_VALUE(SyntaxNode_value_define_c, return_type);
 };
 
 class SyntaxNode_if_branch_c : public SyntaxNode_c {

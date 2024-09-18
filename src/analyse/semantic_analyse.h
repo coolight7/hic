@@ -425,6 +425,7 @@ public:
     } break;
     case SyntaxNodeType_e::TValueDefineInit: {
       auto real_node = HicUtil_c::toType<SyntaxNode_value_define_init_c>(node);
+      // 添加符号定义，解析 data
       if (false == analyseNodeList(real_node->define_id, real_node->data)) {
         return false;
       }
@@ -575,7 +576,6 @@ public:
       if (false == tryAnalyseNode(real_node->data)) {
         return false;
       }
-      real_node->set_return_type(real_node->data->returnType());
     } break;
     case SyntaxNodeType_e::TEnumDefine: {
       auto result = std::make_shared<SymbolItem_enum_c>();
