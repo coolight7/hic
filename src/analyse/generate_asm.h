@@ -47,8 +47,8 @@ public:
     std::cout << "<code> size: " << code.size() << std::endl;
   }
 
-  template <typename... _T> void appendCode(_T... args) { (0, code += args)...; }
-  template <typename... _T> void appendData(_T... args) { (0, data += args)...; }
+  template <typename... _T> void appendCode(_T... args) { ((code += args), ...); }
+  template <typename... _T> void appendData(_T... args) { ((data += args), ...); }
 
   // 程序头
   ProgramHeader_c header{};
