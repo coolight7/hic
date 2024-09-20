@@ -47,8 +47,8 @@ public:
     std::cout << "<code> size: " << code.size() << std::endl;
   }
 
-  template <typename... _T> void appendCode(_T... args) { ((code += args), ...); }
-  template <typename... _T> void appendData(_T... args) { ((data += args), ...); }
+  template <typename... _T> void addCode(_T... args) { ((code += args), ...); }
+  template <typename... _T> void addData(_T... args) { ((data += args), ...); }
 
   // 程序头
   ProgramHeader_c header{};
@@ -140,8 +140,11 @@ public:
       // 全局区的符号由程序启动初始化，这里只初始化局部变量
       auto real_node = HicUtil_c::toType<SyntaxNode_value_define_init_c>(node);
       if (false == symbolManager->currentIsGlobal()) {
+        auto& data = real_node->data;
+        if (false == genNode(data)) {
+          return false;
+        }
         // 添加初始化指令
-        auto data = real_node->data;
       }
     } break;
     case SyntaxNodeType_e::TCtrlReturn: {
@@ -150,12 +153,14 @@ public:
       if (nullptr != real_node->data) {
         if (real_node->data->returnType()->size() <= VMConfig_c::registerSize) {
           // 默认使用 ax 寄存器存储返回值
+          program.addCode(Instruction_e::TMOV, RegisterId_e::Tax, );
         } else {
           // 使用内存传递
+          program.addCode(Instruction_e::TMOV, RegisterId_e::Tax, );
         }
       }
       // 返回
-      program.appendCode(Instruction_e::TRET);
+      program.addCode(Instruction_e::TRET);
     } break;
     default:
       break;

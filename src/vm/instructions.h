@@ -50,14 +50,22 @@ GENERATE_ENUM(Instruction,
               NativeCall, // 内置函数调用
 );
 
+GENERATE_ENUM(RegisterId,
+              ax, // 通用寄存器
+              bx, cx, dx,
+              cs, // pc
+              ip,
+              ebp, // stack
+              esp, );
+
 #include "src/magic/unset_macro.h"
 
 class VMConfig_c {
 public:
-  // 指令长度（bit）
-  static constexpr int instructionSize = 8;
-  // 单个寄存器的大小（bit）
-  static constexpr int registerSize = 64;
-  // 地址长度（bit）
-  static constexpr int addressSize = 64;
+  // 指令长度（byte）
+  static constexpr int instructionSize = 1;
+  // 单个寄存器的大小（byte）
+  static constexpr int registerSize = 8;
+  // 地址长度（byte）
+  static constexpr int addressSize = 8;
 };
