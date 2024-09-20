@@ -133,7 +133,7 @@ public:
             step = 8;
           } else if ('0' == *code_it) {
             // 连续 0，警告！
-            WordLog(Twarning, "数值开头不应使用连续的0；该值将被认为是十进制{}", "");
+            WordLog(Twarning, "数值不应使用连续的0开头；该值将被认为是十进制: {}", "");
           }
         }
         do {
@@ -171,7 +171,9 @@ public:
           value = value * step + item;
           ++code_it;
         } while (raw_code.end() != code_it);
-        return WordItem_c::make_shared<WordItem_number_c>(value);
+        auto result = WordItem_c::make_shared<WordItem_number_c>(value);
+        result->make_return_type(WordEnumType_e::Tint, TypeLimit_e::Constexpr, result);
+        return result;
       }
       if ('"' == it || '\'' == it) {
         // 字符串
@@ -223,7 +225,9 @@ public:
           WordLog(Terror, "字符串缺少右边界：{}", startSign);
           return nullptr;
         } else {
-          return WordItem_c::make_shared<WordItem_string_c>(value);
+          auto result = WordItem_c::make_shared<WordItem_string_c>(value);
+          result->make_return_type(WordEnumType_e::TString, TypeLimit_e::Constexpr, result);
+          return result;
         }
       }
       {

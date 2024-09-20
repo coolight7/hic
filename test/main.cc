@@ -27,7 +27,7 @@ int main() {
       d = b;
   }
 
-  char ch = 'b';
+  String ch = 'b';
 
       // disable=124
   bool k = false;
@@ -104,7 +104,7 @@ int main(String* args, int size) {
     }
 
     int ok = *c;
-    char ch = 'b';
+    String ch = 'b';
         // disable=124
     bool k = false;
     // disable = fdsa
@@ -181,7 +181,7 @@ int main(char** args, int size) {
     }
 
     // int ok = *c; // 检查 读址 操作数类型为指针
-    char ch = 'b';
+    String ch = 'b';
         // disable=124
     bool k = false;
     // disable = fdsa

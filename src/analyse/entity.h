@@ -8,7 +8,84 @@
 #include "rule.h"
 #include "src/util.h"
 
+// marco ---
+#include "src/magic/macro.h"
+
+GENERATE_ENUM(SyntaxNodeType,
+              Normal,   // 分组节点，自身无特殊意义
+              Group,    // {}，隔离符号范围
+              Transfer, // 传递返回值
+              ValueDefine, ValueDefineId, ValueDefineInit, NativeFunctionCall, UserFunctionCall,
+              Operator, CtrlReturn, CtrlIfBranch, CtrlIf, CtrlWhile, CtrlFor, NativeFunctionDefine,
+              UserFunctionDefine, EnumDefine, ClassDefine);
+
+#include "src/magic/unset_macro.h"
+
+#define _GEN_VALUE(type, name)                                                                     \
+  bool set_##name(std::shared_ptr<type> in_ptr) {                                                  \
+    if (nullptr == in_ptr) {                                                                       \
+      return false;                                                                                \
+    }                                                                                              \
+    name = in_ptr;                                                                                 \
+    return true;                                                                                   \
+  }                                                                                                \
+  template <typename... _ARGS> std::shared_ptr<type>& make_##name(_ARGS... args) {                 \
+    name = std::make_shared<type>(args...);                                                        \
+    return name;                                                                                   \
+  }                                                                                                \
+  std::shared_ptr<type> name;
+
+#define _PRINT_WORD_PREFIX(isEnd)                                                                  \
+  {                                                                                                \
+    if (tab > 0) {                                                                                 \
+      size_t prefixTab = 0;                                                                        \
+      if (nullptr != onOutPrefix) {                                                                \
+        prefixTab = onOutPrefix();                                                                 \
+      }                                                                                            \
+      for (int i = tab - prefixTab - 1; i-- > 0;) {                                                \
+        std::cout << "   ";                                                                        \
+      }                                                                                            \
+    }                                                                                              \
+    if (isEnd) {                                                                                   \
+      std::cout << "  └──";                                                                        \
+    } else {                                                                                       \
+      std::cout << "  ├──";                                                                        \
+    }                                                                                              \
+  }
+
+#define _PRINT_NODE_PREFIX(isEnd, name)                                                            \
+  {                                                                                                \
+    size_t prefixTab = 0;                                                                          \
+    if (nullptr != onOutPrefix) {                                                                  \
+      prefixTab = onOutPrefix();                                                                   \
+    }                                                                                              \
+    for (int i = tab - prefixTab - 1; i-- > 0;) {                                                  \
+      std::cout << "   ";                                                                          \
+    }                                                                                              \
+    bool isEndValue = isEnd;                                                                       \
+    if (isEndValue) {                                                                              \
+      std::cout << "  └──┐";                                                                       \
+    } else {                                                                                       \
+      std::cout << "  ├──┐";                                                                       \
+    }                                                                                              \
+    std::cout << std::endl;                                                                        \
+    SyntaxNode_c* name##_ptr = (SyntaxNode_c*)name.get();                                          \
+    name##_ptr->debugPrint(tab + 1, [&onOutPrefix, isEndValue]() -> size_t {                       \
+      size_t size = 0;                                                                             \
+      if (nullptr != onOutPrefix) {                                                                \
+        size = onOutPrefix();                                                                      \
+      }                                                                                            \
+      if (false == isEndValue) {                                                                   \
+        std::cout << "  │";                                                                        \
+      } else {                                                                                     \
+        std::cout << "   ";                                                                        \
+      }                                                                                            \
+      return size + 1;                                                                             \
+    });                                                                                            \
+  }
+
 // word
+class WordItem_c;
 class WordItem_string_c;
 class WordItem_id_c;
 class WordItem_number_c;
@@ -29,6 +106,72 @@ class SymbolItem_c;
 class SymbolItem_value_c;
 class SymbolItem_function_c;
 class SymbolItem_enum_c;
+
+enum TypeLimit_e {
+  Constexpr,      // 编译期常量表达式
+  ValueConstexpr, // 编译期已知值的变量
+  Final,          // 不允许修改
+  Normal,         // 普通类型
+};
+
+class Type_c {
+public:
+  // 可转为任意类型的指针
+  inline static const size_t anyPointer = 777;
+
+  Type_c(WordEnumType_e in_type) : type(in_type) {}
+  Type_c(WordEnumType_e in_type, TypeLimit_e in_limit) : type(in_type), limit(in_limit) {}
+  Type_c(WordEnumType_e in_type, TypeLimit_e in_limit, std::shared_ptr<WordItem_c> in_word)
+      : type(in_type), limit(in_limit), word(in_word) {}
+
+  virtual void debugPrint(const size_t tab = 1,
+                          std::function<size_t()> onOutPrefix = nullptr) const;
+  virtual void printInfo() const { debugPrint(); }
+  virtual const std::string& name() const { return WordEnumType_c::toName(type); }
+
+  bool isAnyPointer() const { return (anyPointer == pointer); }
+
+  bool isBoolValue() const { return (0 == pointer && WordEnumType_e::Tbool == type); }
+
+  bool isIntValue() const {
+    if (0 == pointer) {
+      switch (type) {
+      case WordEnumType_e::Tint:
+      case WordEnumType_e::Tint64:
+        return true;
+      default:
+        return false;
+      }
+    }
+    return false;
+  }
+
+  bool isFloatValue() const {
+    if (0 == pointer) {
+      switch (type) {
+      case WordEnumType_e::Tfloat:
+      case WordEnumType_e::Tfloat64:
+        return true;
+      default:
+        return false;
+      }
+    }
+    return false;
+  }
+
+  bool canModify() const { return (TypeLimit_e::Normal == limit); }
+
+  size_t size() const;
+
+  // 检查变量类型
+  static bool compare(std::shared_ptr<Type_c> left, std::shared_ptr<Type_c> right);
+
+  std::shared_ptr<WordItem_c> word;
+  WordEnumType_e type;
+  TypeLimit_e limit;      // 类型限制
+  bool isReferer = false; // 是否是引用类型
+  size_t pointer = 0;     // 指针层数
+};
 
 class WordItem_c : public ListNode_c {
 public:
@@ -54,9 +197,8 @@ public:
   virtual std::shared_ptr<WordItem_c> copy() const { return nullptr; }
 
   template <typename _T, typename... _Args>
-  static std::shared_ptr<WordItem_c> make_shared(_Args... args) {
-    _T* ptr = new _T{std::forward<_Args>(args)...};
-    return std::shared_ptr<WordItem_c>(ptr);
+  static std::shared_ptr<_T> make_shared(_Args&&... args) {
+    return std::make_shared<_T>(std::forward<_Args>(args)...);
   }
 
   WordItem_string_c& toString() const {
@@ -102,7 +244,7 @@ public:
 
   virtual ~WordItem_c() {}
 
-  std::string toFormat() const {
+  std::string formatInfo() const {
     return std::format("[{}] {}", WordEnumToken_c::toName(token), name());
   }
 
@@ -116,10 +258,10 @@ public:
 
   const std::string& name() const override { return value; }
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+  std::shared_ptr<Type_c> returnType() const override { return return_type; }
 
   std::string value;
-  std::shared_ptr<SyntaxNode_value_define_c> return_type;
+  _GEN_VALUE(Type_c, return_type);
 };
 
 class WordItem_id_c : public WordItem_c {
@@ -128,10 +270,10 @@ public:
 
   const std::string& name() const override { return id; }
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+  std::shared_ptr<Type_c> returnType() const override { return return_type; }
 
   std::string id;
-  std::shared_ptr<SyntaxNode_value_define_c> return_type;
+  _GEN_VALUE(Type_c, return_type);
 };
 
 class WordItem_operator_c : public WordItem_c {
@@ -324,12 +466,12 @@ public:
   }
 
   const std::string& name() const override { return name_; }
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+  std::shared_ptr<Type_c> returnType() const override { return return_type; }
 
   std::string name_;
   long long value;
 
-  std::shared_ptr<SyntaxNode_value_define_c> return_type;
+  _GEN_VALUE(Type_c, return_type);
 };
 
 class WordItem_ctrl_c : public WordItem_c {
@@ -354,10 +496,10 @@ public:
     Assert_d(value >= 0 && value < WordEnumType_c::namelist.size());
     return WordEnumType_c::namelist[value];
   }
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+  std::shared_ptr<Type_c> returnType() const override { return return_type; }
 
   WordEnumType_e value;
-  std::shared_ptr<SyntaxNode_value_define_c> return_type;
+  _GEN_VALUE(Type_c, return_type);
 };
 
 class WordItem_value_c : public WordItem_c {
@@ -370,10 +512,10 @@ public:
     return WordEnumValue_c::namelist[value];
   }
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+  std::shared_ptr<Type_c> returnType() const override { return return_type; }
 
   WordEnumValue_e value;
-  std::shared_ptr<SyntaxNode_value_define_c> return_type;
+  _GEN_VALUE(Type_c, return_type);
 };
 
 class WordItem_nativeCall_c : public WordItem_c {
@@ -386,11 +528,11 @@ public:
     return WordEnumNativeCall_c::namelist[value];
   }
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+  std::shared_ptr<Type_c> returnType() const override { return return_type; }
 
   // index
   WordEnumNativeCall_e value;
-  std::shared_ptr<SyntaxNode_value_define_c> return_type;
+  _GEN_VALUE(Type_c, return_type);
 };
 
 /**
@@ -460,14 +602,7 @@ public:
 
   size_t size();
 
-  bool checkValueType(const std::shared_ptr<SyntaxNode_value_define_c>& in_type);
-
-  // 检查变量类型
-  // - 对象自身为已定义符号
-  // - [in_type] 为引用符号类型需求
-  bool checkValueType(const SyntaxNode_value_define_c& in_type);
-
-  std::shared_ptr<SyntaxNode_value_define_c> type;
+  std::shared_ptr<Type_c> type;
   // address / value
   long long value = 0;
   long long address = 0;
@@ -483,7 +618,7 @@ public:
 
   // 检查函数类型
   template <typename... _ARGS>
-  bool checkFunType(const SyntaxNode_value_define_c&& return_type, const _ARGS&&... args) {
+  bool checkFunType(const Type_c&& return_type, const _ARGS&&... args) {
     return true;
   }
 
@@ -506,74 +641,6 @@ public:
 };
 
 // syntax ---
-#include "src/magic/macro.h"
-
-GENERATE_ENUM(SyntaxNodeType,
-              Normal,   // 分组节点，自身无特殊意义
-              Group,    // {}，隔离符号范围
-              Transfer, // 传递返回值
-              ValueDefine, ValueDefineId, ValueDefineInit, NativeFunctionCall, UserFunctionCall,
-              Operator, CtrlReturn, CtrlIfBranch, CtrlIf, CtrlWhile, CtrlFor, NativeFunctionDefine,
-              UserFunctionDefine, EnumDefine, ClassDefine);
-
-#define _GEN_VALUE(type, name)                                                                     \
-  bool set_##name(std::shared_ptr<type> in_ptr) {                                                  \
-    if (nullptr == in_ptr) {                                                                       \
-      return false;                                                                                \
-    }                                                                                              \
-    name = in_ptr;                                                                                 \
-    return true;                                                                                   \
-  }                                                                                                \
-  std::shared_ptr<type> name;
-
-#define _PRINT_WORD_PREFIX(isEnd)                                                                  \
-  {                                                                                                \
-    if (tab > 0) {                                                                                 \
-      size_t prefixTab = 0;                                                                        \
-      if (nullptr != onOutPrefix) {                                                                \
-        prefixTab = onOutPrefix();                                                                 \
-      }                                                                                            \
-      for (int i = tab - prefixTab - 1; i-- > 0;) {                                                \
-        std::cout << "   ";                                                                        \
-      }                                                                                            \
-    }                                                                                              \
-    if (isEnd) {                                                                                   \
-      std::cout << "  └──";                                                                        \
-    } else {                                                                                       \
-      std::cout << "  ├──";                                                                        \
-    }                                                                                              \
-  }
-
-#define _PRINT_NODE_PREFIX(isEnd, name)                                                            \
-  {                                                                                                \
-    size_t prefixTab = 0;                                                                          \
-    if (nullptr != onOutPrefix) {                                                                  \
-      prefixTab = onOutPrefix();                                                                   \
-    }                                                                                              \
-    for (int i = tab - prefixTab - 1; i-- > 0;) {                                                  \
-      std::cout << "   ";                                                                          \
-    }                                                                                              \
-    bool isEndValue = isEnd;                                                                       \
-    if (isEndValue) {                                                                              \
-      std::cout << "  └──┐";                                                                       \
-    } else {                                                                                       \
-      std::cout << "  ├──┐";                                                                       \
-    }                                                                                              \
-    std::cout << std::endl;                                                                        \
-    SyntaxNode_c* name##_ptr = (SyntaxNode_c*)name.get();                                          \
-    name##_ptr->debugPrint(tab + 1, [&onOutPrefix, isEndValue]() -> size_t {                       \
-      size_t size = 0;                                                                             \
-      if (nullptr != onOutPrefix) {                                                                \
-        size = onOutPrefix();                                                                      \
-      }                                                                                            \
-      if (false == isEndValue) {                                                                   \
-        std::cout << "  │";                                                                        \
-      } else {                                                                                     \
-        std::cout << "   ";                                                                        \
-      }                                                                                            \
-      return size + 1;                                                                             \
-    });                                                                                            \
-  }
 
 enum SyntaxNodeValueClass_e {
   Crude,   // 值类型
@@ -651,99 +718,32 @@ class SyntaxNode_group_c : public SyntaxNode_c {
 public:
   SyntaxNode_group_c(SyntaxNodeType_e type = SyntaxNodeType_e::TGroup) : SyntaxNode_c(type) {}
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+  std::shared_ptr<Type_c> returnType() const override { return return_type; }
 
   std::shared_ptr<SymbolTable> symbolTable;
 
-  _GEN_VALUE(SyntaxNode_value_define_c, return_type);
+  _GEN_VALUE(Type_c, return_type);
 };
 
 class SyntaxNode_value_define_c : public SyntaxNode_c {
 public:
-  // 可转为任意类型的指针
-  inline static const size_t anyPointer = 777;
-
   SyntaxNode_value_define_c() : SyntaxNode_c(SyntaxNodeType_e::TValueDefine) {}
-  SyntaxNode_value_define_c(bool in_isConst) : SyntaxNode_c(SyntaxNodeType_e::TValueDefine) {
-    if (in_isConst) {
-      isFinal = true;
-      isConstexpr = true;
-    }
-  }
   // 浅拷贝，拥有同样的 [value_type]
   SyntaxNode_value_define_c(const SyntaxNode_value_define_c& crude)
       : SyntaxNode_c(SyntaxNodeType_e::TValueDefine) {
     value_type = crude.value_type;
-    isFinal = crude.isFinal;
-    isConstexpr = crude.isConstexpr;
-    pointer = crude.pointer;
   }
-
-  void debugPrint(const size_t tab = 1,
-                  std::function<size_t()> onOutPrefix = nullptr) const override {
-    _PRINT_WORD_PREFIX(false);
-    value_type->printInfo();
-    _PRINT_WORD_PREFIX(true);
-    if (0 == pointer && false == isReferer) {
-      std::cout << "[值类型]";
-    } else {
-      for (int i = pointer; i > 0; --i) {
-        std::cout << "*";
-      }
-      std::cout << " ";
-      if (isReferer) {
-        std::cout << "&";
-      }
-    }
-    std::cout << std::endl;
-  }
-
-  // TODO: 比较两个类型定义是否相同
-  inline static bool compare(std::shared_ptr<SyntaxNode_value_define_c> left,
-                             std::shared_ptr<SyntaxNode_value_define_c> right) {
-    if (nullptr == left || nullptr == right) {
-      UtilLog(Terror, "两个变量类型比较不应为空, {}, {}", (long long)(left.get()),
-              (long long)(right.get()));
-      return false;
-    }
-    return true;
-  }
-
-  bool isAnyPointer() { return (anyPointer == pointer); }
-
-  bool isBoolValue() const {
-    return (0 == pointer && value_type->isType() &&
-            WordEnumType_e::Tbool == value_type->toType().value);
-  }
-
-  bool isIntValue() const {
-    if (0 == pointer && value_type->isType()) {
-      auto type = value_type->toType().value;
-      switch (type) {
-      case WordEnumType_e::Tint:
-      case WordEnumType_e::Tint64:
-      case WordEnumType_e::Tfloat:
-      case WordEnumType_e::Tfloat64:
-        return true;
-      default:
-        return false;
-      }
-    }
-    return false;
-  }
-
-  bool canModify() const { return (false == isFinal && false == isConstexpr); }
-
-  size_t size() { return 8; }
 
   const std::string& name() const override { return value_type->name(); }
 
+  void debugPrint(const size_t tab = 1, std::function<size_t()> onOutPrefix = nullptr) const {
+    value_type->debugPrint(tab, onOutPrefix);
+  }
+
+  std::shared_ptr<Type_c> returnType() const override { return value_type; }
+
   // Type | ID
-  _GEN_VALUE(WordItem_c, value_type);
-  bool isFinal = false;     // 不允许修改
-  bool isConstexpr = false; // 常量
-  bool isReferer = false;   // 是否是引用类型
-  size_t pointer = 0;       // 指针层数
+  _GEN_VALUE(Type_c, value_type);
 };
 
 class SyntaxNode_operator_c : public SyntaxNode_c {
@@ -762,7 +762,7 @@ public:
     SyntaxNode_c::debugPrint(tab, onOutPrefix);
   }
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+  std::shared_ptr<Type_c> returnType() const override { return return_type; }
 
   bool isReturnBool() { return (nullptr != return_type && return_type->isBoolValue()); }
 
@@ -770,7 +770,7 @@ public:
   WordEnumOperator_e oper;
   // 操作数在 [children] 中
 
-  _GEN_VALUE(SyntaxNode_value_define_c, return_type);
+  _GEN_VALUE(Type_c, return_type);
 };
 
 class SyntaxNode_value_define_id_c : public SyntaxNode_c {
@@ -786,7 +786,7 @@ public:
     id->printInfo();
   }
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return value_define; }
+  std::shared_ptr<Type_c> returnType() const override { return value_define->returnType(); }
 
   _GEN_VALUE(SyntaxNode_value_define_c, value_define);
   _GEN_VALUE(WordItem_id_c, id);
@@ -806,9 +806,7 @@ public:
     _PRINT_NODE_PREFIX(true, data);
   }
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override {
-    return define_id->returnType();
-  }
+  std::shared_ptr<Type_c> returnType() const override { return define_id->returnType(); }
 
   _GEN_VALUE(SyntaxNode_value_define_id_c, define_id);
   // =
@@ -826,7 +824,7 @@ public:
     _PRINT_NODE_PREFIX(true, data);
   }
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override {
+  std::shared_ptr<Type_c> returnType() const override {
     if (nullptr == data) {
       return nullptr;
     }
@@ -846,9 +844,7 @@ public:
     _PRINT_NODE_PREFIX(true, if_body);
   }
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override {
-    return if_body->returnType();
-  }
+  std::shared_ptr<Type_c> returnType() const override { return if_body->returnType(); }
 
   // if 条件，如果为 nullptr，则无条件，即为 else_body
   _GEN_VALUE(SyntaxNode_operator_c, if_expr);
@@ -877,7 +873,7 @@ public:
     }
   }
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override {
+  std::shared_ptr<Type_c> returnType() const override {
     for (const auto& item : branchs) {
       // TODO: 检查每一个都符合返回要求
       auto result = item->returnType();
@@ -911,9 +907,7 @@ public:
     _PRINT_NODE_PREFIX(true, body);
   }
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override {
-    return body->returnType();
-  }
+  std::shared_ptr<Type_c> returnType() const override { return body->returnType(); }
 
   // while (loop_expr) { body }
   _GEN_VALUE(SyntaxNode_operator_c, loop_expr);
@@ -934,9 +928,7 @@ public:
     _PRINT_NODE_PREFIX(true, body);
   }
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override {
-    return body->returnType();
-  }
+  std::shared_ptr<Type_c> returnType() const override { return body->returnType(); }
 
   // for (start_expr; loop_expr; loop_end_expr) { body }
   _GEN_VALUE(SyntaxNode_operator_c, start_expr);
@@ -956,7 +948,7 @@ protected:
   SyntaxNode_function_define_base_c(SyntaxNodeType_e type) : SyntaxNode_group_c(type) {}
 
 public:
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override { return return_type; }
+  std::shared_ptr<Type_c> returnType() const override { return return_type->returnType(); }
 
   bool addArg(std::shared_ptr<SyntaxNode_value_define_id_c> arg) {
     if (nullptr == arg) {
@@ -1019,9 +1011,7 @@ class SyntaxNode_function_call_base_c : public SyntaxNode_c {
 public:
   SyntaxNode_function_call_base_c(SyntaxNodeType_e type) : SyntaxNode_c(type) {}
 
-  std::shared_ptr<SyntaxNode_value_define_c> returnType() const override {
-    return symbol->type->returnType();
-  }
+  std::shared_ptr<Type_c> returnType() const override { return symbol->type->returnType(); }
 
   std::shared_ptr<SymbolItem_function_c> symbol;
 };

@@ -14,7 +14,8 @@ GENERATE_ENUM(WordEnumCtrl, const, final, static, if, else, switch, case, defaul
 /**
  * 关键字（变量类型）
  */
-GENERATE_ENUM(WordEnumType, void, char, bool, int, int64, float, float64, enum, class, function)
+GENERATE_ENUM(WordEnumType, void, byte, bool, int, int64, float, float64, String, enum, class,
+              function)
 
 /**
  * 关键字（内置值）
@@ -116,7 +117,7 @@ GENERATE_ENUM(SymbolType, Value, Function, Enum, Class);
 #include "src/util.h"
 
 enum ValueTypeSize_e {
-  Schar = 1,
+  Sbyte = 1,
   Sbool = 1,
   Sint = 4,
   Sint64 = 8,
@@ -125,6 +126,7 @@ enum ValueTypeSize_e {
   Spointer = 8,
 };
 
+class Type_c;
 class WordItem_c;
 class WordItem_id_c;
 class SyntaxNode_c;
@@ -148,7 +150,7 @@ public:
 
   virtual void printInfo() const {}
   virtual const std::string& name() const { return HicUtil_c::emptyString; }
-  virtual std::shared_ptr<SyntaxNode_value_define_c> returnType() const { return nullptr; }
+  virtual std::shared_ptr<Type_c> returnType() const { return nullptr; }
 
   ListNodeType_e nodeType;
 };

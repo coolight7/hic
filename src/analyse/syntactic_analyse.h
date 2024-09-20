@@ -32,6 +32,7 @@
   std::shared_ptr<WordItem_c> name##_ptr;                                                          \
   _GEN_WORD(name)
 
+#include "src/magic/macro.h"
 #define _GENERATE_FUN_ITEM_d(...)                                                                  \
   _NameTagConcat_d(_GENERATE_FUN_ITEM, _MacroArgToTag_d(__VA_ARGS__))(__VA_ARGS__)
 #define _GENERATE_FUN_ITEM() _GENERATE_FUN_ITEM_d
@@ -122,8 +123,8 @@ public:
       }
     }
     if (enableLog_assertToken) {
-      SynLineLog(Twarning, "[assertToken] faild; word: {}, expect: {}", word.toFormat(),
-                 limit.toFormat());
+      SynLineLog(Twarning, "[assertToken] faild; word: {}, expect: {}", word.formatInfo(),
+                 limit.formatInfo());
     }
     return nullptr;
   }
@@ -202,39 +203,39 @@ public:
     return nullptr;
   }
 
-  std::shared_ptr<WordItem_c> parse_value_type(std::shared_ptr<WordItem_c> word_ptr) {
-    _GEN_WORD(word);
-    if (WordEnumToken_e::Ttype == word.token || WordEnumToken_e::Tid == word.token) {
-      return word_ptr;
-    }
-    return nullptr;
-  }
-
   std::shared_ptr<SyntaxNode_value_define_c>
   parse_value_define(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
-    // value_type
     auto re_node = std::make_shared<SyntaxNode_value_define_c>();
-    _GEN_WORD(word);
-    auto preType = assertToken_type(WordEnumToken_e::Tkeyword, word_ptr);
-    bool isConst = false;
-    bool isFinal = false;
-    if (nullptr != preType) {
-      auto& key = preType->toKeyword();
-      switch (key.value) {
-      case WordEnumCtrl_e::Tconst: {
-        isConst = true;
-      } break;
-      case WordEnumCtrl_e::Tfinal: {
-        isFinal = true;
-      } break;
-      default:
-        return nullptr;
+    auto type_limit = TypeLimit_e::Normal;
+    {
+      // 类型限制符号
+      _GEN_WORD(word);
+      auto preType = assertToken_type(WordEnumToken_e::Tkeyword, word_ptr);
+      if (nullptr != preType) {
+        auto& key = preType->toKeyword();
+        switch (key.value) {
+        case WordEnumCtrl_e::Tconst: {
+          type_limit = TypeLimit_e::ValueConstexpr;
+        } break;
+        case WordEnumCtrl_e::Tfinal: {
+          type_limit = TypeLimit_e::Final;
+        } break;
+        default:
+          return nullptr;
+        }
+        word_ptr = nullptr;
       }
-      word_ptr = nullptr;
     }
-    if (re_node->set_value_type(parse_value_type(word_ptr))) {
-      re_node->isConstexpr = isConst;
-      re_node->isFinal = isFinal;
+    // 类型符号
+    _GEN_WORD(word);
+    if (WordEnumToken_e::Ttype == word.token || WordEnumToken_e::Tid == word.token) {
+      auto use_type = WordEnumType_e::Tvoid;
+      if (WordEnumToken_e::Ttype == word.token) {
+        use_type = word.toType().value;
+      }
+      auto& value_type = re_node->make_value_type(use_type);
+      value_type->limit = type_limit;
+      value_type->word = word_ptr;
       // 指针或引用
       while (true) {
         _GEN_WORD_DEF(next);
@@ -242,9 +243,9 @@ public:
         if (nullptr != sign_ptr) {
           auto& sign = sign_ptr->toOperator();
           if (sign.value == WordEnumOperator_e::TMulti) {
-            (re_node->pointer)++;
+            (value_type->pointer)++;
           } else if (sign.value == WordEnumOperator_e::TBitAnd) {
-            re_node->isReferer = true;
+            value_type->isReferer = true;
             return re_node;
           } else {
             return nullptr;
@@ -773,8 +774,8 @@ public:
           result->set_define_id(std::make_shared<SyntaxNode_value_define_id_c>());
           result->define_id->id = item;
           result->define_id->set_value_define(std::make_shared<SyntaxNode_value_define_c>());
-          result->define_id->value_define->value_type =
-              std::make_shared<WordItem_type_c>(WordEnumType_e::Tint);
+          result->define_id->value_define->make_value_type(WordEnumType_e::Tint,
+                                                           TypeLimit_e::ValueConstexpr, nullptr);
           result->set_data(std::make_shared<SyntaxNode_operator_c>(WordEnumOperator_e::TNone));
           auto data = std::make_shared<WordItem_number_c>(index);
           result->data->add(data);
