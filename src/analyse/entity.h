@@ -159,6 +159,8 @@ public:
     return false;
   }
 
+  bool isConstexpr() const { return (TypeLimit_e::Constexpr == limit); }
+
   bool canModify() const { return (TypeLimit_e::Normal == limit); }
 
   size_t size() const;
@@ -603,8 +605,7 @@ public:
   size_t size();
 
   std::shared_ptr<Type_c> type;
-  // address / value
-  long long value = 0;
+  // address 相对地址
   long long address = 0;
   std::list<std::shared_ptr<WordItem_c>> refs;
 };

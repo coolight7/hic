@@ -47,15 +47,49 @@ public:
     std::cout << "<code> size: " << code.size() << std::endl;
   }
 
-  template <typename... _T> void addCode(_T... args) { ((code += args), ...); }
-  template <typename... _T> void addData(_T... args) { ((data += args), ...); }
+  template <typename _T> int addCode(_T arg) { return addByType(code, arg); }
+
+  template <typename _T> int addData(_T arg) { return addByType(data, arg); }
+
+  template <typename... _T> int addCodeList(_T... args) {
+    int index = code.size();
+    (addCode(args), ...);
+    return index;
+  }
+
+  template <typename... _T> int addDataList(_T... args) {
+    int index = data.size();
+    (addData(args), ...);
+    return index;
+  }
 
   // 程序头
   ProgramHeader_c header{};
+
   // 数据指令
   std::string data{};
   // 二进制指令
   std::string code{};
+
+private:
+  template <typename T> static void addToStr(std::string& str, T data) {
+    static_assert(sizeof(T) <= 8);
+    int index = str.size();
+    str.resize(str.size() + sizeof(T));
+    *((T*)(str.c_str() + index)) = data;
+  }
+
+  template <typename T> static int addByType(std::string& str, T data) {
+    int index = str.size();
+    if constexpr (std::is_same_v<T, Instruction_e>) {
+      addToStr(str, Instruction_c::toInt(data));
+    } else if constexpr (std::is_same_v<T, RegisterId_e>) {
+      addToStr(str, RegisterId_c::toInt(data));
+    } else {
+      addToStr(str, data);
+    }
+    return index;
+  }
 };
 
 class GenerateAsm_c {
@@ -140,12 +174,26 @@ public:
       // 全局区的符号由程序启动初始化，这里只初始化局部变量
       auto real_node = HicUtil_c::toType<SyntaxNode_value_define_init_c>(node);
       if (false == symbolManager->currentIsGlobal()) {
+        // 由函数分配栈相对地址空间，这里执行初始化
+        // 临时保存 AX
+        program.addCodeList(Instruction_e::TPUSH, RegisterId_e::TAX);
         auto& data = real_node->data;
+        // data 存入 AX
         if (false == genNode(data)) {
           return false;
         }
-        // 添加初始化指令
+        // 由 data[AX] 初始化 变量
+        program.addCodeList(VMConfig_c::getStore(data->returnType()->size()), RegisterId_e::TAX,
+                            RegisterId_e::TEBP, real_node->define_id->symbol->address);
+        // 恢复 AX
+        program.addCodeList(Instruction_e::TPOP, RegisterId_e::TAX);
       }
+    } break;
+    case SyntaxNodeType_e::TUserFunctionDefine: {
+      //
+    } break;
+    case SyntaxNodeType_e::TUserFunctionCall: {
+
     } break;
     case SyntaxNodeType_e::TCtrlReturn: {
       // 压入返回值
@@ -187,9 +235,7 @@ public:
         auto symbol = SymbolItem_c::toValue(item.second);
         symbol->address = program.data.size();
         program.data.resize(program.data.size() + symbol->size());
-        // 简单赋值
-        *(program.hitData<int>(symbol->address)) = int(symbol->value);
-        // 函数调用
+        // TODO: 初始化全局变量
       } break;
       case SymbolType_e::TEnum: {
         // 不用操作
