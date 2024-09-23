@@ -153,10 +153,10 @@ public:
       if (nullptr != real_node->data) {
         if (real_node->data->returnType()->size() <= VMConfig_c::registerSize) {
           // 默认使用 ax 寄存器存储返回值
-          program.addCode(Instruction_e::TMOV, RegisterId_e::Tax, );
+          // program.addCode(Instruction_e::TMOV, RegisterId_e::Tax, );
         } else {
           // 使用内存传递
-          program.addCode(Instruction_e::TMOV, RegisterId_e::Tax, );
+          // program.addCode(Instruction_e::TMOV, RegisterId_e::Tax, );
         }
       }
       // 返回
