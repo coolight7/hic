@@ -3,7 +3,7 @@ int b = 0;
 int c = 0xf7A0;
 int d = 07650;
 int* f = &d;
-String str = "qiqi";
+String str = "qiqi"; // String* str = &"qiqi"; 不允许对字面量取地址
 
 int test(int& a, int** &b) {
   return (a + b);

@@ -268,9 +268,12 @@ public:
           UtilLog(Terror, "操作符 {} 的操作数类型不应为空", real_node->name());
           return false;
         }
-        auto type = std::make_shared<Type_c>(*crude_type);
-        // TODO: 不允许对字面量取址
-        type->isReferer = false;
+        if (crude_type->isConstexpr()) {
+          UtilLog(Terror, "不允许对字面量取址: {}", real_node->name());
+          return false;
+        }
+        auto type = std::make_shared<Type_c>(*crude_type); // 复制类型
+        type->isReferer = false;                           // 加一级指针
         type->pointer++;
         real_node->set_return_type(type);
       } else if (real_node->children.size() == 2) {
@@ -297,7 +300,6 @@ public:
           return false;
         }
         auto type = std::make_shared<Type_c>(*crude_type);
-        // TODO: 不允许对字面量读址
         if (type->pointer <= 0) {
           UtilLog(Terror, "操作符 {} 的操作数需要指针类型", real_node->name());
           return false;
