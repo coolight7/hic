@@ -1022,6 +1022,8 @@ public:
   SyntaxNode_function_call_c()
       : SyntaxNode_function_call_base_c(SyntaxNodeType_e::TUserFunctionCall) {}
 
+  const std::string& name() const override { return id->name(); }
+
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {
     _PRINT_WORD_PREFIX(children.empty());
@@ -1030,12 +1032,15 @@ public:
   }
 
   _GEN_VALUE(WordItem_id_c, id);
+  // std::list<SyntaxNode_operator_c> children; 函数参数
 };
 
 class SyntaxNode_native_call_c : public SyntaxNode_function_call_base_c {
 public:
   SyntaxNode_native_call_c()
       : SyntaxNode_function_call_base_c(SyntaxNodeType_e::TNativeFunctionCall) {}
+
+  const std::string& name() const override { return id->name(); }
 
   void debugPrint(const size_t tab = 1,
                   std::function<size_t()> onOutPrefix = nullptr) const override {

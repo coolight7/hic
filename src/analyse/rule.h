@@ -124,6 +124,7 @@ enum ValueTypeSize_e {
   Sfloat = 4,
   Sfloat64 = 8,
   Spointer = 8,
+  Sregister = 8,
 };
 
 class Type_c;

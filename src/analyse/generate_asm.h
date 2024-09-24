@@ -95,6 +95,7 @@ private:
 class GenerateAsm_c {
 public:
   inline static bool enableLog_genNode = false;
+  inline static bool enablePrintASM = false;
 
   bool init(std::string_view in_code) {
     program.init();
@@ -190,10 +191,56 @@ public:
       }
     } break;
     case SyntaxNodeType_e::TUserFunctionDefine: {
-      //
+      auto real_node = HicUtil_c::toType<SyntaxNode_function_define_user_c>(node);
+      // 读取参数
+      // 执行函数代码
+      if (false == genChildren(real_node->body)) {
+        return false;
+      }
+      // 无返回值 ret
+      program.addCodeList(Instruction_e::TRET);
     } break;
     case SyntaxNodeType_e::TUserFunctionCall: {
-
+      auto real_node = HicUtil_c::toType<SyntaxNode_function_call_c>(node);
+      // 计算函数参数
+      if (false == genChildren(node)) {
+        return false;
+      }
+      // 保存栈帧 ebp / esp
+      program.addCodeList(Instruction_e::TPUSH, RegisterId_e::TEBP);
+      program.addCodeList(Instruction_e::TMOV, RegisterId_e::TEBP, RegisterId_e::TESP);
+      // 从左往右，添加函数参数
+      int pushArgSize = 0;
+      for (const auto& item : real_node->children) {
+        if (item->nodeType != ListNodeType_e::Syntactic ||
+            HicUtil_c::toType<SyntaxNode_c, ListNode_c>(item)->syntaxType !=
+                SyntaxNodeType_e::TOperator) {
+          UtilLog(Terror, "函数参数不合法：{}", node->name());
+          return false;
+        }
+        auto arg = HicUtil_c::toType<SyntaxNode_operator_c, ListNode_c>(item);
+        if (false == genNode(arg)) {
+          return false;
+        }
+        pushArgSize += ValueTypeSize_e::Sregister;
+        program.addCodeList(Instruction_e::TPUSH, TAX);
+      }
+      // call
+      auto fun = symbolManager->findFunction(real_node->name());
+      if (nullptr == fun) {
+        UtilLog(Terror, "未定义函数符号：{}", real_node->name());
+        return false;
+      }
+      if (fun->type->syntaxType == SyntaxNodeType_e::TNativeFunctionCall) {
+        // native call
+        program.addCodeList(Instruction_e::TNCALL, fun->address);
+      } else {
+        // function call
+        program.addCodeList(Instruction_e::TCALL, fun->address);
+      }
+      // 平栈
+      program.addCodeList(Instruction_e::TADD, RegisterId_e::TESP, pushArgSize);
+      program.addCodeList(Instruction_e::TPOP, RegisterId_e::TEBP);
     } break;
     case SyntaxNodeType_e::TCtrlReturn: {
       // 压入返回值

@@ -100,7 +100,7 @@ public:
     return nullptr;
   }
 
-  std::shared_ptr<SymbolItem_c> findValue(const std::string& key) {
+  std::shared_ptr<SymbolItem_value_c> findValue(const std::string& key) {
     return SymbolItem_c::toValue(find(key));
   }
   std::shared_ptr<SymbolItem_function_c> findFunction(const std::string& key) {
