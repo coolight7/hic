@@ -6,6 +6,8 @@ add_definitions(-DPROGEAM_ROOT_DIR="${CMAKE_SOURCE_DIR}")
 
 include_directories(.)
 
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
 add_subdirectory(src)
 add_subdirectory(client)
 add_subdirectory(test)
