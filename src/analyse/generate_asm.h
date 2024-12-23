@@ -128,7 +128,7 @@ public:
       case ListNodeType_e::Lexical: {
       } break;
       case ListNodeType_e::Syntactic: {
-        auto real_node = genNode(HicUtil_c::toType<SyntaxNode_c>(item));
+        auto real_node = genNode(Utilxx_c::toType<SyntaxNode_c>(item));
         if (false == real_node) {
           return false;
         }
@@ -165,7 +165,7 @@ public:
     } break;
     case SyntaxNodeType_e::TGroup: {
       // {} 隔离符号范围
-      auto real_node = HicUtil_c::toType<SyntaxNode_group_c>(node);
+      auto real_node = Utilxx_c::toType<SyntaxNode_group_c>(node);
       symbolManager->push(real_node.get());
       if (false == genChildren(node)) {
         return false;
@@ -173,7 +173,7 @@ public:
     } break;
     case SyntaxNodeType_e::TValueDefineInit: {
       // 全局区的符号由程序启动初始化，这里只初始化局部变量
-      auto real_node = HicUtil_c::toType<SyntaxNode_value_define_init_c>(node);
+      auto real_node = Utilxx_c::toType<SyntaxNode_value_define_init_c>(node);
       if (false == symbolManager->currentIsGlobal()) {
         // 由函数分配栈相对地址空间，这里执行初始化
         // 临时保存 AX
@@ -191,7 +191,7 @@ public:
       }
     } break;
     case SyntaxNodeType_e::TUserFunctionDefine: {
-      auto real_node = HicUtil_c::toType<SyntaxNode_function_define_user_c>(node);
+      auto real_node = Utilxx_c::toType<SyntaxNode_function_define_user_c>(node);
       // 读取参数
       // 执行函数代码
       if (false == genChildren(real_node->body)) {
@@ -201,7 +201,7 @@ public:
       program.addCodeList(Instruction_e::TRET);
     } break;
     case SyntaxNodeType_e::TUserFunctionCall: {
-      auto real_node = HicUtil_c::toType<SyntaxNode_function_call_c>(node);
+      auto real_node = Utilxx_c::toType<SyntaxNode_function_call_c>(node);
       // 计算函数参数
       if (false == genChildren(node)) {
         return false;
@@ -213,12 +213,12 @@ public:
       int pushArgSize = 0;
       for (const auto& item : real_node->children) {
         if (item->nodeType != ListNodeType_e::Syntactic ||
-            HicUtil_c::toType<SyntaxNode_c, ListNode_c>(item)->syntaxType !=
+            Utilxx_c::toType<SyntaxNode_c, ListNode_c>(item)->syntaxType !=
                 SyntaxNodeType_e::TOperator) {
           UtilLog(Terror, "函数参数不合法：{}", node->name());
           return false;
         }
-        auto arg = HicUtil_c::toType<SyntaxNode_operator_c, ListNode_c>(item);
+        auto arg = Utilxx_c::toType<SyntaxNode_operator_c, ListNode_c>(item);
         if (false == genNode(arg)) {
           return false;
         }
@@ -244,7 +244,7 @@ public:
     } break;
     case SyntaxNodeType_e::TCtrlReturn: {
       // 压入返回值
-      auto real_node = HicUtil_c::toType<SyntaxNode_ctrl_return_c>(node);
+      auto real_node = Utilxx_c::toType<SyntaxNode_ctrl_return_c>(node);
       if (nullptr != real_node->data) {
         if (real_node->data->returnType()->size() <= VMConfig_c::registerSize) {
           // 默认使用 ax 寄存器存储返回值

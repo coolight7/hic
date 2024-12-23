@@ -150,7 +150,7 @@ public:
   ListNode_c(const ListNode_c&) = delete;
 
   virtual void printInfo() const {}
-  virtual const std::string& name() const { return HicUtil_c::emptyString; }
+  virtual const std::string& name() const { return Utilxx_c::emptyString; }
   virtual std::shared_ptr<Type_c> returnType() const { return nullptr; }
 
   ListNodeType_e nodeType;

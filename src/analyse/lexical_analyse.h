@@ -31,7 +31,7 @@ public:
         return item;
       }
     }
-    return HicUtil_c::emptyString;
+    return Utilxx_c::emptyString;
   }
 
   // 判断是否是关键字(控制)

@@ -182,7 +182,7 @@ public:
   WordItem_c(WordEnumToken_e in_token) : ListNode_c(ListNodeType_e::Lexical), token(in_token) {}
   WordItem_c(const WordItem_c&) = delete;
 
-  const std::string& name() const override { return HicUtil_c::emptyString; }
+  const std::string& name() const override { return Utilxx_c::emptyString; }
 
   void printInfo() const override {
     const auto& str = WordEnumToken_c::toName(token);
@@ -553,7 +553,7 @@ public:
     if (nullptr != ptr) {
       switch (ptr->symbolType) {
       case SymbolType_e::TValue: {
-        return HicUtil_c::toType<SymbolItem_value_c>(ptr);
+        return Utilxx_c::toType<SymbolItem_value_c>(ptr);
       } break;
       }
     }
@@ -565,7 +565,7 @@ public:
     if (nullptr != ptr) {
       switch (ptr->symbolType) {
       case SymbolType_e::TFunction: {
-        return HicUtil_c::toType<SymbolItem_function_c>(ptr);
+        return Utilxx_c::toType<SymbolItem_function_c>(ptr);
       } break;
       }
     }
@@ -576,7 +576,7 @@ public:
     if (nullptr != ptr) {
       switch (ptr->symbolType) {
       case SymbolType_e::TEnum: {
-        return HicUtil_c::toType<SymbolItem_enum_c>(ptr);
+        return Utilxx_c::toType<SymbolItem_enum_c>(ptr);
       } break;
       }
     }
@@ -666,7 +666,7 @@ public:
   SyntaxNode_c() : ListNode_c(ListNodeType_e::Syntactic), syntaxType(SyntaxNodeType_e::TNormal) {}
   SyntaxNode_c(SyntaxNodeType_e type) : ListNode_c(ListNodeType_e::Syntactic), syntaxType(type) {}
 
-  const std::string& name() const override { return HicUtil_c::emptyString; }
+  const std::string& name() const override { return Utilxx_c::emptyString; }
 
   void printInfo() const override { debugPrint(); }
 

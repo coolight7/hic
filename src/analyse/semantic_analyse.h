@@ -196,7 +196,7 @@ public:
   }
 
   bool analyseNode_operator(std::shared_ptr<SyntaxNode_c> node) {
-    auto real_node = HicUtil_c::toType<SyntaxNode_operator_c>(node);
+    auto real_node = Utilxx_c::toType<SyntaxNode_operator_c>(node);
     switch (real_node->oper) {
     case WordEnumOperator_e::TUndefined:
     case WordEnumOperator_e::TLevel1:
@@ -444,7 +444,7 @@ public:
     } break;
     case SyntaxNodeType_e::TGroup: {
       // {} 隔离符号范围
-      auto real_node = HicUtil_c::toType<SyntaxNode_group_c>(node);
+      auto real_node = Utilxx_c::toType<SyntaxNode_group_c>(node);
       symbolManager->push(real_node.get());
       if (false == analyseChildren(node)) {
         return false;
@@ -461,7 +461,7 @@ public:
     case SyntaxNodeType_e::TValueDefineId: {
       // 变量定义，添加符号表
       auto result = std::make_shared<SymbolItem_value_c>();
-      auto real_node = HicUtil_c::toType<SyntaxNode_value_define_id_c>(node);
+      auto real_node = Utilxx_c::toType<SyntaxNode_value_define_id_c>(node);
       result->type = real_node->value_define->value_type;
       result->name = real_node->id->id;
       real_node->symbol = result;
@@ -472,7 +472,7 @@ public:
       }
     } break;
     case SyntaxNodeType_e::TValueDefineInit: {
-      auto real_node = HicUtil_c::toType<SyntaxNode_value_define_init_c>(node);
+      auto real_node = Utilxx_c::toType<SyntaxNode_value_define_init_c>(node);
       // 添加符号定义，解析 data
       if (false == analyseNodeList(real_node->define_id, real_node->data)) {
         return false;
@@ -493,12 +493,12 @@ public:
       auto real_node = std::shared_ptr<SyntaxNode_function_call_base_c>{};
       switch (node->syntaxType) {
       case SyntaxNodeType_e::TNativeFunctionCall: {
-        auto native_node = HicUtil_c::toType<SyntaxNode_native_call_c>(node);
+        auto native_node = Utilxx_c::toType<SyntaxNode_native_call_c>(node);
         result->name = native_node->id->name();
         real_node = native_node;
       } break;
       case SyntaxNodeType_e::TUserFunctionCall: {
-        auto fun_node = HicUtil_c::toType<SyntaxNode_function_call_c>(node);
+        auto fun_node = Utilxx_c::toType<SyntaxNode_function_call_c>(node);
         result->name = fun_node->id->name();
         real_node = fun_node;
       } break;
@@ -520,7 +520,7 @@ public:
     } break;
     case SyntaxNodeType_e::TNativeFunctionDefine: {
       auto result = std::make_shared<SymbolItem_function_c>();
-      auto real_node = HicUtil_c::toType<SyntaxNode_function_define_native_c>(node);
+      auto real_node = Utilxx_c::toType<SyntaxNode_function_define_native_c>(node);
       result->name = real_node->id->name();
       result->type = real_node;
       // 添加函数符号定义
@@ -541,7 +541,7 @@ public:
     } break;
     case SyntaxNodeType_e::TUserFunctionDefine: {
       auto result = std::make_shared<SymbolItem_function_c>();
-      auto real_node = HicUtil_c::toType<SyntaxNode_function_define_user_c>(node);
+      auto real_node = Utilxx_c::toType<SyntaxNode_function_define_user_c>(node);
       result->name = real_node->id->name();
       result->type = real_node;
       // 添加函数符号定义
@@ -569,7 +569,7 @@ public:
       real_node->symbol = result;
     } break;
     case SyntaxNodeType_e::TCtrlIfBranch: {
-      auto real_node = HicUtil_c::toType<SyntaxNode_if_branch_c>(node);
+      auto real_node = Utilxx_c::toType<SyntaxNode_if_branch_c>(node);
       symbolManager->push(real_node->if_body.get());
       // 读取 expr || body
       if (false == analyseNodeList(real_node->if_expr, real_node->if_body)) {
@@ -581,7 +581,7 @@ public:
       }
     } break;
     case SyntaxNodeType_e::TCtrlIf: {
-      auto real_node = HicUtil_c::toType<SyntaxNode_if_c>(node);
+      auto real_node = Utilxx_c::toType<SyntaxNode_if_c>(node);
       // 检查 branch
       for (const auto& item : real_node->branchs) {
         if (false == analyseNode(item)) {
@@ -590,7 +590,7 @@ public:
       }
     } break;
     case SyntaxNodeType_e::TCtrlWhile: {
-      auto real_node = HicUtil_c::toType<SyntaxNode_while_c>(node);
+      auto real_node = Utilxx_c::toType<SyntaxNode_while_c>(node);
       symbolManager->push(real_node->body.get());
       // 检查
       if (false == analyseNode(real_node->loop_expr) || false == analyseNode(real_node->body)) {
@@ -603,7 +603,7 @@ public:
     } break;
     case SyntaxNodeType_e::TCtrlFor: {
       // TODO: 将 for 的 [start_expr] 和 [body] 划分为两个符号范围？
-      auto real_node = HicUtil_c::toType<SyntaxNode_for_c>(node);
+      auto real_node = Utilxx_c::toType<SyntaxNode_for_c>(node);
       symbolManager->push(real_node.get());
       // 检查
       if (false == tryAnalyseNodeList(real_node->start_expr, real_node->loop_expr,
@@ -617,7 +617,7 @@ public:
       }
     } break;
     case SyntaxNodeType_e::TCtrlReturn: {
-      auto real_node = HicUtil_c::toType<SyntaxNode_ctrl_return_c>(node);
+      auto real_node = Utilxx_c::toType<SyntaxNode_ctrl_return_c>(node);
       // 允许:
       // - nullptr; return;
       // - data;    return data;
@@ -627,7 +627,7 @@ public:
     } break;
     case SyntaxNodeType_e::TEnumDefine: {
       auto result = std::make_shared<SymbolItem_enum_c>();
-      auto real_node = HicUtil_c::toType<SyntaxNode_enum_define_c>(node);
+      auto real_node = Utilxx_c::toType<SyntaxNode_enum_define_c>(node);
       result->name = real_node->id->id;
       result->type = real_node;
       // 检查声明位置为全局区
@@ -693,7 +693,7 @@ public:
         if (SyntaxNodeType_e::TOperator != node->syntaxType) {
           continue;
         }
-        auto word_node = HicUtil_c::toType<WordItem_c>(item);
+        auto word_node = Utilxx_c::toType<WordItem_c>(item);
         switch (word_node->token) {
         // TODO: 分配常量区
         case WordEnumToken_e::Tid: {
@@ -770,7 +770,7 @@ public:
         }
       } break;
       case ListNodeType_e::Syntactic: {
-        auto real_node = analyseNode(HicUtil_c::toType<SyntaxNode_c>(item));
+        auto real_node = analyseNode(Utilxx_c::toType<SyntaxNode_c>(item));
         if (false == real_node) {
           return false;
         }

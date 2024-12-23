@@ -141,7 +141,7 @@ public:
   std::shared_ptr<WordItem_id_c> assertToken_id(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
     _GEN_WORD(word);
     if (WordEnumToken_e::Tid == word.token) {
-      return HicUtil_c::toType<WordItem_id_c>(word_ptr);
+      return Utilxx_c::toType<WordItem_id_c>(word_ptr);
     }
     return nullptr;
   }
@@ -150,7 +150,7 @@ public:
   assertToken_nativeCall(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
     _GEN_WORD(word);
     if (WordEnumToken_e::TnativeCall == word.token) {
-      return HicUtil_c::toType<WordItem_nativeCall_c>(word_ptr);
+      return Utilxx_c::toType<WordItem_nativeCall_c>(word_ptr);
     }
     return nullptr;
   }
@@ -158,14 +158,14 @@ public:
   std::shared_ptr<WordItem_operator_c>
   assertToken_sign(WordEnumOperator_e sign, std::shared_ptr<WordItem_c> word_ptr = nullptr,
                    bool startWith = false) {
-    return HicUtil_c::toType<WordItem_operator_c>(
+    return Utilxx_c::toType<WordItem_operator_c>(
         assertToken(WordItem_operator_c{sign}, word_ptr, startWith));
   }
 
   std::shared_ptr<WordItem_operator_c>
   assertToken_sign(const std::string_view sign, std::shared_ptr<WordItem_c> word_ptr = nullptr,
                    bool startWith = false) {
-    return HicUtil_c::toType<WordItem_operator_c>(
+    return Utilxx_c::toType<WordItem_operator_c>(
         assertToken(WordItem_operator_c{WordItem_operator_c::toEnum(sign)}, word_ptr, startWith));
   }
 
@@ -198,7 +198,7 @@ public:
   std::shared_ptr<WordItem_string_c> parse_constexpr_string(std::shared_ptr<WordItem_c> word_ptr) {
     auto result = assertToken_type(WordEnumToken_e::Tstring, word_ptr);
     if (nullptr != result) {
-      return HicUtil_c::toType<WordItem_string_c>(result);
+      return Utilxx_c::toType<WordItem_string_c>(result);
     }
     return nullptr;
   }
@@ -267,7 +267,7 @@ public:
     auto re_node = std::make_shared<SyntaxNode_value_define_id_c>();
     if (re_node->set_value_define(parse_value_define(word_ptr))) {
       // ID
-      if (re_node->set_id(HicUtil_c::toType<WordItem_id_c>(assertToken_id()))) {
+      if (re_node->set_id(Utilxx_c::toType<WordItem_id_c>(assertToken_id()))) {
         return re_node;
       }
     }

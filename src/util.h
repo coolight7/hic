@@ -38,7 +38,7 @@ template <typename _T> inline std::string format(_T arg) {
     }                                                                                              \
   }
 
-class HicUtil_c {
+class Utilxx_c {
 public:
   inline static const std::string emptyString{};
 
