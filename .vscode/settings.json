@@ -87,5 +87,6 @@
         "stream_ref": "cpp"
     },
     "search.followSymlinks": false,
-    "C_Cpp.default.cppStandard": "c++23"
+    "C_Cpp.default.cppStandard": "c++23",
+    "C_Cpp.default.compilerPath": "/usr/local/bin/g++"
 }
