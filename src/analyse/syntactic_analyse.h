@@ -278,10 +278,15 @@ public:
   parse_value_define_init(std::shared_ptr<WordItem_c> word_ptr = nullptr) {
     auto re_node = std::make_shared<SyntaxNode_value_define_init_c>();
     if (re_node->set_define_id(parse_value_define_id(word_ptr))) {
-      if (assertToken_sign(WordEnumOperator_e::TSet)) {
+      std::shared_ptr<WordItem_c> op_set_ptr = nullptr;
+      _GEN_WORD(op_set);
+      if (assertToken_sign(WordEnumOperator_e::TSet, op_set_ptr)) {
         if (re_node->set_data(parse_expr())) {
           return re_node;
         }
+      } else if (assertToken_sign(WordEnumOperator_e::TSemicolon, op_set_ptr)) {
+        // ; 结束
+        Exit_d(-1, "变量 {} 在声明时没有立即初始化", re_node->define_id->id->name());
       }
     }
     return nullptr;

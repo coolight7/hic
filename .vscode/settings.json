@@ -84,7 +84,8 @@
         "cfenv": "cpp",
         "*.ipp": "cpp",
         "stdfloat": "cpp",
-        "stream_ref": "cpp"
+        "stream_ref": "cpp",
+        "expected": "cpp"
     },
     "search.followSymlinks": false,
     "C_Cpp.default.cppStandard": "c++23",

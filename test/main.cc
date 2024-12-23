@@ -264,7 +264,8 @@ void test_readFile_SemanticAnalyse() {
 void test_readFile_gen() {
   std::cout << std::endl << "----------- test_readFile_gen -----------" << std::endl << std::endl;
   std::string code;
-  const char* file_path = PROGEAM_ROOT_DIR "/resource/test1.hic";
+  // const char* file_path = PROGEAM_ROOT_DIR "/resource/test1.hic";
+  const char* file_path = PROGEAM_ROOT_DIR "/resource/example_add.hic";
   std::ifstream stream{file_path};
   if (false == stream.is_open()) {
     std::cout << "文件打开失败: " << file_path << std::endl;
@@ -276,8 +277,8 @@ void test_readFile_gen() {
   }
   stream.close();
 
-  SyntacticAnalysis_c::enableLog_assertToken = false;
-  SyntacticAnalysis_c::enableLog_parseCode = false;
+  SyntacticAnalysis_c::enableLog_assertToken = true;
+  SyntacticAnalysis_c::enableLog_parseCode = true;
   SemanticAnalyse_c::enableLog_analyseNode = true;
   GenerateAsm_c analyse{};
   analyse.init(code);
@@ -308,10 +309,10 @@ void test_client() { std::cout << test_add(1, 2) << std::endl; }
 
 int main() {
   std::cout << "<========= test start ========>" << std::endl;
-  test_LexicalAnalyse();
-  test_SyntacticAnalysis();
-  test_SemanticAnalyse();
-  test_readFile_SemanticAnalyse();
+  // test_LexicalAnalyse();
+  // test_SyntacticAnalysis();
+  // test_SemanticAnalyse();
+  // test_readFile_SemanticAnalyse();
   test_readFile_gen();
   std::cout << "<========= test  end  ========>" << std::endl;
   return 0;

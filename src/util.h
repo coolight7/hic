@@ -38,6 +38,12 @@ template <typename _T> inline std::string format(_T arg) {
     }                                                                                              \
   }
 
+#define Exit_d(code, ...) \
+  { \
+      std::cout << std::format(__VA_ARGS__) << std::endl;                                          \
+      exit(code);                                                                    \
+  }
+
 class Utilxx_c {
 public:
   inline static const std::string emptyString{};
