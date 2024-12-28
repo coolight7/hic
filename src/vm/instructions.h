@@ -87,8 +87,10 @@ public:
     assert(size > 0 && size <= 8);
     if (size > 4) {
       return Instruction_e::TSL;
-    } else if (size > 1) {
+    } else if (size > 2) {
       return Instruction_e::TSI;
+    } else if (size > 1) {
+      return Instruction_e::TSS;
     }
     return Instruction_e::TSC;
   }
@@ -97,8 +99,10 @@ public:
     assert(size > 0 && size <= 8);
     if (size > 4) {
       return Instruction_e::TLL;
-    } else if (size > 1) {
+    } else if (size > 2) {
       return Instruction_e::TLI;
+    } else if (size > 1) {
+      return Instruction_e::TLS;
     }
     return Instruction_e::TLC;
   }

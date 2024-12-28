@@ -230,7 +230,7 @@ public:
           return false;
         }
         pushArgSize += ValueTypeSize_e::Sregister;
-        program->addCodeList(Instruction_e::TPUSH, TAX);
+        program->addCodeList(Instruction_e::TPUSH, RegisterId_e::TAX);
       }
       // call
       auto fun = symbolManager->findFunction(real_node->name());
@@ -246,7 +246,8 @@ public:
         program->addCodeList(Instruction_e::TCALL, fun->address);
       }
       // 平栈
-      program->addCodeList(Instruction_e::TADD, RegisterId_e::TESP, pushArgSize);
+      program->addCodeList(Instruction_e::TMOVI, RegisterId_e::TAX, (long long)(pushArgSize));
+      program->addCodeList(Instruction_e::TADD, RegisterId_e::TESP, RegisterId_e::TAX);
       program->addCodeList(Instruction_e::TPOP, RegisterId_e::TEBP);
     } break;
     case SyntaxNodeType_e::TCtrlReturn: {

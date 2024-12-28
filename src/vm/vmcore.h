@@ -25,7 +25,7 @@ public:
     } else {
       auto result = *(T*)(program->code.c_str() + i);
       i += sizeof(T);
-      std::cout << std::format("{}({})", sizeof(T), result) << " ";
+      std::cout << std::format("s{}(0x{:X})", sizeof(T), result) << " ";
       return result;
     }
   }
@@ -108,86 +108,69 @@ public:
         case Instruction_e::TADD: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
           auto arg2 = readCodeItem<RegisterId_e>(i);
-          auto arg3 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TSUB: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
           auto arg2 = readCodeItem<RegisterId_e>(i);
-          auto arg3 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TMUL: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
           auto arg2 = readCodeItem<RegisterId_e>(i);
-          auto arg3 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TDIV: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
           auto arg2 = readCodeItem<RegisterId_e>(i);
-          auto arg3 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TMOD: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
           auto arg2 = readCodeItem<RegisterId_e>(i);
-          auto arg3 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TSHL: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
           auto arg2 = readCodeItem<RegisterId_e>(i);
-          auto arg3 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TSHR: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
           auto arg2 = readCodeItem<RegisterId_e>(i);
-          auto arg3 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TNOT: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
-          auto arg2 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TXOR: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
           auto arg2 = readCodeItem<RegisterId_e>(i);
-          auto arg3 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TAND: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
           auto arg2 = readCodeItem<RegisterId_e>(i);
-          auto arg3 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TOR: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
           auto arg2 = readCodeItem<RegisterId_e>(i);
-          auto arg3 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TEQ: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
           auto arg2 = readCodeItem<RegisterId_e>(i);
-          auto arg3 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TNEQ: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
           auto arg2 = readCodeItem<RegisterId_e>(i);
-          auto arg3 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TLT: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
           auto arg2 = readCodeItem<RegisterId_e>(i);
-          auto arg3 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TGT: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
           auto arg2 = readCodeItem<RegisterId_e>(i);
-          auto arg3 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TLE: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
           auto arg2 = readCodeItem<RegisterId_e>(i);
-          auto arg3 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TGE: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
           auto arg2 = readCodeItem<RegisterId_e>(i);
-          auto arg3 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TPUSH: {
           auto arg1 = readCodeItem<RegisterId_e>(i);
@@ -196,7 +179,7 @@ public:
           auto arg1 = readCodeItem<RegisterId_e>(i);
         } break;
         case Instruction_e::TCALL: {
-          auto arg1 = readCodeItem<RegisterId_e>(i);
+          auto arg1 = readCodeItem<Immediate64_t>(i);
         } break;
         case Instruction_e::TRET: {
         } break;
