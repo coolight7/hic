@@ -47,13 +47,20 @@ public:
     std::cout << "<code> size: " << code.size() << std::endl;
   }
 
-  template <typename _T> int addCode(_T arg) { return addByType(code, arg); }
+  template <typename _T> int addCode(_T arg, bool appendEnter = true) {
+    auto ret = addByType(code, arg);
+    if (appendEnter) {
+      return addByType(code, '\n');
+    }
+    return ret;
+  }
 
   template <typename _T> int addData(_T arg) { return addByType(data, arg); }
 
   template <typename... _T> int addCodeList(_T... args) {
     int index = code.size();
-    (addCode(args), ...);
+    (addCode(args, false), ...);
+    addCode('\n', false);
     return index;
   }
 
@@ -82,9 +89,9 @@ private:
   template <typename T> static int addByType(std::string& str, T data) {
     int index = str.size();
     if constexpr (std::is_same_v<T, Instruction_e>) {
-      addToStr(str, Instruction_c::toInt(data));
+      addToStr(str, (InstructionByte_t)Instruction_c::toInt(data));
     } else if constexpr (std::is_same_v<T, RegisterId_e>) {
-      addToStr(str, RegisterId_c::toInt(data));
+      addToStr(str, (RegisterByte_t)RegisterId_c::toInt(data));
     } else {
       addToStr(str, data);
     }
@@ -98,7 +105,7 @@ public:
   inline static bool enablePrintASM = false;
 
   bool init(std::string_view in_code) {
-    program.init();
+    program->init();
     auto result = semanticAnalyse.init(in_code);
     symbolManager = semanticAnalyse.symbolManager;
     return result;
@@ -177,17 +184,17 @@ public:
       if (false == symbolManager->currentIsGlobal()) {
         // 由函数分配栈相对地址空间，这里执行初始化
         // 临时保存 AX
-        program.addCodeList(Instruction_e::TPUSH, RegisterId_e::TAX);
+        program->addCodeList(Instruction_e::TPUSH, RegisterId_e::TAX);
         auto& data = real_node->data;
         // data 存入 AX
         if (false == genNode(data)) {
           return false;
         }
         // 由 data[AX] 初始化 变量
-        program.addCodeList(VMConfig_c::getStore(data->returnType()->size()), RegisterId_e::TAX,
+        program->addCodeList(VMConfig_c::getStore(data->returnType()->size()), RegisterId_e::TAX,
                             RegisterId_e::TEBP, real_node->define_id->symbol->address);
         // 恢复 AX
-        program.addCodeList(Instruction_e::TPOP, RegisterId_e::TAX);
+        program->addCodeList(Instruction_e::TPOP, RegisterId_e::TAX);
       }
     } break;
     case SyntaxNodeType_e::TUserFunctionDefine: {
@@ -198,7 +205,7 @@ public:
         return false;
       }
       // 无返回值 ret
-      program.addCodeList(Instruction_e::TRET);
+      program->addCodeList(Instruction_e::TRET);
     } break;
     case SyntaxNodeType_e::TUserFunctionCall: {
       auto real_node = Utilxx_c::toType<SyntaxNode_function_call_c>(node);
@@ -207,8 +214,8 @@ public:
         return false;
       }
       // 保存栈帧 ebp / esp
-      program.addCodeList(Instruction_e::TPUSH, RegisterId_e::TEBP);
-      program.addCodeList(Instruction_e::TMOV, RegisterId_e::TEBP, RegisterId_e::TESP);
+      program->addCodeList(Instruction_e::TPUSH, RegisterId_e::TEBP);
+      program->addCodeList(Instruction_e::TMOVR, RegisterId_e::TEBP, RegisterId_e::TESP);
       // 从左往右，添加函数参数
       int pushArgSize = 0;
       for (const auto& item : real_node->children) {
@@ -223,7 +230,7 @@ public:
           return false;
         }
         pushArgSize += ValueTypeSize_e::Sregister;
-        program.addCodeList(Instruction_e::TPUSH, TAX);
+        program->addCodeList(Instruction_e::TPUSH, TAX);
       }
       // call
       auto fun = symbolManager->findFunction(real_node->name());
@@ -233,14 +240,14 @@ public:
       }
       if (fun->type->syntaxType == SyntaxNodeType_e::TNativeFunctionCall) {
         // native call
-        program.addCodeList(Instruction_e::TNCALL, fun->address);
+        program->addCodeList(Instruction_e::TNCALL, fun->address);
       } else {
         // function call
-        program.addCodeList(Instruction_e::TCALL, fun->address);
+        program->addCodeList(Instruction_e::TCALL, fun->address);
       }
       // 平栈
-      program.addCodeList(Instruction_e::TADD, RegisterId_e::TESP, pushArgSize);
-      program.addCodeList(Instruction_e::TPOP, RegisterId_e::TEBP);
+      program->addCodeList(Instruction_e::TADD, RegisterId_e::TESP, pushArgSize);
+      program->addCodeList(Instruction_e::TPOP, RegisterId_e::TEBP);
     } break;
     case SyntaxNodeType_e::TCtrlReturn: {
       // 压入返回值
@@ -248,14 +255,14 @@ public:
       if (nullptr != real_node->data) {
         if (real_node->data->returnType()->size() <= VMConfig_c::registerSize) {
           // 默认使用 ax 寄存器存储返回值
-          // program.addCode(Instruction_e::TMOV, RegisterId_e::Tax, );
+          // program->addCode(Instruction_e::TMOV, RegisterId_e::Tax, );
         } else {
           // 使用内存传递
-          // program.addCode(Instruction_e::TMOV, RegisterId_e::Tax, );
+          // program->addCode(Instruction_e::TMOV, RegisterId_e::Tax, );
         }
       }
       // 返回
-      program.addCode(Instruction_e::TRET);
+      program->addCode(Instruction_e::TRET);
     } break;
     default:
       break;
@@ -280,8 +287,8 @@ public:
       case SymbolType_e::TValue: {
         // 分配地址
         auto symbol = SymbolItem_c::toValue(item.second);
-        symbol->address = program.data.size();
-        program.data.resize(program.data.size() + symbol->size());
+        symbol->address = program->data.size();
+        program->data.resize(program->data.size() + symbol->size());
         // TODO: 初始化全局变量
       } break;
       case SymbolType_e::TEnum: {
@@ -295,7 +302,8 @@ public:
     return genNode(root);
   }
 
-  ProgramPackage_c program{};
+  std::shared_ptr<ProgramPackage_c> program =std::make_shared<ProgramPackage_c>();
+
   SemanticAnalyse_c semanticAnalyse{};
   std::shared_ptr<SymbolManager_c> symbolManager;
 };

@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "client/source/test.h"
+#include "src/vm/vmcore.h"
 #include "src/analyse/generate_asm.h"
 #include "src/analyse/lexical_analyse.h"
 #include "src/analyse/semantic_analyse.h"
@@ -300,7 +301,9 @@ void test_readFile_gen() {
     UtilLineLog(Tdebug, "", 0, "## tree:");
     analyse.semanticAnalyse.syntacticAnalysis.root->debugPrint();
     UtilLineLog(Tdebug, "", 0, "## program:");
-    analyse.program.debugPrint();
+    analyse.program->debugPrint();
+    auto vm = HicVMCore_c();
+    vm.run(analyse.program);
   }
   assert(rebool);
 }

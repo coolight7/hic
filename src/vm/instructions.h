@@ -6,20 +6,23 @@
 
 #include "src/magic/macro.h"
 
+/// 指令集
+/// [指令码 8 bit] [操作数 最大 64 bit]
 GENERATE_ENUM(
     Instruction,
     // 值复制
     // 只能用在两个寄存器或立即数之间;
-    // - mov {目的寄存器} {源寄存器}
-    // - mov {目的寄存器} {立即数}
-    MOV,
+    MOVR, // - mov {目的寄存器} {源寄存器}
+    MOVI, // - mov {目的寄存器} {立即数}
     // 计算地址值后写入寄存器
     // - LEA ax, [bx + 4]
     LEA,
     LC, // load  char - load Rd, [Rn, #offset]  ;从内存 $Rn + offset 加载数据到寄存器 Rd
+    LS, // load  short
     LI, // load  int
     LL, // load  long(int64)
     SC, // store char - store Rd, [Rn, #offset] ;将寄存器 Rd 中的数据存储到内存 $Rn + offset
+    SS, // store short
     SI,   // store int
     SL,   // store long(int64)
     ADD,  // +
@@ -41,15 +44,16 @@ GENERATE_ENUM(
     GE,   // 大于等于 >=
     PUSH, // push {源寄存器}
     POP,  // pop {目的寄存器}
-    CALL, // call {function}
+    CALL, // call {function addr}
     RET,  // return
     NVAR, // 创建新栈帧
     DARG, // 删除当前栈帧
     JMP,  // jump
     JZ,   // jump 如果结果为0或相等
     JNZ,  // jump 如果结果非0或不等
-    NCALL // 内置函数调用
+    NCALL // NCALL {func id} 内置函数调用
 );
+
 
 GENERATE_ENUM(RegisterId,
               AX, // 通用寄存器
@@ -60,6 +64,13 @@ GENERATE_ENUM(RegisterId,
               ESP);
 
 #include "src/magic/unset_macro.h"
+
+using InstructionByte_t = unsigned char;
+using RegisterByte_t = unsigned char;
+using Immediate8_t = char;
+using Immediate16_t = short int;
+using Immediate32_t = int;
+using Immediate64_t = long long;
 
 class VMConfig_c {
 public:
