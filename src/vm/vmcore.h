@@ -15,17 +15,17 @@ public:
     if constexpr (std::is_same_v<T, Instruction_e>) {
       auto result = Instruction_c::toEnum(*(InstructionByte_t*)(program->code.c_str() + i));
       i += sizeof(InstructionByte_t);
-      std::cout << Instruction_c::toName(result) << " ";
+      std::cout << Instruction_c::toName(result) << "\t";
       return result;
     } else if constexpr (std::is_same_v<T, RegisterId_e>) {
       auto result = RegisterId_c::toEnum(*(RegisterByte_t*)(program->code.c_str() + i));
       i += sizeof(RegisterByte_t);
-      std::cout << RegisterId_c::toName(result) << " ";
+      std::cout << RegisterId_c::toName(result) << "\t";
       return result;
     } else {
       auto result = *(T*)(program->code.c_str() + i);
       i += sizeof(T);
-      std::cout << std::format("s{}(0x{:X})", sizeof(T), result) << " ";
+      std::cout << std::format("s{}(0x{:X})", sizeof(T), result) << "\t";
       return result;
     }
   }
